@@ -25,5 +25,6 @@ data class CloudPostAuthUiState(
     val canRetry: Boolean,
     val canLogout: Boolean,
     val failureActionLabel: String,
-    val completionToken: Long?
+    val completionToken: Long?,
+    val needsGuestUpgradeReselection: Boolean
 )

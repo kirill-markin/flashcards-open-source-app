@@ -10,7 +10,9 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
@@ -63,6 +65,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -116,6 +119,8 @@ class CloudSignInViewModel(
 ) : ViewModel() {
     private var socialRepository: CloudSocialSignInRepository? = null
     private var socialAttemptId: String? = null
+    val acceptedSocialAttemptId: String?
+        get() = socialAttemptId
     private var initiatingMethod: AnalyticsAuthMethod = AnalyticsAuthMethod.EMAIL
     private var sessionAcceptedReported: Boolean = false
     private var emailAttemptOpen: Boolean = false
@@ -132,7 +137,13 @@ class CloudSignInViewModel(
             val id = nextAuthAttemptId(draftState.value)
             draftState.update { startCloudVerifyCodeAttempt(it, id) }
             publishVerifiedLinkContext(id, context, false, false)
-            if (selection != null) draftState.update { it.copy(pendingSelection = selection) }
+            if (selection != null) {
+                draftState.update { it.copy(pendingSelection = selection) }
+            } else if (context.unavailableGuestUpgradeWorkspaceId != null) {
+                val retry = CloudPostAuthRetryAction.RefreshGuestUpgradeWorkspaces(id, context)
+                draftState.update { it.copy(retryAction = retry) }
+                viewModelScope.launch { refreshGuestUpgradeWorkspaces(retry) }
+            }
         }
     }
     private val draftState = MutableStateFlow(
@@ -157,6 +168,8 @@ class CloudSignInViewModel(
     private var isSignInSurfacePresent: Boolean = true
 
     private val isPostAuthFailureActionInFlightState = MutableStateFlow(value = false)
+    private val shouldLeaveStalePostAuthState = MutableStateFlow(value = false)
+    val shouldLeaveStalePostAuth: StateFlow<Boolean> = shouldLeaveStalePostAuthState.asStateFlow()
 
     /**
      * Whether the post-auth failure action — a log out, which waits for the analytics drain before
@@ -250,7 +263,8 @@ class CloudSignInViewModel(
                     resetAllowed = draft.postAuthResetAllowed,
                     strings = strings
                 ),
-                completionToken = draft.completionToken
+                completionToken = draft.completionToken,
+                needsGuestUpgradeReselection = draft.linkContext?.unavailableGuestUpgradeWorkspaceId != null
             )
         },
         initialValue = CloudPostAuthUiState(
@@ -268,7 +282,8 @@ class CloudSignInViewModel(
             canRetry = false,
             canLogout = false,
             failureActionLabel = strings.get(R.string.settings_logout),
-            completionToken = null
+            completionToken = null,
+            needsGuestUpgradeReselection = false
         )
     )
 
@@ -509,6 +524,65 @@ class CloudSignInViewModel(
         analytics.track(AnalyticsEvent.AuthCodeFormShown(AnalyticsAuthMethod.EMAIL, signInStepSurface))
     }
 
+    fun restoreAcceptedPostAuth(attemptId: String) {
+        if (draftState.value.authAttemptId != 0L) return
+        viewModelScope.launch {
+            restoreAcceptedPostAuth(CloudPostAuthRetryAction.RestoreAcceptedSocialSignIn(attemptId))
+        }
+    }
+
+    private suspend fun restoreAcceptedPostAuth(retry: CloudPostAuthRetryAction.RestoreAcceptedSocialSignIn) {
+        if (isCloudPostAuthProcessing(draftState.value)) return
+        val authAttemptId = nextAuthAttemptId(draftState.value)
+        draftState.update { state ->
+            state.copy(
+                authAttemptId = authAttemptId,
+                processingTitle = strings.get(R.string.settings_post_auth_processing_title),
+                postAuthErrorMessage = "",
+                postAuthErrorTechnicalDetails = null,
+                postAuthErrorTechnicalDetailsReportId = null,
+                retryAction = retry
+            )
+        }
+        val errorMessage = strings.get(R.string.settings_post_auth_setup_failed)
+        try {
+            if (providerSignIn.restoreAcceptedSignIn(retry.attemptId)) return
+            val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
+            if (!isCurrentAuthAttempt(authAttemptId)) return
+            if (cloudSettings.cloudState == CloudAccountState.LINKED) {
+                shouldLeaveStalePostAuthState.value = true
+                return
+            }
+            draftState.update { state ->
+                failCloudPostAuth(
+                    state = state,
+                    authAttemptId = authAttemptId,
+                    errorMessage = strings.get(R.string.settings_auth_fresh_attempt),
+                    errorTechnicalDetails = null,
+                    errorTechnicalDetailsReportId = null,
+                    recoveryErrorBlocked = true,
+                    postAuthResetAllowed = false
+                )
+            }
+        } catch (error: CancellationException) {
+            failPostAuthCancellationIfStillProcessing(authAttemptId, errorMessage)
+            throw error
+        } catch (error: Exception) {
+            val details = technicalDetailsFor(error)
+            draftState.update { state ->
+                failCloudPostAuth(
+                    state = state,
+                    authAttemptId = authAttemptId,
+                    errorMessage = errorMessage,
+                    errorTechnicalDetails = details,
+                    errorTechnicalDetailsReportId = technicalDetailsReportIdFor("cloud-post-auth-restore", details),
+                    recoveryErrorBlocked = false,
+                    postAuthResetAllowed = false
+                )
+            }
+        }
+    }
+
     suspend fun completePendingPostAuthIfNeeded() {
         val state = draftState.value
         val selection = state.pendingSelection ?: return
@@ -549,6 +623,7 @@ class CloudSignInViewModel(
         val currentAttemptId = draftState.value.authAttemptId
         when (val retryAction = draftState.value.retryAction) {
             null -> Unit
+            is CloudPostAuthRetryAction.RestoreAcceptedSocialSignIn -> restoreAcceptedPostAuth(retryAction)
             is CloudPostAuthRetryAction.CompleteCloudLink -> {
                 if (retryAction.authAttemptId != currentAttemptId) {
                     return
@@ -568,6 +643,9 @@ class CloudSignInViewModel(
                     linkContext = retryAction.linkContext,
                     selection = retryAction.selection
                 )
+            }
+            is CloudPostAuthRetryAction.RefreshGuestUpgradeWorkspaces -> {
+                refreshGuestUpgradeWorkspaces(retryAction)
             }
             is CloudPostAuthRetryAction.CompleteGuestLocalRecovery -> {
                 if (retryAction.authAttemptId != currentAttemptId) {
@@ -857,9 +935,19 @@ class CloudSignInViewModel(
                             error is IOException && error.message?.startsWith("Encrypted cloud") == true ->
                             AnalyticsAuthGuestUpgradeOutcome.STORAGE_ERROR
                         error is IOException -> AnalyticsAuthGuestUpgradeOutcome.OFFLINE
-                        error is CloudRemoteException && error.statusCode == 409 -> AnalyticsAuthGuestUpgradeOutcome.CONFLICT
+                        error is CloudGuestUpgradeDestinationUnavailableException ||
+                            error is CloudRemoteException && error.statusCode == 409 -> AnalyticsAuthGuestUpgradeOutcome.CONFLICT
                         else -> AnalyticsAuthGuestUpgradeOutcome.SERVER_ERROR
                     }, signInStepSurface))
+            }
+            if (error is CloudGuestUpgradeDestinationUnavailableException) {
+                val retry = CloudPostAuthRetryAction.RefreshGuestUpgradeWorkspaces(
+                    authAttemptId = authAttemptId,
+                    linkContext = error.linkContextForReselection(linkContext)
+                )
+                draftState.update { it.copy(processingTitle = "", retryAction = retry) }
+                refreshGuestUpgradeWorkspaces(retry)
+                return
             }
             if (selection is CloudWorkspaceLinkSelection.Existing && selection.discardDemoOnly &&
                 error is CloudRemoteException && error.statusCode == 409 &&
@@ -907,6 +995,44 @@ class CloudSignInViewModel(
                     errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId,
                     recoveryErrorBlocked = recoveryError != null,
                     postAuthResetAllowed = isInvalidCloudCredentialRecovery(error = recoveryError)
+                )
+            }
+        }
+    }
+
+    private suspend fun refreshGuestUpgradeWorkspaces(retry: CloudPostAuthRetryAction.RefreshGuestUpgradeWorkspaces) {
+        val authAttemptId = retry.authAttemptId
+        if (!isCurrentAuthAttempt(authAttemptId) || isCloudPostAuthProcessing(draftState.value)) {
+            return
+        }
+        draftState.update { state ->
+            state.copy(
+                pendingSelection = null,
+                processingTitle = strings.get(R.string.settings_post_auth_refreshing_workspaces),
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                postAuthErrorTechnicalDetails = null,
+                postAuthErrorTechnicalDetailsReportId = null
+            )
+        }
+        val errorMessage = strings.get(R.string.settings_post_auth_refresh_workspaces_failed)
+        try {
+            val context = cloudAccountRepository.refreshGuestUpgradeWorkspaces(retry.linkContext, socialAttemptId)
+            publishVerifiedLinkContext(authAttemptId, context, isSendingCode = false, isVerifyingCode = false)
+        } catch (error: CancellationException) {
+            failPostAuthCancellationIfStillProcessing(authAttemptId, errorMessage)
+            throw error
+        } catch (error: Exception) {
+            val details = technicalDetailsFor(error)
+            draftState.update { state ->
+                failCloudPostAuth(
+                    state = state,
+                    authAttemptId = authAttemptId,
+                    errorMessage = errorMessage,
+                    errorTechnicalDetails = details,
+                    errorTechnicalDetailsReportId = technicalDetailsReportIdFor("cloud-post-auth-workspaces", details),
+                    recoveryErrorBlocked = false,
+                    postAuthResetAllowed = false
                 )
             }
         }

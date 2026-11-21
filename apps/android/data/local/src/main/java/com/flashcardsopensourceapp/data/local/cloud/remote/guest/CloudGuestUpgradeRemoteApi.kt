@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.guest
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.parseCloudWorkspace
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
@@ -9,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
@@ -16,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePrepa
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 internal class CloudGuestUpgradeRemoteApi(
@@ -92,17 +95,24 @@ internal class CloudGuestUpgradeRemoteApi(
         guestWorkspaceSyncedAndOutboxDrained: Boolean,
         supportsDroppedEntities: Boolean
     ): CloudGuestUpgradeCompletion {
-        val response = httpClient.postJson(
-            baseUrl = apiBaseUrl,
-            path = "/guest-auth/upgrade/complete",
-            authorizationHeader = "Bearer $bearerToken",
-            body = buildGuestUpgradeCompleteRequest(
-                guestToken = guestToken,
-                selection = selection,
-                guestWorkspaceSyncedAndOutboxDrained = guestWorkspaceSyncedAndOutboxDrained,
-                supportsDroppedEntities = supportsDroppedEntities
+        val response = try {
+            httpClient.postJson(
+                baseUrl = apiBaseUrl,
+                path = "/guest-auth/upgrade/complete",
+                authorizationHeader = "Bearer $bearerToken",
+                body = buildGuestUpgradeCompleteRequest(
+                    guestToken = guestToken,
+                    selection = selection,
+                    guestWorkspaceSyncedAndOutboxDrained = guestWorkspaceSyncedAndOutboxDrained,
+                    supportsDroppedEntities = supportsDroppedEntities
+                )
             )
-        )
+        } catch (error: CloudRemoteException) {
+            if (selection is CloudGuestUpgradeSelection.Existing && error.isRejectedGuestUpgradeDestination()) {
+                throw CloudGuestUpgradeDestinationUnavailableException(selection.workspaceId, error)
+            }
+            throw error
+        }
         return CloudGuestUpgradeCompletion(
             workspace = parseCloudWorkspace(
                 workspace = response.requireCloudObject("workspace", "guestUpgradeComplete.workspace"),
@@ -113,6 +123,18 @@ internal class CloudGuestUpgradeRemoteApi(
                 response = response
             )
         )
+    }
+}
+
+private fun CloudRemoteException.isRejectedGuestUpgradeDestination(): Boolean {
+    if (statusCode != 404 || errorCode != "WORKSPACE_NOT_FOUND") {
+        return false
+    }
+    val body = responseBody ?: return false
+    return try {
+        JSONObject(body).optJSONObject("details")?.opt("guestUpgradeDestinationUnavailable") == true
+    } catch (_: JSONException) {
+        false
     }
 }
 

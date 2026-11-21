@@ -36,7 +36,7 @@ internal class CloudSessionProvider(
     /**
      * The newest credential refreshed from a link context's credential. The context is immutable
      * and a retry after a failed link resends it, while a rotated refresh token has already spent
-     * the one it holds; nothing persists the refreshed credential until the link succeeds.
+     * the one it holds. Social sign-in instead persists its accepted session before fetching workspaces.
      * Accessed only under the cloud operation lock.
      */
     private var refreshedLinkCredentials: RefreshedLinkCredentials? = null
@@ -103,10 +103,28 @@ internal class CloudSessionProvider(
     }
 
     suspend fun authenticatedSession(linkContext: CloudWorkspaceLinkContext): AuthenticatedCloudSession {
+        return authenticatedSession(linkContext, socialAttemptId = null)
+    }
+
+    suspend fun authenticatedSession(
+        linkContext: CloudWorkspaceLinkContext,
+        socialAttemptId: String?
+    ): AuthenticatedCloudSession {
         operationCoordinator.requireExclusiveOperation(operationName = "Workspace link session")
         try {
             val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
-            val linkCredentials: StoredCloudCredentials = refreshedLinkCredentials
+            val pending = socialAttemptId?.let { attempt ->
+                val stored = withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.loadPending() }
+                check(stored != null && stored.localId == attempt && stored.configuration == configuration &&
+                    stored.installationId == preferencesStore.currentCloudSettings().installationId &&
+                    stored.acceptedUserId == linkContext.userId && stored.acceptedSession != null &&
+                    stored.preparedContext != null) {
+                    "Workspace setup requires the matching accepted social sign-in."
+                }
+                stored
+            }
+            val linkCredentials: StoredCloudCredentials = pending?.acceptedSession?.credentials
+                ?: refreshedLinkCredentials
                 ?.takeIf { carried -> carried.linkContextCredentials == linkContext.credentials }
                 ?.refreshedCredentials
                 ?: linkContext.credentials
@@ -122,10 +140,19 @@ internal class CloudSessionProvider(
                         refreshToken = linkCredentials.refreshToken,
                         authBaseUrl = configuration.authBaseUrl
                     ).also { credentials ->
-                        refreshedLinkCredentials = RefreshedLinkCredentials(
-                            linkContextCredentials = linkContext.credentials,
-                            refreshedCredentials = credentials
-                        )
+                        if (pending == null) {
+                            refreshedLinkCredentials = RefreshedLinkCredentials(
+                                linkContextCredentials = linkContext.credentials,
+                                refreshedCredentials = credentials
+                            )
+                        } else {
+                            withContext(Dispatchers.IO) {
+                                preferencesStore.socialAuthStore.savePending(pending.copy(
+                                    acceptedSession = requireNotNull(pending.acceptedSession).copy(credentials = credentials),
+                                    preparedContext = requireNotNull(pending.preparedContext).copy(credentials = credentials)
+                                ))
+                            }
+                        }
                     }
                 }
             } else {

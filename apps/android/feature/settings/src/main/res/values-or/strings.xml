@@ -658,6 +658,9 @@
     <string name="settings_post_auth_prepare_guest_local_recovery_title">ଫେରାଇଥିବା ୱର୍କସ୍ପେସ୍ ପ୍ରସ୍ତୁତ ହେଉଛି…</string>
     <string name="settings_post_auth_choose_workspace_body">ଏହି Android ଡିଭାଇସ୍‌ରେ ଖୋଲିବାକୁ ଯୋଡ଼ା ୱର୍କସ୍ପେସ୍ ବାଛନ୍ତୁ ବା ଏକ ନୂଆ ୱର୍କସ୍ପେସ୍ ତିଆରି କରନ୍ତୁ।</string>
     <string name="settings_post_auth_choose_guest_workspace_body">ଏହି ଅତିଥି AI ସେସନ୍ ଯୋଡ଼ିବାକୁ ଏକ ଯୋଡ଼ା ୱର୍କସ୍ପେସ୍ ବାଛନ୍ତୁ ବା ଏକ ନୂଆ ୱର୍କସ୍ପେସ୍ ତିଆରି କରନ୍ତୁ।</string>
+    <string name="settings_post_auth_guest_workspace_unavailable">ସେହି ୱର୍କସ୍ପେସ୍ ଆଉ ଉପଲବ୍ଧ ନାହିଁ। ଆପଣଙ୍କ ଅତିଥି ତଥ୍ୟ ଏଠାରେ ଅଛି। ଅନ୍ୟ ଏକ ୱର୍କସ୍ପେସ୍ ବାଛନ୍ତୁ କିମ୍ବା ନୂଆଟିଏ ତିଆରି କରନ୍ତୁ।</string>
+    <string name="settings_post_auth_refreshing_workspaces">ୱର୍କସ୍ପେସ୍ ତାଲିକା ଅପଡେଟ୍ ହେଉଛି…</string>
+    <string name="settings_post_auth_refresh_workspaces_failed">ୱର୍କସ୍ପେସ୍ ତାଲିକା ଅପଡେଟ୍ ହୋଇପାରିଲା ନାହିଁ। ଅତିଥି ତଥ୍ୟ କେଉଁଠି ରଖିବେ ତାହା ବାଛିବା ପାଇଁ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
     <string name="settings_post_auth_current_workspace_suffix">%1$s (ଏବେର)</string>
     <string name="settings_post_auth_processing_title">ସାଇନ୍ ଇନ୍ ପୂରା ହେଉଛି</string>
     <string name="settings_post_auth_processing_body">ଏହି ଡିଭାଇସ୍‌ର କ୍ଲାଉଡ୍ ସେଟ୍‌ଅପ୍ ପୂରା ହେଉଛି।</string>

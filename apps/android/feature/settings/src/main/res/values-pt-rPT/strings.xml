@@ -640,6 +640,9 @@
     <string name="settings_post_auth_prepare_guest_local_recovery_title">A preparar o espaço de trabalho recuperado…</string>
     <string name="settings_post_auth_choose_workspace_body">Escolha um espaço de trabalho associado para abrir neste dispositivo Android ou crie um novo.</string>
     <string name="settings_post_auth_choose_guest_workspace_body">Escolha o espaço de trabalho associado que deve receber esta sessão de IA em modo de convidado ou crie um novo.</string>
+    <string name="settings_post_auth_guest_workspace_unavailable">Esse espaço de trabalho já não está disponível. Os seus dados de convidado continuam aqui. Escolha outro espaço de trabalho ou crie um novo.</string>
+    <string name="settings_post_auth_refreshing_workspaces">A atualizar os espaços de trabalho…</string>
+    <string name="settings_post_auth_refresh_workspaces_failed">Não foi possível atualizar os seus espaços de trabalho. Tente novamente para escolher para onde mover os seus dados de convidado.</string>
     <string name="settings_post_auth_current_workspace_suffix">%1$s (atual)</string>
     <string name="settings_post_auth_processing_title">A concluir o início de sessão</string>
     <string name="settings_post_auth_processing_body">A concluir a configuração da sincronização neste dispositivo.</string>

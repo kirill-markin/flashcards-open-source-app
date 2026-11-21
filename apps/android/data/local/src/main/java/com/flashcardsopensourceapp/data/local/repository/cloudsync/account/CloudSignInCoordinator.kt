@@ -184,6 +184,10 @@ internal class CloudSignInCoordinator(
                 currentSettings.linkedWorkspaceId == workspaceId &&
                 accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == workspaceId }
         }
+        val demoDestination = guestUpgradePreparation?.demoOnlyDestinationWorkspaceId
+        val unavailableDestination = demoDestination?.takeIf { destination ->
+            accountSnapshot.workspaces.none { it.workspaceId == destination }
+        }
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
@@ -191,7 +195,8 @@ internal class CloudSignInCoordinator(
             workspaces = accountSnapshot.workspaces,
             postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
             guestUpgradeMode = guestUpgradePreparation?.mode,
-            demoOnlyDestinationWorkspaceId = guestUpgradePreparation?.demoOnlyDestinationWorkspaceId,
+            demoOnlyDestinationWorkspaceId = demoDestination?.takeUnless { it == unavailableDestination },
+            unavailableGuestUpgradeWorkspaceId = unavailableDestination,
             preferredWorkspaceId = retainedWorkspaceId
                 ?: resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces.filter(CloudWorkspaceSummary::isVisible))
         )

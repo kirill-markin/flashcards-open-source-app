@@ -31,6 +31,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private const val socialPostAuthAttemptKey = "socialPostAuthAttemptId"
+
+internal fun NavHostController.navigateToSocialPostAuth(attemptId: String) {
+    navigate(route = SettingsAccountPostAuthDestination.route)
+    getBackStackEntry(SettingsAccountPostAuthDestination.route).savedStateHandle[socialPostAuthAttemptKey] = attemptId
+}
+
 internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
     appGraph: AppGraph,
     navController: NavHostController,
@@ -71,7 +78,10 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             )
             CloudSignInEntryContainer(
                 viewModel = signInViewModel,
-                onPostAuth = { navController.navigate(route = SettingsAccountPostAuthDestination.route) },
+                onPostAuth = {
+                    val attemptId = requireNotNull(signInViewModel.acceptedSocialAttemptId)
+                    navController.navigateToSocialPostAuth(attemptId)
+                },
                 onSendCode = {
                     coroutineScope.launch {
                         when (signInViewModel.sendCode()) {
@@ -183,6 +193,12 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     applicationContext = context.applicationContext
                 )
             )
+            val socialAttemptId = backStackEntry.savedStateHandle.get<String>(socialPostAuthAttemptKey)
+            LaunchedEffect(signInViewModel, socialAttemptId) {
+                if (socialAttemptId != null) {
+                    signInViewModel.restoreAcceptedPostAuth(socialAttemptId)
+                }
+            }
             val uiState by signInViewModel.postAuthUiState.collectAsStateWithLifecycle()
             // The failure action logs out, and the log out waits for the analytics queue to drain
             // before it clears the credential, so the button reports that wait rather than looking
@@ -191,6 +207,16 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             // the sign-out it describes is still running on the ViewModel's own scope.
             val isFailureActionInFlight by signInViewModel.isPostAuthFailureActionInFlight
                 .collectAsStateWithLifecycle()
+
+            val shouldLeaveStalePostAuth by signInViewModel.shouldLeaveStalePostAuth.collectAsStateWithLifecycle()
+            LaunchedEffect(backStackEntry, shouldLeaveStalePostAuth) {
+                if (shouldLeaveStalePostAuth && navController.currentBackStackEntry == backStackEntry) {
+                    navController.popBackStack(route = SettingsAccountAuthGraph.route, inclusive = true)
+                    if (navController.currentDestination?.route != SettingsAccountStatusDestination.route) {
+                        navigateToSettingsAccountStatus(navController = navController)
+                    }
+                }
+            }
 
             if (uiState.completionToken != null) {
                 LaunchedEffect(uiState.completionToken) {

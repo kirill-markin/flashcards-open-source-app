@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
@@ -195,9 +196,28 @@ internal class CloudWorkspaceLinkCoordinator(
         }
     }
 
+    suspend fun refreshGuestUpgradeWorkspaces(
+        linkContext: CloudWorkspaceLinkContext,
+        socialAttemptId: String?
+    ): CloudWorkspaceLinkContext {
+        return operationCoordinator.runExclusive {
+            val session = sessionProvider.authenticatedSession(linkContext, socialAttemptId)
+            val workspaces = session.accountSnapshot.workspaces.filterNot {
+                it.workspaceId == linkContext.unavailableGuestUpgradeWorkspaceId
+            }
+            linkContext.copy(
+                credentials = session.credentials,
+                workspaces = workspaces,
+                preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces.filter(CloudWorkspaceSummary::isVisible)),
+                demoOnlyDestinationWorkspaceId = null
+            )
+        }
+    }
+
     suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,
+        socialAttemptId: String?,
         onGuestCompletionStarted: () -> Unit,
         onGuestCompletionFinished: () -> Unit
     ): CloudWorkspaceSummary {
@@ -214,7 +234,8 @@ internal class CloudWorkspaceLinkCoordinator(
                 return@runExclusive resumedGuestUpgrade
             }
             val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession(
-                linkContext = linkContext
+                linkContext = linkContext,
+                socialAttemptId = socialAttemptId
             )
             val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
             val guestSession: StoredGuestAiSession = requireNotNull(
@@ -229,10 +250,14 @@ internal class CloudWorkspaceLinkCoordinator(
             val guestUpgradeMode: CloudGuestUpgradeMode = requireNotNull(linkContext.guestUpgradeMode) {
                 "Guest upgrade requires prepared guest upgrade context."
             }
-            val validatedSelection: CloudWorkspaceLinkSelection = validateWorkspaceSelection(
-                linkContext = linkContext,
-                selection = selection
-            )
+            if (selection is CloudWorkspaceLinkSelection.Existing) {
+                if (authenticatedSession.accountSnapshot.workspaces.none { it.workspaceId == selection.workspaceId }) {
+                    throw CloudGuestUpgradeDestinationUnavailableException(selection.workspaceId, null)
+                }
+                require(!selection.discardDemoOnly || selection.workspaceId == linkContext.demoOnlyDestinationWorkspaceId) {
+                    "Discarding the guest demo requires the server-prepared demo-only destination."
+                }
+            }
             var guestDemoCardCapture: GuestUpgradeDemoCardCapture? = null
             val linkedWorkspace: CloudWorkspaceSummary = preferencesStore.runWithLocalOutboxWritesBlocked(
                 reason = "Guest upgrade is finishing. Wait for account linking to complete before changing cards."
@@ -246,7 +271,7 @@ internal class CloudWorkspaceLinkCoordinator(
                     guestSession = guestSession
                 )
                 if (guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED &&
-                    (validatedSelection !is CloudWorkspaceLinkSelection.Existing || !validatedSelection.discardDemoOnly)) {
+                    (selection !is CloudWorkspaceLinkSelection.Existing || !selection.discardDemoOnly)) {
                     guestDemoCardCapture = captureGuestUpgradeDemoCardsReportingFailure(
                         guestWorkspaceId = guestSession.workspaceId
                     )
@@ -257,11 +282,11 @@ internal class CloudWorkspaceLinkCoordinator(
                     accountSnapshot = authenticatedSession.accountSnapshot,
                     guestSession = guestSession,
                     guestUpgradeMode = guestUpgradeMode,
-                    selection = validatedSelection,
+                    selection = selection,
                     completion = null
                 )
                 withContext(Dispatchers.IO) {
-                    preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
+                    preferencesStore.stagePendingGuestUpgrade(pendingGuestUpgradeState, socialAttemptId)
                 }
                 requireNotNull(resumePendingGuestUpgradeIfNeeded(onGuestCompletionStarted, onGuestCompletionFinished)) {
                     "Pending guest upgrade recovery did not find the saved upgrade state."

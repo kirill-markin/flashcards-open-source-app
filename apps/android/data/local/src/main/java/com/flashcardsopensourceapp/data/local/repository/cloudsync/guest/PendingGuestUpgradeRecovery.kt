@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
@@ -192,6 +193,17 @@ private suspend fun completePendingGuestUpgradeIfNeeded(
             selection = pendingGuestUpgradeState.selection.toGuestUpgradeSelection(),
             guestWorkspaceSyncedAndOutboxDrained = true,
             supportsDroppedEntities = pendingGuestUpgradeState.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
+        )
+    } catch (error: CloudGuestUpgradeDestinationUnavailableException) {
+        withContext(NonCancellable + Dispatchers.IO) {
+            preferencesStore.rejectGuestUpgradeDestination(pendingGuestUpgradeState, error.workspaceId)
+        }
+        if (pendingGuestUpgradeState.configuration != preferencesStore.currentServerConfiguration()) {
+            throw error
+        }
+        throw error.withRecoveryCredentials(
+            pendingGuestUpgradeState.accountSnapshot.userId,
+            pendingGuestUpgradeState.credentials
         )
     } catch (error: CloudRemoteException) {
         val selection = pendingGuestUpgradeState.selection

@@ -316,6 +316,10 @@ interface CloudAccountRepository {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary
+    suspend fun refreshGuestUpgradeWorkspaces(
+        linkContext: CloudWorkspaceLinkContext,
+        socialAttemptId: String?
+    ): CloudWorkspaceLinkContext
     suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,

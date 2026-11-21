@@ -92,6 +92,17 @@ internal data class PendingCloudSocialSignIn(
     val completionHandle: String? get() = completion?.completion ?: appleBrowser?.returned
         ?.takeIf { it.status == CloudAppleBrowserStatus.COMPLETED }?.handle
 
+    fun withRejectedGuestUpgradeDestination(workspaceId: String): PendingCloudSocialSignIn {
+        val context = requireNotNull(preparedContext)
+        return copy(
+            workspaceSelection = null,
+            preparedContext = context.copy(
+                demoOnlyDestinationWorkspaceId = null,
+                unavailableGuestUpgradeWorkspaceId = workspaceId
+            )
+        )
+    }
+
     fun snapshot(): CloudPendingSocialSignIn {
         return CloudPendingSocialSignIn(
             provider = provider,
@@ -158,6 +169,42 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         }
         check(pending.acceptedSession != null) { "Guest completion requires the accepted social session." }
         savePending(pending.copy(completedWorkspace = workspace))
+    }
+
+    fun stageGuestUpgradeSelection(
+        secrets: CloudCredentialSecrets,
+        socialAttemptId: String?,
+        selection: CloudWorkspaceLinkSelection
+    ): String? {
+        if (socialAttemptId == null) return secrets.pendingSocialSignIn
+        val pending = requireNotNull(secrets.pendingSocialSignIn?.let(::decodePending))
+        check(pending.localId == socialAttemptId && pending.acceptedSession != null) {
+            "Guest upgrade requires its accepted social sign-in."
+        }
+        return Json.encodeToString(pending.copy(workspaceSelection = selection))
+    }
+
+    fun rejectGuestUpgradeSelection(
+        secrets: CloudCredentialSecrets,
+        upgrade: PendingGuestUpgradeState,
+        workspaceId: String
+    ): String? {
+        val encoded = secrets.pendingSocialSignIn ?: return null
+        val pending = decodePending(encoded)
+        val context = pending.preparedContext
+        if (pending.configuration != upgrade.configuration ||
+            pending.acceptedUserId != upgrade.accountSnapshot.userId ||
+            pending.guestBinding != CloudSocialGuestBinding(upgrade.guestSession.userId, upgrade.guestSession.workspaceId) ||
+            pending.workspaceSelection != upgrade.selection || context?.guestUpgradeMode != upgrade.guestUpgradeMode ||
+            pending.completedWorkspace != null || pending.originalReauthenticationBinding != null) {
+            return encoded
+        }
+        val accepted = requireNotNull(pending.acceptedSession)
+        val reselecting = pending.withRejectedGuestUpgradeDestination(workspaceId)
+        return Json.encodeToString(reselecting.copy(
+            acceptedSession = accepted.copy(credentials = upgrade.credentials),
+            preparedContext = reselecting.preparedContext?.copy(credentials = upgrade.credentials)
+        ))
     }
 
     fun clearRejectedDemoOnlyUpgrade(upgrade: PendingGuestUpgradeState) {

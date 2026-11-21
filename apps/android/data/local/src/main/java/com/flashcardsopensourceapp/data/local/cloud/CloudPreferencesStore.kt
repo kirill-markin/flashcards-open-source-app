@@ -345,6 +345,26 @@ class CloudPreferencesStore(
         isGuestUpgradePending.value = true
     }
 
+    internal fun stagePendingGuestUpgrade(upgrade: PendingGuestUpgradeState, socialAttemptId: String?) {
+        credentialStore.update { secrets ->
+            secrets.copy(
+                pendingGuestUpgrade = encodePendingGuestUpgrade(pendingGuestUpgradeState = upgrade).toString(),
+                pendingSocialSignIn = socialAuthStore.stageGuestUpgradeSelection(secrets, socialAttemptId, upgrade.selection)
+            )
+        }
+        isGuestUpgradePending.value = true
+    }
+
+    internal fun rejectGuestUpgradeDestination(upgrade: PendingGuestUpgradeState, workspaceId: String) {
+        credentialStore.update { secrets ->
+            secrets.copy(
+                pendingGuestUpgrade = null,
+                pendingSocialSignIn = socialAuthStore.rejectGuestUpgradeSelection(secrets, upgrade, workspaceId)
+            )
+        }
+        isGuestUpgradePending.value = false
+    }
+
     internal fun clearPendingGuestUpgrade() {
         credentialStore.update { secrets ->
             secrets.copy(pendingGuestUpgrade = null)

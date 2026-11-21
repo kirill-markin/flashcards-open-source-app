@@ -1,11 +1,14 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account.credentialRecovery
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.guest.CloudGuestUpgradeRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
@@ -26,6 +29,12 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.creat
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createOtpChallenge
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
 import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -245,6 +254,55 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         assertEquals(CloudAccountState.GUEST, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(0, environment.database.outboxDao().countOutboxEntries())
         assertEquals(1, baseGateway.completeGuestUpgradeCalls)
+
+        val unavailableWorkspaceResponse = CloudGuestUpgradeRemoteApi(CloudJsonHttpClient(
+            OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request()
+                assertTrue(request.url.encodedPath.endsWith("/guest-auth/upgrade/complete"))
+                val requestBody = Buffer().also { requireNotNull(request.body).writeTo(it) }
+                val selection = JSONObject(requestBody.readUtf8()).getJSONObject("selection")
+                assertEquals(selectedWorkspace.workspaceId, selection.getString("workspaceId"))
+                Response.Builder()
+                    .request(request)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(404)
+                    .message("Not Found")
+                    .body(
+                        """{"error":"Workspace not found","code":"WORKSPACE_NOT_FOUND"}"""
+                            .toResponseBody("application/json".toMediaType())
+                    )
+                    .build()
+            }.build()
+        ))
+        val unavailableWorkspaceGateway = object : CloudRemoteGateway by baseGateway {
+            override suspend fun completeGuestUpgrade(
+                apiBaseUrl: String,
+                bearerToken: String,
+                guestToken: String,
+                selection: CloudGuestUpgradeSelection,
+                guestWorkspaceSyncedAndOutboxDrained: Boolean,
+                supportsDroppedEntities: Boolean
+            ): CloudGuestUpgradeCompletion {
+                return unavailableWorkspaceResponse.completeGuestUpgrade(
+                    apiBaseUrl, bearerToken, guestToken, selection, guestWorkspaceSyncedAndOutboxDrained,
+                    supportsDroppedEntities
+                )
+            }
+        }
+        val unavailableWorkspaceRuntime = environment.createRestartedCloudAccountRuntime(unavailableWorkspaceGateway)
+        try {
+            unavailableWorkspaceRuntime.repository.resumePendingAccountDeletionIfNeeded()
+            throw AssertionError("Expected the replayed workspace to be unavailable.")
+        } catch (error: CloudRemoteException) {
+            assertEquals(404, error.statusCode)
+            assertEquals("WORKSPACE_NOT_FOUND", error.errorCode)
+        }
+        assertEquals(savedPendingGuestUpgradeState, unavailableWorkspaceRuntime.cloudPreferencesStore.loadPendingGuestUpgrade())
+        assertEquals(CloudAccountState.GUEST, unavailableWorkspaceRuntime.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(
+            storedGuestSession,
+            environment.guestAiSessionStore.loadAnySession(savedPendingGuestUpgradeState.configuration)
+        )
 
         val replayGateway = object : CloudRemoteGateway by baseGateway {
             override suspend fun bootstrapPull(

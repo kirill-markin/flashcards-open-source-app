@@ -705,6 +705,9 @@
     <string name="settings_post_auth_prepare_guest_local_recovery_title">Preparing recovered workspace...</string>
     <string name="settings_post_auth_choose_workspace_body">Choose a linked workspace to open on this Android device, or create a new one.</string>
     <string name="settings_post_auth_choose_guest_workspace_body">Choose the linked workspace that should receive this Guest AI session, or create a new one.</string>
+    <string name="settings_post_auth_guest_workspace_unavailable">That workspace is no longer available. Your guest data is still here. Choose another workspace or create a new one.</string>
+    <string name="settings_post_auth_refreshing_workspaces">Refreshing workspaces…</string>
+    <string name="settings_post_auth_refresh_workspaces_failed">Couldn’t refresh your workspaces. Try again to choose where to move your guest data.</string>
     <string name="settings_post_auth_current_workspace_suffix">%1$s (Current)</string>
     <string name="settings_post_auth_processing_title">Finishing sign-in</string>
     <string name="settings_post_auth_processing_body">Completing cloud setup for this device.</string>

@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserRetur
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
@@ -268,8 +269,12 @@ class LocalCloudSocialSignInRepository(
     }
 
     override suspend fun prepareSignIn(attempt: String, onCredentialReceived: () -> Unit, onSessionAccepted: () -> Unit): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
-        val pending = requirePending(attempt)
-        prepareAcceptedSession(pending = acceptSession(pending, onCredentialReceived, onSessionAccepted))
+        val pending = acceptSession(requirePending(attempt), onCredentialReceived, onSessionAccepted)
+        val preparedContext = pending.preparedContext
+        if (preparedContext?.unavailableGuestUpgradeWorkspaceId != null && pending.workspaceSelection == null) {
+            return@runExclusive preparedContext
+        }
+        prepareAcceptedSession(pending)
     }
 
     override suspend fun completeSignIn(attempt: String, selection: CloudWorkspaceLinkSelection, onGuestCompletionStarted: () -> Unit, onGuestCompletionFinished: () -> Unit): CloudWorkspaceSummary {
@@ -279,17 +284,31 @@ class LocalCloudSocialSignInRepository(
             require(pending.workspaceSelection == null || pending.workspaceSelection == selection) {
                 "This sign-in already started completing a different workspace selection. Retry the original selection."
             }
-            savePending(pending.copy(workspaceSelection = selection))
+            if (context.guestUpgradeMode != CloudGuestUpgradeMode.MERGE_REQUIRED) {
+                savePending(pending.copy(workspaceSelection = selection))
+            }
             val workspace = if (pending.completedWorkspace != null &&
                 withContext(Dispatchers.IO) { preferencesStore.loadPendingGuestUpgrade() } == null
             ) {
                 pending.completedWorkspace
             } else if (context.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED) {
-                accountRepository.completeGuestUpgrade(
-                    linkContext = context, selection = selection,
-                    onGuestCompletionStarted = onGuestCompletionStarted,
-                    onGuestCompletionFinished = onGuestCompletionFinished
-                )
+                try {
+                    accountRepository.completeSocialGuestUpgrade(
+                        linkContext = context, selection = selection, attempt = attempt,
+                        onGuestCompletionStarted = onGuestCompletionStarted,
+                        onGuestCompletionFinished = onGuestCompletionFinished
+                    )
+                } catch (error: CloudGuestUpgradeDestinationUnavailableException) {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        val current = requirePending(attempt)
+                        if (current.preparedContext?.unavailableGuestUpgradeWorkspaceId != error.workspaceId) {
+                            preferencesStore.socialAuthStore.savePending(
+                                current.withRejectedGuestUpgradeDestination(error.workspaceId)
+                            )
+                        }
+                    }
+                    throw error
+                }
             } else {
                 val linked = accountRepository.completeSocialCloudLink(
                     linkContext = context,

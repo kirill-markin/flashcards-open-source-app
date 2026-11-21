@@ -563,6 +563,13 @@ class LocalCloudAccountRepository(
         )
     }
 
+    override suspend fun refreshGuestUpgradeWorkspaces(
+        linkContext: CloudWorkspaceLinkContext,
+        socialAttemptId: String?
+    ): CloudWorkspaceLinkContext {
+        return workspaceLinkCoordinator.refreshGuestUpgradeWorkspaces(linkContext, socialAttemptId)
+    }
+
     override suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,
@@ -572,6 +579,23 @@ class LocalCloudAccountRepository(
         return workspaceLinkCoordinator.completeGuestUpgrade(
             linkContext = linkContext,
             selection = selection,
+            socialAttemptId = null,
+            onGuestCompletionStarted = onGuestCompletionStarted,
+            onGuestCompletionFinished = onGuestCompletionFinished
+        )
+    }
+
+    internal suspend fun completeSocialGuestUpgrade(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection,
+        attempt: String,
+        onGuestCompletionStarted: () -> Unit,
+        onGuestCompletionFinished: () -> Unit
+    ): CloudWorkspaceSummary {
+        return workspaceLinkCoordinator.completeGuestUpgrade(
+            linkContext = linkContext,
+            selection = selection,
+            socialAttemptId = attempt,
             onGuestCompletionStarted = onGuestCompletionStarted,
             onGuestCompletionFinished = onGuestCompletionFinished
         )

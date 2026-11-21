@@ -334,6 +334,13 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         }
     }
 
+    override suspend fun refreshGuestUpgradeWorkspaces(
+        linkContext: CloudWorkspaceLinkContext,
+        socialAttemptId: String?
+    ): CloudWorkspaceLinkContext {
+        throw UnsupportedOperationException()
+    }
+
     override suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,

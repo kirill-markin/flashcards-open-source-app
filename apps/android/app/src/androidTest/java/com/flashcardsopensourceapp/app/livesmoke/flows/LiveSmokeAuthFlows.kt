@@ -4,6 +4,7 @@ package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -42,7 +43,7 @@ import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDismissBu
 import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
 import com.flashcardsopensourceapp.feature.settings.account.accountStatusSyncNowButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
-import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
+import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTagPrefix
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInSendCodeButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.cloudSignInErrorDetailsButtonTag
@@ -162,7 +163,7 @@ private fun LiveSmokeContext.waitForCloudSignInSendCodeOutcome(): CloudSignInSen
             "Sign-in send-code did not reach a terminal outcome. " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
-                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowMatcher = postAuthWorkspaceRowMatcher)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -189,12 +190,16 @@ private fun LiveSmokeContext.isCloudSignInSendCodeErrorVisible(): Boolean {
         hasVisibleText(text = cloudSignInSendCodeFailedText, substring = false)
 }
 
+private val postAuthWorkspaceRowMatcher = SemanticsMatcher("post-auth workspace row") { node ->
+    node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(cloudPostAuthExistingButtonTagPrefix) == true
+}
+
 private fun LiveSmokeContext.completeCloudPostAuthWorkspaceSelectionIfNeeded() {
     if (hasVisibleText(text = cloudSyncChooserPrompt, substring = false).not()) {
         return
     }
 
-    val visibleRows: List<String> = captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)
+    val visibleRows: List<String> = captureVisibleWorkspaceRows(rowMatcher = postAuthWorkspaceRowMatcher)
     if (visibleRows.isEmpty()) {
         throw AssertionError(
             "Cloud sync chooser was visible without selectable workspace rows. " +
@@ -216,7 +221,7 @@ private fun LiveSmokeContext.completeCloudPostAuthWorkspaceSelectionIfNeeded() {
                 testTag = cloudPostAuthExistingButtonTag(workspaceId = preferredWorkspaceId)
             ).performClick()
         } else {
-            composeRule.onAllNodesWithTag(cloudPostAuthWorkspaceRowTag)[0].performClick()
+            composeRule.onAllNodes(postAuthWorkspaceRowMatcher)[0].performClick()
         }
         composeRule.waitForIdle()
     }
@@ -233,7 +238,7 @@ private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
                     "Cloud post-auth failed after sign-in. " +
                         "CloudSettings=${currentCloudSettingsSummary()} " +
                         "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
-                        "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)}"
+                        "VisibleRows=${captureVisibleWorkspaceRows(rowMatcher = postAuthWorkspaceRowMatcher)}"
                 )
             }
             composeRule.onNodeWithTag(testTag = accountStatusScreenTag).isDisplayed() &&
@@ -254,7 +259,7 @@ private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
             "Linked account status did not appear after sign-in. " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
-                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowMatcher = postAuthWorkspaceRowMatcher)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )

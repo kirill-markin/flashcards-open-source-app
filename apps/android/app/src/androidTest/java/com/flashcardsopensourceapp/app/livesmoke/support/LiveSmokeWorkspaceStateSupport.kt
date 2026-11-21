@@ -275,7 +275,11 @@ private fun LiveSmokeContext.scrollCurrentWorkspaceListToTopCard() {
 }
 
 internal fun LiveSmokeContext.captureVisibleWorkspaceRows(rowTag: String): List<String> {
-    return composeRule.onAllNodesWithTag(rowTag)
+    return captureVisibleWorkspaceRows(rowMatcher = hasTestTag(rowTag))
+}
+
+internal fun LiveSmokeContext.captureVisibleWorkspaceRows(rowMatcher: SemanticsMatcher): List<String> {
+    return composeRule.onAllNodes(rowMatcher)
         .fetchSemanticsNodes()
         .map(::nodeSummaryIncludingDescendants)
 }
