@@ -429,9 +429,11 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .rememberedListScroll(topRowID: Bindable(self.settingsScroll).settingsTopRowID, isContentReady: true)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
-        .nativeNavigationTitle(self.isBesideCompanion ? "" : aiSettingsLocalized("settings.title", "Settings"))
-        // A large title leaves an empty band in the iPad bar's row beside the side chat; Review and Progress match.
-        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
+        .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        // Beside the side chat a large title leaves an empty band in the shared bar, and a centred one would straddle
+        // both columns; the title stays for the back menu and VoiceOver.
+        .navigationBarTitleDisplayMode(self.isBesideCompanion ? .inline : .automatic)
+        .toolbar(removing: self.isBesideCompanion ? .title : nil)
         #if !targetEnvironment(macCatalyst)
         .toolbar { AICompanionToolbarItem() }
         #endif

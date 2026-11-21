@@ -80,9 +80,11 @@ struct LibraryScreen: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.libraryScreen)
-        .nativeNavigationTitle(self.isBesideCompanion ? "" : AppTab.library.localizedTitle)
-        // A large title leaves an empty band in the iPad bar's row beside the side chat; Review and Progress match.
-        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
+        .nativeNavigationTitle(AppTab.library.localizedTitle)
+        // Beside the side chat a large title leaves an empty band in the shared bar, and a centred one would straddle
+        // both columns; the title stays for the back menu and VoiceOver.
+        .navigationBarTitleDisplayMode(self.isBesideCompanion ? .inline : .automatic)
+        .toolbar(removing: self.isBesideCompanion ? .title : nil)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
             AICompanionToolbarItem()

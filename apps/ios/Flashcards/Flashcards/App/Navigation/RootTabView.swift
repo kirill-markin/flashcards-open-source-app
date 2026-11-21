@@ -712,8 +712,8 @@ struct RootTabView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    /// Every section hosts the side chat the same way: the pane beside the section's own navigation stack, so the
-    /// section's pushes stay in its column and the pane keeps its place.
+    /// Every section hosts the side chat the same way. On iPad the pane sits inside the section's one navigation stack,
+    /// so both share a bar beside a floating tab bar; on Duo's inner display and the Mac it sits beside that stack.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
         #if targetEnvironment(macCatalyst)
@@ -1088,7 +1088,7 @@ struct RootTabView: View {
         #endif
     }
 
-    /// The Mac's Library, and Duo's beside the pane's own stack.
+    /// The Mac's Library, and Duo's beside the pane's own stack; iPad's shares one stack with the pane above.
     private func libraryColumns(libraryPath: Binding<LibraryNavigationPath>) -> some View {
         AICompanionColumns(hostTab: .library) {
             NavigationStack(path: libraryPath) {
@@ -1179,7 +1179,7 @@ struct RootTabView: View {
                 }
             }
         } else {
-            // Settings pages push inside their column while the side chat stays open beside them.
+            // Duo: Settings pages push inside their column while the side chat stays open beside them.
             AICompanionColumns(hostTab: .settings) {
                 self.settingsStack(settingsPath: settingsPath)
             }
