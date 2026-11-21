@@ -158,6 +158,20 @@ extension EnvironmentValues {
 }
 
 extension View {
+    /// Keeps a section root's title as VoiceOver's first heading while the side chat leaves it off the shared bar.
+    func aiCompanionAccessibilityHeading(_ title: String, isBesideCompanion: Bool) -> some View {
+        self.overlay(alignment: .top) {
+            if isBesideCompanion {
+                Color.clear
+                    .frame(height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text(verbatim: title))
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilitySortPriority(1)
+            }
+        }
+    }
+
     func aiCompanionColumnPage() -> some View {
         self.modifier(AICompanionColumnPageKeyboard())
             .modifier(AICompanionColumnPageBar())

@@ -434,6 +434,7 @@ struct SettingsView: View {
         // both columns; the title stays for the back menu and VoiceOver.
         .navigationBarTitleDisplayMode(self.isBesideCompanion ? .inline : .automatic)
         .toolbar(removing: self.isBesideCompanion ? .title : nil)
+        .aiCompanionAccessibilityHeading(aiSettingsLocalized("settings.title", "Settings"), isBesideCompanion: self.isBesideCompanion)
         #if !targetEnvironment(macCatalyst)
         .toolbar { AICompanionToolbarItem() }
         #endif
