@@ -1,4 +1,4 @@
-import { useCallback, useRef, type Dispatch } from "react";
+import { useCallback, useLayoutEffect, useRef, type Dispatch } from "react";
 import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import { usePremiumPresenter } from "../../../premium/PremiumProvider";
 import {
@@ -65,6 +65,7 @@ type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
 type UseChatSessionActionsParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
+  accountId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;
   uiMessages: ChatSessionControllerUiMessages;
@@ -98,6 +99,7 @@ export function useChatSessionActions(
   const {
     indexedDbOpenRecoveryState,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiLocale,
     uiMessages,
@@ -128,7 +130,8 @@ export function useChatSessionActions(
     setKnownLiveCursor,
     startActiveRunLiveStream,
   } = snapshotSync;
-  const clearConversationRequestSequenceRef = useRef<number>(0);
+  const requestSequenceRef = useRef<number>(0);
+  const currentAccountIdRef = useRef<string | null>(accountId);
   const currentUiLocaleRef = useRef<Locale>(uiLocale);
   currentUiLocaleRef.current = uiLocale;
   type SessionConflictRecovery =
@@ -146,25 +149,32 @@ export function useChatSessionActions(
   } = useRemoteSessionProvisioning({
     indexedDbOpenRecoveryState,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiLocale,
     uiMessages,
   });
 
-  const beginFreshSessionRequestSequence = useCallback((): number => {
-    const nextSequence = clearConversationRequestSequenceRef.current + 1;
-    clearConversationRequestSequenceRef.current = nextSequence;
-    return nextSequence;
+  const invalidatePendingActions = useCallback((): void => {
+    requestSequenceRef.current += 1;
   }, []);
 
+  useLayoutEffect(() => {
+    if (currentAccountIdRef.current !== accountId) {
+      currentAccountIdRef.current = accountId;
+      invalidatePendingActions();
+    }
+  }, [accountId, invalidatePendingActions]);
+
   const getActiveRequestSequence = useCallback((): number => {
-    return clearConversationRequestSequenceRef.current;
+    return requestSequenceRef.current;
   }, []);
 
   const isRequestSequenceCurrent = useCallback((requestSequence: number): boolean => {
-    return clearConversationRequestSequenceRef.current === requestSequence
+    return requestSequenceRef.current === requestSequence
+      && currentAccountIdRef.current === accountId
       && runtimeRefs.currentWorkspaceIdRef.current === workspaceId;
-  }, [runtimeRefs, workspaceId]);
+  }, [accountId, runtimeRefs, workspaceId]);
 
   const canRecoverFromSessionIdConflict = useCallback((
     requestSequence: number,
@@ -227,13 +237,12 @@ export function useChatSessionActions(
     requestSequence: number,
     requestLocale: Locale,
   ): boolean => {
-    return clearConversationRequestSequenceRef.current === requestSequence
-      && runtimeRefs.currentWorkspaceIdRef.current === workspaceId
+    return isRequestSequenceCurrent(requestSequence)
       && runtimeRefs.currentSessionIdRef.current === sessionId
       && runtimeRefs.messagesRef.current.length === 0
       && runtimeRefs.runStateRef.current === "idle"
       && currentUiLocaleRef.current === requestLocale;
-  }, [runtimeRefs, workspaceId]);
+  }, [isRequestSequenceCurrent, runtimeRefs]);
 
   const ensureFreshSession = useCallback((
     sessionId: string,
@@ -541,7 +550,7 @@ export function useChatSessionActions(
         return null;
       }
 
-      const startRunResponse = await startChatRun(requestBody);
+      const startRunResponse = await startChatRun(requestBody, accountId);
       indexedDbOpenRecoveryState.throwIfFailed();
       return startRunResponse;
     };
@@ -717,7 +726,7 @@ export function useChatSessionActions(
       runtimeRefs.currentSessionRecoveryRef.current = recoveryRequest;
       const abortController = new AbortController();
       try {
-        const snapshot = await getCurrentChatSnapshot(workspaceId, abortController.signal);
+        const snapshot = await getCurrentChatSnapshot(workspaceId, abortController.signal, accountId);
         indexedDbOpenRecoveryState.throwIfFailed();
         if (isRecoverySessionCurrent() === false) {
           return finishStaleRequest();
@@ -903,6 +912,7 @@ export function useChatSessionActions(
       sessionId: response.sessionId,
     };
   }, [
+    accountId,
     applyRecoveredSnapshot,
     appendUserMessage,
     dispatch,
@@ -1040,7 +1050,7 @@ export function useChatSessionActions(
       return null;
     }
 
-    beginFreshSessionRequestSequence();
+    invalidatePendingActions();
 
     if (workspaceId === null) {
       detachLiveStream(null, null);
@@ -1061,10 +1071,10 @@ export function useChatSessionActions(
       sessionId: nextSessionId,
       chatConfig: loadStoredChatConfig(),
     });
-    ensureFreshSession(nextSessionId, clearConversationRequestSequenceRef.current, "new_chat");
+    ensureFreshSession(nextSessionId, requestSequenceRef.current, "new_chat");
     return nextSessionId;
   }, [
-    beginFreshSessionRequestSequence,
+    invalidatePendingActions,
     clearHistory,
     detachLiveStream,
     dispatch,

@@ -1,4 +1,5 @@
 import { transactionWithWorkspaceScope, type DatabaseExecutor, type WorkspaceDatabaseScope } from "../../database";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../customInstructions";
 import { mapChatItemRow, mapPersistedMessagesToStoredMessages, mapSessionRow } from "./mappers";
 import {
   listChatItemRowsAfterCursorWithExecutor,
@@ -103,6 +104,7 @@ export const getChatSessionSnapshotWithExecutor = async (
   return {
     ...mapSessionRow(sessionRow),
     messages: mapPersistedMessagesToStoredMessages(messages),
+    customInstructions: await loadWorkspaceChatInstructionsWithExecutor(executor, scope.workspaceId),
   };
 };
 

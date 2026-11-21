@@ -176,5 +176,19 @@ extension AIChatStoreTestSupport {
             _ = sessionId
             throw LocalStoreError.validation("Unexpected AI chat archive request in tests.")
         }
+
+        func loadCustomInstructions(session: CloudLinkedSession) async throws -> AIChatCustomInstructionsResponse {
+            _ = session
+            throw LocalStoreError.validation("Unexpected AI chat custom instructions request in tests.")
+        }
+
+        func saveCustomInstructions(
+            session: CloudLinkedSession,
+            customInstructions: String?
+        ) async throws -> AIChatCustomInstructionsResponse {
+            _ = session
+            _ = customInstructions
+            throw LocalStoreError.validation("Unexpected AI chat custom instructions save in tests.")
+        }
     }
 }

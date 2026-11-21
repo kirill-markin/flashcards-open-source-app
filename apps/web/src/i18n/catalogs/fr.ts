@@ -1550,6 +1550,15 @@ const frCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Posez une question sur les cartes, l'historique de révision, ou joignez des notes...",
     currentChatRecovered: "Cette discussion a été remplacée par une plus récente. Votre message est toujours dans la zone de saisie — envoyez-le à nouveau.",
+    customInstructions: {
+      add: "Ajouter des instructions personnalisées",
+      count: "{{count}} / {{max}}",
+      description: "Préférences que le chat IA suit dans cet espace de travail, comme la langue, le niveau, la longueur des réponses et le style des cartes.",
+      loadFailed: "Impossible de charger les instructions personnalisées.",
+      placeholder: "Par exemple : j'étudie l'allemand au niveau A2. Ajoute une phrase d'exemple au verso de chaque carte. Réponds brièvement.",
+      saveFailed: "Impossible d'enregistrer les instructions personnalisées. Réessayez.",
+      title: "Instructions personnalisées",
+    },
     dictation: {
       listening: "Écoute...",
       start: "Démarrer la dictée",

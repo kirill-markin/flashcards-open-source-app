@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Nur lesen: Alte Chats können nicht fortgesetzt werden.";
 "ai.history.readerLoading" = "Chat wird geladen...";
 "ai.history.readerLoadError" = "Dieser Chat konnte nicht geladen werden.";
+"ai.customInstructions.add" = "Eigene Anweisungen hinzufügen";
+"ai.customInstructions.title" = "Eigene Anweisungen";
+"ai.customInstructions.description" = "Vorgaben, denen der AI-Chat in diesem Arbeitsbereich folgt, etwa Sprache, Niveau, Antwortlänge und Kartenstil.";
+"ai.customInstructions.placeholder" = "Zum Beispiel: Ich lerne Spanisch auf Niveau A2. Füge auf der Rückseite jeder Karte einen Beispielsatz hinzu. Antworte kurz.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Eigene Anweisungen konnten nicht geladen werden.";
+"ai.customInstructions.saveFailed" = "Eigene Anweisungen konnten nicht gespeichert werden. Versuche es erneut.";
 "ai.consent.title" = "Bevor du KI verwendest";
 "ai.consent.warning" = "KI kann Fehler machen. Überprüfe wichtige Ergebnisse, bevor du dich darauf verlässt.";
 "ai.consent.disclosure.prompts" = "Die für deine Anfrage erforderlichen eingegebenen Nachrichten und der von Karten abgeleitete Kontext können an den gehosteten KI-Dienst gesendet werden.";

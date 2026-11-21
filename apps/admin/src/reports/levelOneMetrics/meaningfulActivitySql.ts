@@ -66,7 +66,7 @@ function buildRangeReviewsSql(
   return `SELECT events.actor_id::text AS actor_id,
       (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
       ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
-      events.occurred_at, events.event_id, events.platform
+      events.occurred_at, events.event_id, events.platform, events.os_name, events.device_type
     ${reviewRowsFromSql}
       AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
       AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
@@ -84,8 +84,10 @@ export function buildMeaningfulRangeReviewsCteSql(
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
 ): string {
-  return `meaningful_range_reviews AS (
-  SELECT range_reviews.*
+  // Build the bounded review rows before the version join can change their scan plan.
+  return `meaningful_range_reviews AS MATERIALIZED (
+  SELECT range_reviews.actor_id, range_reviews.activity_date, range_reviews.bucket_date,
+    range_reviews.platform, range_reviews.os_name, range_reviews.device_type
   FROM (
     ${buildRangeReviewsSql(period, range, eventPlatforms, eventDeviceTypes)}
   ) AS range_reviews

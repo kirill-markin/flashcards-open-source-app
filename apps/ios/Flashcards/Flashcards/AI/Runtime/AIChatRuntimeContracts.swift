@@ -154,6 +154,13 @@ protocol AIChatSessionServicing: Sendable {
         session: CloudLinkedSession,
         sessionId: String
     ) async throws -> AIChatArchivedSession
+
+    func loadCustomInstructions(session: CloudLinkedSession) async throws -> AIChatCustomInstructionsResponse
+
+    func saveCustomInstructions(
+        session: CloudLinkedSession,
+        customInstructions: String?
+    ) async throws -> AIChatCustomInstructionsResponse
 }
 
 protocol AIChatContextLoading: Sendable {

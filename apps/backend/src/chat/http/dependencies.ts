@@ -6,6 +6,7 @@ import {
 } from "../../aiUsage";
 import { createChatFileUpload } from "../../chatFiles";
 import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
+import { requireHumanManagedConnectionAccess } from "../../routes/workspaces/connectionAccess";
 import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
@@ -169,5 +170,31 @@ export async function loadSupportedRequestContext(
     dependencies.allowedOrigins,
   );
   assertSupportedTransport(requestContext);
+  return requestContext;
+}
+
+function assertExpectedAccount(request: Request, userId: string): void {
+  const expectedAccountId = new URL(request.url).searchParams.get("expectedAccountId");
+  if (expectedAccountId !== null && expectedAccountId !== userId) {
+    throw new HttpError(409, "The signed-in account changed. Reload the page.", "ACCOUNT_SCOPE_CHANGED");
+  }
+}
+
+export async function loadAccountBoundChatRequestContext(
+  request: Request,
+  dependencies: ChatRouteDependencies,
+): Promise<RequestContext> {
+  const requestContext = await loadSupportedRequestContext(request, dependencies);
+  assertExpectedAccount(request, requestContext.userId);
+  return requestContext;
+}
+
+export async function loadWorkspaceChatInstructionsRequestContext(
+  request: Request,
+  dependencies: ChatRouteDependencies,
+): Promise<RequestContext> {
+  const requestContext = await loadSupportedRequestContext(request, dependencies);
+  requireHumanManagedConnectionAccess(requestContext.transport);
+  assertExpectedAccount(request, requestContext.userId);
   return requestContext;
 }

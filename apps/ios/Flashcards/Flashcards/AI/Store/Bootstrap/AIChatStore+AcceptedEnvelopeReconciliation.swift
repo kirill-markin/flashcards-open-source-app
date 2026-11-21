@@ -37,6 +37,7 @@ extension AIChatStore {
         self.conversationScopeId = envelope.conversationScopeId
         self.requiresRemoteSessionProvisioning = false
         self.serverChatConfig = envelope.chatConfig
+        self.applyCustomInstructionsReading(envelope.customInstructions)
         self.applyComposerSuggestions(envelope.composerSuggestions)
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor
@@ -98,6 +99,7 @@ extension AIChatStore {
         self.conversationScopeId = envelope.conversationScopeId
         self.requiresRemoteSessionProvisioning = false
         self.serverChatConfig = envelope.chatConfig
+        self.applyCustomInstructionsReading(envelope.customInstructions)
         self.applyComposerSuggestions(envelope.composerSuggestions)
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor
@@ -148,6 +150,7 @@ extension AIChatStore {
         self.conversationScopeId = envelope.conversationScopeId
         self.requiresRemoteSessionProvisioning = false
         self.serverChatConfig = envelope.chatConfig
+        self.applyCustomInstructionsReading(envelope.customInstructions)
         self.applyComposerSuggestions(envelope.composerSuggestions)
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor

@@ -7,6 +7,7 @@ import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import { showPlatform } from "../levelOneMetrics/PeopleBreakdownSections";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
+import { loadReviewEventsByDeviceReport } from "./deviceBreakdownQuery";
 import {
   isNamedPerson,
   loadReviewEventsByPersonReport,
@@ -49,6 +50,9 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
   const loadByPlatform = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
     loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, signal)
   ), [eventPlatforms, eventDeviceTypes, appVersions]);
+  const loadByDevice = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
+    loadReviewEventsByDeviceReport(config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, signal)
+  ), [eventPlatforms, eventDeviceTypes, appVersions]);
   return (
     <>
       <BreakdownSection
@@ -72,27 +76,50 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
         buildExtraNotes={null}
         keyLink={{ getPath: getPersonPath, onNavigate: props.onNavigate }}
       />
-      <BreakdownSection
-        config={props.config}
-        dateRange={props.dateRange}
-        period={props.period}
-        onTerminalAdminError={props.onTerminalAdminError}
-        title="Review events by platform"
-        testId="who-studied-review-events-by-platform-section"
-        explanationId="who-studied-review-events-by-platform-explanation"
-        explanation={<>
-          {reviewEventsCount}
-          <li>Each review counts under its own platform, as the server resolved it from the device or agent connection that stored it. The five platforms with the most reviews over the available bars get their own colour; the rest are summed into Other. A missing platform is Unknown and ranks like any other.</li>
-          {reviewEventsRules}
-        </>}
-        countLabel="Review events"
-        unavailableBarText="Unavailable: retained source history does not cover all of its days."
-        noAvailableBarText="Retained source history does not cover this range."
-        loadReport={loadByPlatform}
-        formatValue={showPlatform}
-        buildExtraNotes={null}
-        keyLink={null}
-      />
+      <div>
+        <BreakdownSection
+          config={props.config}
+          dateRange={props.dateRange}
+          period={props.period}
+          onTerminalAdminError={props.onTerminalAdminError}
+          title="Review events by platform"
+          testId="who-studied-review-events-by-platform-section"
+          explanationId="who-studied-review-events-by-platform-explanation"
+          explanation={<>
+            {reviewEventsCount}
+            <li>Each review counts under its own platform, as the server resolved it from the device or agent connection that stored it. The five platforms with the most reviews over the available bars get their own colour; the rest are summed into Other. A missing platform is Unknown and ranks like any other.</li>
+            {reviewEventsRules}
+          </>}
+          countLabel="Review events"
+          unavailableBarText="Unavailable: retained source history does not cover all of its days."
+          noAvailableBarText="Retained source history does not cover this range."
+          loadReport={loadByPlatform}
+          formatValue={showPlatform}
+          buildExtraNotes={null}
+          keyLink={null}
+        />
+        <BreakdownSection
+          config={props.config}
+          dateRange={props.dateRange}
+          period={props.period}
+          onTerminalAdminError={props.onTerminalAdminError}
+          title="Review events by device"
+          testId="who-studied-review-events-by-device-section"
+          explanationId="who-studied-review-events-by-device-explanation"
+          explanation={<>
+            <li>Each native review counts once under its own device category, whatever its rating. Unknown includes native reviews with missing or unsupported device details.</li>
+            {reviewEventsRules}
+          </>}
+          countLabel="Review events"
+          unavailableBarText="Unavailable: retained source history does not cover all of its days."
+          noAvailableBarText="Retained source history does not cover this range."
+          loadReport={loadByDevice}
+          formatValue={showValue}
+          buildExtraNotes={null}
+          keyLink={null}
+          showDataTable
+        />
+      </div>
     </>
   );
 }

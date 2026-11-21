@@ -27,9 +27,31 @@ export function isNamedPerson(value: string): boolean {
   return value !== breakdownOtherValue && value !== breakdownUnknownValue;
 }
 
-// Every answered review on a selected platform and device class the Who studied people made in an available bar, each
-// under `valueSql` over its `meaningful_range_reviews` row; an app version selection keeps a person's
-// reviews in a bar as Who studied keeps the person there.
+/** The covered buckets and answered reviews that qualify under the Who studied filters. */
+export function buildMeasuredReviewsCtesSql(
+  range: AnalyticsDateRange,
+  period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+  appVersions: ReadonlyArray<string>,
+): string {
+  const isVersionNarrowed = appVersions.length > 0;
+  const appVersionPeopleCtesSql = isVersionNarrowed
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)}`
+    : "";
+  const appVersionPeopleJoinSql = isVersionNarrowed ? "\n  JOIN app_version_people USING (bucket_date, actor_id)" : "";
+  return `${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms, eventDeviceTypes)}${appVersionPeopleCtesSql}, measured_buckets AS (
+  SELECT buckets.bucket_date
+  FROM report_buckets AS buckets
+  CROSS JOIN activity_coverage AS coverage
+  WHERE buckets.selected_from >= coverage.history_from
+), measured_reviews AS (
+  SELECT review.*
+  FROM meaningful_range_reviews AS review
+  JOIN measured_buckets USING (bucket_date)${appVersionPeopleJoinSql}
+)`;
+}
+
 function buildReviewEventsBreakdownSql(
   valueSql: string,
   dateRange: AnalyticsDateRange,
@@ -40,22 +62,11 @@ function buildReviewEventsBreakdownSql(
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const isVersionNarrowed = appVersions.length > 0;
-  const appVersionPeopleCtesSql = isVersionNarrowed
-    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)}`
-    : "";
-  const appVersionPeopleJoinSql = isVersionNarrowed ? "\n  JOIN app_version_people USING (bucket_date, actor_id)" : "";
-  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms, eventDeviceTypes)}${appVersionPeopleCtesSql}, measured_buckets AS (
-  SELECT buckets.bucket_date
-  FROM report_buckets AS buckets
-  CROSS JOIN activity_coverage AS coverage
-  WHERE buckets.selected_from >= coverage.history_from
-), measured_values AS (
+  return buildBreakdownSql(`${buildMeasuredReviewsCtesSql(range, period, eventPlatforms, eventDeviceTypes, appVersions)}, measured_values AS (
   SELECT review.bucket_date,
     ${buildBreakdownValueSql(valueSql)} AS dimension_value,
     1 AS value_count
-  FROM meaningful_range_reviews AS review
-  JOIN measured_buckets USING (bucket_date)${appVersionPeopleJoinSql}
+  FROM measured_reviews AS review
 )`);
 }
 

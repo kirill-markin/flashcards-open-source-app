@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Alleen-lezen: oude chats kun je niet voortzetten.";
 "ai.history.readerLoading" = "Chat laden...";
 "ai.history.readerLoadError" = "Kan deze chat niet laden.";
+"ai.customInstructions.add" = "Aangepaste instructies toevoegen";
+"ai.customInstructions.title" = "Aangepaste instructies";
+"ai.customInstructions.description" = "Voorkeuren die de AI-chat in deze werkruimte volgt, zoals taal, niveau, lengte van antwoorden en kaartstijl.";
+"ai.customInstructions.placeholder" = "Bijvoorbeeld: ik leer Duits op A2-niveau. Voeg op de achterkant van elke kaart een voorbeeldzin toe. Antwoord kort.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Aangepaste instructies konden niet worden geladen.";
+"ai.customInstructions.saveFailed" = "Aangepaste instructies konden niet worden opgeslagen. Probeer het opnieuw.";
 "ai.consent.title" = "Voordat je AI gebruikt";
 "ai.consent.warning" = "AI kan fouten maken. Controleer belangrijke resultaten voordat je erop vertrouwt.";
 "ai.consent.disclosure.prompts" = "Getypte opdrachten en kaartcontext die nodig is voor je verzoek kunnen naar de gehoste AI-dienst worden verstuurd.";

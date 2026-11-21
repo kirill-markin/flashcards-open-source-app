@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "ಓದಲು ಮಾತ್ರ: ಹಳೆಯ ಚಾಟ್‌ಗಳನ್ನು ಮುಂದುವರಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.";
 "ai.history.readerLoading" = "ಚಾಟ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ...";
 "ai.history.readerLoadError" = "ಈ ಚಾಟ್ ಅನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.";
+"ai.customInstructions.add" = "ಕಸ್ಟಮ್ ಸೂಚನೆಗಳನ್ನು ಸೇರಿಸಿ";
+"ai.customInstructions.title" = "ಕಸ್ಟಮ್ ಸೂಚನೆಗಳು";
+"ai.customInstructions.description" = "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿ AI ಚಾಟ್ ಅನುಸರಿಸುವ ಆದ್ಯತೆಗಳು, ಉದಾಹರಣೆಗೆ ಭಾಷೆ, ಮಟ್ಟ, ಉತ್ತರದ ಉದ್ದ ಮತ್ತು ಕಾರ್ಡ್ ಶೈಲಿ.";
+"ai.customInstructions.placeholder" = "ಉದಾಹರಣೆ: ನಾನು A2 ಮಟ್ಟದಲ್ಲಿ ಜರ್ಮನ್ ಕಲಿಯುತ್ತಿದ್ದೇನೆ. ಪ್ರತಿ ಕಾರ್ಡ್‌ನ ಹಿಂಭಾಗದಲ್ಲಿ ಒಂದು ಉದಾಹರಣೆ ವಾಕ್ಯ ಸೇರಿಸಿ. ಉತ್ತರಗಳನ್ನು ಚಿಕ್ಕದಾಗಿಡಿ.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "ಕಸ್ಟಮ್ ಸೂಚನೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ.";
+"ai.customInstructions.saveFailed" = "ಕಸ್ಟಮ್ ಸೂಚನೆಗಳನ್ನು ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.consent.title" = "AI ಬಳಸುವ ಮೊದಲು";
 "ai.consent.warning" = "AI ತಪ್ಪಾಗಿರಬಹುದು. ಪ್ರಮುಖ ಫಲಿತಾಂಶಗಳನ್ನು ಅವಲಂಬಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.";
 "ai.consent.disclosure.prompts" = "ನಿಮ್ಮ ವಿನಂತಿಗೆ ಬೇಕಾದ ಟೈಪ್ ಮಾಡಿದ ಸಂದೇಶಗಳು ಮತ್ತು ಕಾರ್ಡ್‌ಗಳಿಂದ ಪಡೆದ ಸಂದರ್ಭವನ್ನು ಹೋಸ್ಟ್ ಮಾಡಿದ AI ಸೇವೆಗೆ ಕಳುಹಿಸಬಹುದು.";

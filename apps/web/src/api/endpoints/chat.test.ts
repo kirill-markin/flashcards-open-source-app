@@ -32,8 +32,10 @@ describe("chat API endpoints", () => {
       content: [{ type: "text", text: "hello" }],
       timezone: "Europe/Madrid",
       uiLocale: "ja",
-    });
+    }, "account-1");
 
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(requestUrl.searchParams.get("expectedAccountId")).toBe("account-1");
     const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
@@ -51,7 +53,10 @@ describe("chat API endpoints", () => {
       .mockResolvedValueOnce(createNewChatSessionResponse("session-1"));
     vi.stubGlobal("fetch", fetchMock);
 
-    await createNewChatSession("session-1", "workspace-1", "es-ES");
+    await createNewChatSession("session-1", "workspace-1", "es-ES", "account-1");
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(requestUrl.searchParams.get("expectedAccountId")).toBe("account-1");
 
     const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(chatRequestInit?.body).toBe(JSON.stringify({
@@ -66,12 +71,13 @@ describe("chat API endpoints", () => {
       .mockResolvedValueOnce(createChatSnapshotResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await getChatSnapshot("session-1", "workspace-1", new AbortController().signal);
+    await getChatSnapshot("session-1", "workspace-1", new AbortController().signal, "account-1");
 
     const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
     expect(requestUrl.pathname).toBe("/v1/chat");
     expect(requestUrl.searchParams.get("sessionId")).toBe("session-1");
     expect(requestUrl.searchParams.get("workspaceId")).toBe("workspace-1");
+    expect(requestUrl.searchParams.get("expectedAccountId")).toBe("account-1");
   });
 
   it("accepts legacy chat config metadata without exposing it in web state", async () => {
@@ -90,7 +96,7 @@ describe("chat API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal)).resolves.toMatchObject({
+    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal, null)).resolves.toMatchObject({
       sessionId: "session-1",
       chatConfig: {
         features: {

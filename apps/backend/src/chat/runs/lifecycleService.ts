@@ -11,6 +11,7 @@ import {
   createBackendObservationScope,
 } from "../../observability/sentry";
 import { ChatRunRowNotFoundError, ChatSessionNotCurrentError } from "../errors";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../customInstructions";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
@@ -364,6 +365,9 @@ export async function claimChatRun(
     );
 
     const messages = await buildLocalMessagesForClaimedRun(executor, scope, claimedRun.session_id, claimedRun.assistant_item_id);
+    const customInstructions = claimedRun.initiating_auth_is_signed_in
+      ? await loadWorkspaceChatInstructionsWithExecutor(executor, scope.workspaceId)
+      : null;
     // The policy mode is the stable producer/worker contract across rolling
     // deployments. Resolve provider settings at claim time so the current
     // worker can execute runs prepared by the previous API version without
@@ -390,6 +394,7 @@ export async function claimChatRun(
       clientPlatform: claimedRun.client_platform,
       clientOsName: claimedRun.client_os_name,
       clientDeviceType: claimedRun.client_device_type,
+      customInstructions,
       diagnostics: createDiagnostics(scope, claimedRun, messages, {
         model: runtimeConfig.modelId,
         aiCostMode: claimedRun.ai_cost_mode,

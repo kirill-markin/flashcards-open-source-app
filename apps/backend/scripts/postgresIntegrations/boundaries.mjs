@@ -73,9 +73,13 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0250_card_addition_recovery_clock_skew.sql",
-    expectedMigrationCount: 252,
+    migrationFileName: "0251_workspace_chat_instructions.sql",
+    expectedMigrationCount: 253,
     testFiles: Object.freeze([
+      "src/chat/customInstructions.postgres.integration.ts",
+      "src/chat/runs/canonicalOwner.postgres.integration.ts",
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/auth/accountRetirement.postgres.integration.ts",
@@ -126,9 +130,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 223,
     testFiles: Object.freeze([
       "src/aiUsage/aiUsage.postgres.integration.ts",
-      "src/chat/runs/canonicalOwner.postgres.integration.ts",
-      "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

@@ -58,6 +58,15 @@ struct CurrentWorkspaceView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameButton)
             }
+
+            if self.store.aiChatStore.currentCustomInstructionsScope != nil {
+                Section {
+                    NavigationLink(value: SettingsNavigationDestination.chatCustomInstructions) {
+                        Label(aiChatCustomInstructionsTitle(), systemImage: "text.bubble")
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceCustomInstructionsRow)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)

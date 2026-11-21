@@ -1550,6 +1550,15 @@ const itCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Chiedi di carte e cronologia dei ripassi oppure allega appunti...",
     currentChatRecovered: "Questa chat è stata sostituita da una più recente. Il tuo messaggio è ancora nella casella di testo: invialo di nuovo.",
+    customInstructions: {
+      add: "Aggiungi istruzioni personalizzate",
+      count: "{{count}} / {{max}}",
+      description: "Preferenze che la Chat AI segue in questa area di lavoro, come lingua, livello, lunghezza delle risposte e stile delle carte.",
+      loadFailed: "Impossibile caricare le istruzioni personalizzate.",
+      placeholder: "Per esempio: studio tedesco a livello A2. Aggiungi una frase di esempio sul retro di ogni carta. Rispondi in modo breve.",
+      saveFailed: "Impossibile salvare le istruzioni personalizzate. Riprova.",
+      title: "Istruzioni personalizzate",
+    },
     dictation: {
       listening: "In ascolto...",
       start: "Avvia la dettatura",

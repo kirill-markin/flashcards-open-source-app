@@ -824,4 +824,11 @@
     <string name="settings_tag_detail_open_review">Abrir «Rever»</string>
     <string name="settings_tag_detail_remove_tag">Remover etiqueta dos cartões</string>
     <string name="settings_tag_detail_unavailable">Esta etiqueta já não está disponível no espaço de trabalho atual.</string>
+    <string name="ai_chat_instructions_add">Adicionar instruções personalizadas</string>
+    <string name="ai_chat_instructions_title">Instruções personalizadas</string>
+    <string name="ai_chat_instructions_description">Preferências que o chat com IA segue neste espaço de trabalho, como idioma, nível, tamanho das respostas e estilo dos cartões.</string>
+    <string name="ai_chat_instructions_placeholder">Por exemplo: estudo alemão no nível A2. Adiciona uma frase de exemplo no verso de cada cartão. Responde de forma breve.</string>
+    <string name="ai_chat_instructions_count">%1$d / %2$d</string>
+    <string name="ai_chat_instructions_load_failed">Não foi possível carregar as instruções personalizadas.</string>
+    <string name="ai_chat_instructions_save_failed">Não foi possível guardar as instruções personalizadas. Tente novamente.</string>
 </resources>

@@ -1042,6 +1042,13 @@ struct RootTabView: View {
         NavigationStack(path: aiPath) {
             AITabChat()
             .aiChatHistoryDestinations(chatStore: store.aiChatStore)
+            .navigationDestination(for: AIChatCustomInstructionsRoute.self) { _ in
+                AIChatCustomInstructionsView(cachedText: store.aiChatStore.currentCustomInstructionsReading?.text)
+                    .aiCompanionColumnPage()
+                    #if targetEnvironment(macCatalyst)
+                    .environment(\.macToolbarOwnerTab, .ai)
+                    #endif
+            }
             #if targetEnvironment(macCatalyst)
             .toolbar(.hidden, for: .navigationBar)
             #endif
@@ -1160,6 +1167,8 @@ struct RootTabView: View {
             SubscriptionSettingsView()
         case .currentWorkspace:
             CurrentWorkspaceView()
+        case .chatCustomInstructions:
+            AIChatCustomInstructionsView(cachedText: store.aiChatStore.currentCustomInstructionsReading?.text)
         case .theme:
             ThemeSettingsView()
         case .accentColor:

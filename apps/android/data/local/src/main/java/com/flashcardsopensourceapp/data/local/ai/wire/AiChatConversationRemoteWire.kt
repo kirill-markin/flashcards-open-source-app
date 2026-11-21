@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversationEnvelope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructions
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFileUpload
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveStreamEnvelope
@@ -85,7 +86,9 @@ private data class AiChatConversationEnvelopeWire(
     val conversation: AiChatConversationWire,
     val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
-    val activeRun: AiChatActiveRunWire? = null
+    val activeRun: AiChatActiveRunWire? = null,
+    // Absent from backends that predate custom instructions, which means none are saved.
+    val customInstructions: StrictRemoteString? = null
 )
 
 @Serializable
@@ -97,7 +100,8 @@ private data class AiChatAcceptedConversationEnvelopeWire(
     val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null,
-    val deduplicated: StrictRemoteBoolean? = null
+    val deduplicated: StrictRemoteBoolean? = null,
+    val customInstructions: StrictRemoteString? = null
 )
 
 @Serializable
@@ -124,7 +128,15 @@ private data class AiChatConversationMessageWire(
 private data class AiChatNewSessionWire(
     val sessionId: StrictRemoteString,
     val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
-    val chatConfig: AiChatServerConfigWire
+    val chatConfig: AiChatServerConfigWire,
+    val customInstructions: StrictRemoteString? = null
+)
+
+@Serializable
+private data class AiChatCustomInstructionsWire(
+    val customInstructions: StrictRemoteString?,
+    val maxLength: StrictRemoteInt,
+    val canEdit: StrictRemoteBoolean
 )
 
 @Serializable
@@ -198,7 +210,17 @@ internal fun decodeAiChatNewSession(payload: String): AiChatSessionSnapshot {
         ),
         composerSuggestions = wire.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = wire.chatConfig.asDomain(),
-        activeRun = null
+        activeRun = null,
+        customInstructions = wire.customInstructions?.value
+    )
+}
+
+internal fun decodeAiChatCustomInstructions(payload: String): AiChatCustomInstructions {
+    val wire = decodeAiChatWire<AiChatCustomInstructionsWire>(payload = payload, context = "workspaces.chat-instructions")
+    return AiChatCustomInstructions(
+        customInstructions = wire.customInstructions?.value,
+        maxLength = wire.maxLength.value,
+        canEdit = wire.canEdit.value
     )
 }
 
@@ -325,7 +347,8 @@ private fun AiChatConversationEnvelopeWire.asConversationEnvelope(): AiChatConve
         conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
         composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
-        activeRun = this.activeRun?.asDomain()
+        activeRun = this.activeRun?.asDomain(),
+        customInstructions = this.customInstructions?.value
     )
 }
 
@@ -338,7 +361,8 @@ private fun AiChatAcceptedConversationEnvelopeWire.asAcceptedConversationEnvelop
         composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
         activeRun = this.activeRun?.asDomain(),
-        deduplicated = this.deduplicated?.value
+        deduplicated = this.deduplicated?.value,
+        customInstructions = this.customInstructions?.value
     )
 }
 

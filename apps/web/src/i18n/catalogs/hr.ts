@@ -1561,6 +1561,15 @@ const hrCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Pitajte o karticama, povijesti ponavljanja ili priložite bilješke...",
     currentChatRecovered: "Ovaj je razgovor zamijenjen novijim. Vaša je poruka još u polju za unos — pošaljite je ponovno.",
+    customInstructions: {
+      add: "Dodaj prilagođene upute",
+      count: "{{count}} / {{max}}",
+      description: "Postavke koje AI razgovor slijedi u ovom radnom prostoru, poput jezika, razine, duljine odgovora i stila kartica.",
+      loadFailed: "Prilagođene upute nije moguće učitati.",
+      placeholder: "Na primjer: Učim njemački na razini A2. Na poleđinu svake kartice dodaj primjer rečenice. Odgovaraj kratko.",
+      saveFailed: "Prilagođene upute nije moguće spremiti. Pokušajte ponovno.",
+      title: "Prilagođene upute",
+    },
     dictation: {
       listening: "Slušanje...",
       start: "Pokreni diktiranje",

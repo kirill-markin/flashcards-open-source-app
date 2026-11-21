@@ -1550,6 +1550,15 @@ export const zhHansCatalog = {
     },
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",
     currentChatRecovered: "此聊天已被更新的聊天取代。你的消息仍在输入框中，请重新发送。",
+    customInstructions: {
+      add: "添加自定义指令",
+      count: "{{count}} / {{max}}",
+      description: "AI 聊天在此工作区中遵循的偏好，例如语言、水平、回答长度和卡片风格。",
+      loadFailed: "无法加载自定义指令。",
+      placeholder: "例如：我在学习 A2 水平的德语。请在每张卡片背面添加一个例句。回答尽量简短。",
+      saveFailed: "无法保存自定义指令。请重试。",
+      title: "自定义指令",
+    },
     dictation: {
       listening: "正在聆听...",
       start: "开始语音输入",

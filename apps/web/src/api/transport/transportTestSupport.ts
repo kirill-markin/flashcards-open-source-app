@@ -13,7 +13,7 @@ import { resetApiClientStateForTests } from "./transport";
 export async function createTransportBackedChatSession(
   sessionId: string,
 ): Promise<NewChatSessionResponse> {
-  return createNewChatSession(sessionId, "workspace-1", "en");
+  return createNewChatSession(sessionId, "workspace-1", "en", null);
 }
 
 export function createWorkspacesResponse(): Response {

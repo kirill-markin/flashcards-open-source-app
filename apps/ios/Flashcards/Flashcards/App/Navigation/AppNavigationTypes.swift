@@ -70,6 +70,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
 enum SettingsNavigationDestination: Hashable, Sendable {
     case subscription
     case currentWorkspace
+    case chatCustomInstructions
     case theme
     case accentColor
     case reviewAnimations

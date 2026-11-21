@@ -198,10 +198,28 @@ data class AiChatConversationEnvelope(
     val conversation: AiChatConversation,
     val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
-    val activeRun: AiChatActiveRun?
+    val activeRun: AiChatActiveRun?,
+    val customInstructions: String?
 )
 
 typealias AiChatSessionSnapshot = AiChatConversationEnvelope
+
+/** The workspace's saved custom chat instructions; [maxLength] is the server's limit in code points. */
+data class AiChatCustomInstructions(
+    val customInstructions: String?,
+    val maxLength: Int,
+    val canEdit: Boolean
+)
+
+/** The account and current workspace that custom chat instructions belong to; [scopeId] names the account. */
+data class AiChatCustomInstructionsScope(
+    val workspaceId: String,
+    val scopeId: String
+)
+
+class AiChatCustomInstructionsScopeChangedException : IllegalStateException(
+    "The account or current workspace changed before the custom instructions were saved."
+)
 
 val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
     features = AiChatFeatures(
@@ -430,7 +448,8 @@ data class AiChatAcceptedConversationEnvelope(
     val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
     val activeRun: AiChatActiveRun?,
-    val deduplicated: Boolean?
+    val deduplicated: Boolean?,
+    val customInstructions: String?
 )
 
 typealias AiChatStartRunResponse = AiChatAcceptedConversationEnvelope

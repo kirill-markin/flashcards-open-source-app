@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type Dispatch,
@@ -14,6 +15,10 @@ import { loadCloudSettings, putCloudSettings } from "../../localDb/sync/cloudSet
 import { buildLinkedCloudSettings } from "../session/cloud/workspaceSessionCloud";
 
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  getWorkspaceChatInstructionsAccountId,
+  scopeWorkspaceChatInstructions,
+} from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import { useI18n } from "../../i18n";
 import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
@@ -130,6 +135,13 @@ export function AppDataProvider(props: Props): ReactElement {
   const workspaceReviewFilterStateRef = useRef<WorkspaceReviewFilterState>(workspaceReviewFilterState);
   workspaceReviewFilterStateRef.current = workspaceReviewFilterState;
   const activeWorkspace = workspaceReviewFilterState.activeWorkspace;
+  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState);
+  const instructionsWorkspaceId = activeWorkspace?.workspaceId ?? null;
+
+  useLayoutEffect(() => {
+    scopeWorkspaceChatInstructions(instructionsAccountId, instructionsWorkspaceId);
+    return () => scopeWorkspaceChatInstructions(null, null);
+  }, [instructionsAccountId, instructionsWorkspaceId]);
   const setActiveWorkspace = useCallback(function setActiveWorkspace(
     nextActiveWorkspace: WorkspaceSummary | null,
   ): void {

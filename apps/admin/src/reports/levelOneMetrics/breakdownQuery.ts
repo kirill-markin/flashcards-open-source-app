@@ -56,7 +56,12 @@ export function buildSeriesRankCtesSql(sourceName: string, weightSql: string, se
  * bar draws nothing there.
  */
 export function buildBreakdownSql(ctesSql: string): string {
-  return `WITH ${ctesSql}, ${buildSeriesRankCtesSql("measured_values", "SUM(value_count)", "series_counts")}, bucket_series AS (
+  return buildBreakdownResultsSql(`${ctesSql}, ${buildSeriesRankCtesSql("measured_values", "SUM(value_count)", "series_counts")}`);
+}
+
+/** All report buckets joined to the caller's measured_buckets and series_counts. */
+export function buildBreakdownResultsSql(ctesSql: string): string {
+  return `WITH ${ctesSql}, bucket_series AS (
   SELECT bucket_date, series_value, series_rank, ROUND(SUM(value_count))::bigint AS series_count
   FROM series_counts
   GROUP BY bucket_date, series_value, series_rank

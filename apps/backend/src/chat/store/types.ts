@@ -90,6 +90,8 @@ export type ChatSessionSnapshot = Readonly<{
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   mainContentInvalidationVersion: number;
   messages: ReadonlyArray<StoredMessage>;
+  /** The workspace's chat custom instructions, read with the session. */
+  customInstructions: string | null;
 }>;
 
 export type PaginatedChatMessages = Readonly<{

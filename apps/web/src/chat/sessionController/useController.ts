@@ -42,6 +42,7 @@ export function useChatSessionController(
   const {
     indexedDbOpenRecoveryState,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiLocale,
     onToolRunPostSyncRequested,
@@ -81,6 +82,7 @@ export function useChatSessionController(
     indexedDbOpenRecoveryState,
     controllerId,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiMessages,
     state,
@@ -99,6 +101,7 @@ export function useChatSessionController(
   const actions = useChatSessionActions({
     indexedDbOpenRecoveryState,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiLocale,
     uiMessages,
@@ -168,6 +171,8 @@ export function useChatSessionController(
       composerSuggestions: [],
       chatConfig: state.chatConfig,
       activeRun: null,
+      // Custom instructions stay in memory only.
+      customInstructions: null,
     }, state.pendingToolRunPostSync, snapshotSync.runtimeRefs.serverSessionIdRef.current === state.currentSessionId);
   });
 

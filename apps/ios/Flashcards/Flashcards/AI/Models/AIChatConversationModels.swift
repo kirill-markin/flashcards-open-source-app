@@ -155,6 +155,7 @@ struct AIChatConversationEnvelope: Hashable, Sendable {
     let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRun?
+    var customInstructions: AIChatCustomInstructionsReading? = nil
 }
 
 typealias AIChatSessionSnapshot = AIChatConversationEnvelope
@@ -189,6 +190,7 @@ struct AIChatStartRunResponse: Hashable, Sendable {
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRun?
     let deduplicated: Bool?
+    var customInstructions: AIChatCustomInstructionsReading? = nil
 
     var envelope: AIChatConversationEnvelope {
         AIChatConversationEnvelope(
@@ -197,7 +199,8 @@ struct AIChatStartRunResponse: Hashable, Sendable {
             conversation: self.conversation,
             composerSuggestions: self.composerSuggestions,
             chatConfig: self.chatConfig,
-            activeRun: self.activeRun
+            activeRun: self.activeRun,
+            customInstructions: self.customInstructions
         )
     }
 }
@@ -221,12 +224,15 @@ struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
     let sessionId: String
     let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
+    let customInstructionsText: String?
+    var customInstructions: AIChatCustomInstructionsReading? = nil
 
     private enum CodingKeys: String, CodingKey {
         case ok
         case sessionId
         case composerSuggestions
         case chatConfig
+        case customInstructionsText = "customInstructions"
     }
 
     init(from decoder: Decoder) throws {
@@ -238,6 +244,7 @@ struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
             forKey: .composerSuggestions
         ) ?? []
         self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
+        self.customInstructionsText = try container.decodeIfPresent(String.self, forKey: .customInstructionsText)
     }
 }
 

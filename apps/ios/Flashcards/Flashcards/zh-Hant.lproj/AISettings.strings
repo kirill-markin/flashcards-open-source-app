@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "唯讀：舊聊天無法繼續。";
 "ai.history.readerLoading" = "正在載入聊天…";
 "ai.history.readerLoadError" = "無法載入此聊天。";
+"ai.customInstructions.add" = "新增自訂指示";
+"ai.customInstructions.title" = "自訂指示";
+"ai.customInstructions.description" = "AI 聊天在此工作區中遵循的偏好，例如語言、程度、回答長度和卡片風格。";
+"ai.customInstructions.placeholder" = "例如：我正在學習 A2 程度的德文。請在每張卡片背面加入一個例句。回答盡量簡短。";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "無法載入自訂指示。";
+"ai.customInstructions.saveFailed" = "無法儲存自訂指示。請再試一次。";
 "ai.consent.title" = "使用 AI 前";
 "ai.consent.warning" = "AI 可能會出錯。採用重要結果前，請先確認。";
 "ai.consent.disclosure.prompts" = "為了處理你的要求，輸入的訊息和所需的卡片內容可能會傳送至代管的 AI 服務。";

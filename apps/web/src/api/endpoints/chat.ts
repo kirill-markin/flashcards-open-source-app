@@ -12,6 +12,10 @@ import {
   OWN_OPENAI_KEY_HEADER_NAME,
   readActiveOwnOpenAIKey,
 } from "../../chat/preferences/ownOpenAIKeyStorage";
+import {
+  beginWorkspaceChatInstructionsRequest,
+  recordWorkspaceChatInstructions,
+} from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import { webAppVersion } from "../../clientIdentity";
 import type { Locale } from "../../i18n/types";
 import type {
@@ -33,6 +37,7 @@ import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
+  getCachedSessionAccountId,
   requestJson,
 } from "../transport/transport";
 
@@ -48,6 +53,21 @@ function buildOwnOpenAIKeyHeaders(): Record<string, string> {
   return ownOpenAIKey === null ? {} : { [OWN_OPENAI_KEY_HEADER_NAME]: ownOpenAIKey };
 }
 
+async function recordingCustomInstructions<Response extends Readonly<{ customInstructions: string | null }>>(
+  workspaceId: string | undefined,
+  expectedAccountId: string | null,
+  request: () => Promise<Response>,
+): Promise<Response> {
+  const token = workspaceId === undefined || expectedAccountId === null
+    ? null
+    : beginWorkspaceChatInstructionsRequest(expectedAccountId, workspaceId);
+  const response = await request();
+  if (token !== null && getCachedSessionAccountId() === expectedAccountId) {
+    recordWorkspaceChatInstructions(token, response.customInstructions, "read");
+  }
+  return response;
+}
+
 function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
   const searchParams = new URLSearchParams({
     sessionId,
@@ -59,23 +79,25 @@ function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
 export async function getCurrentChatSnapshot(
   workspaceId: string,
   signal: AbortSignal,
+  expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getChatSnapshot(
   sessionId: string,
   workspaceId: string,
   signal: AbortSignal,
+  expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
-  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 function buildChatResumeDiagnosticsHeaders(diagnostics: ChatResumeRequestDiagnostics): Record<string, string> {
@@ -91,25 +113,27 @@ export async function getChatSnapshotWithResumeDiagnostics(
   workspaceId: string,
   diagnostics: ChatResumeRequestDiagnostics,
   signal: AbortSignal,
+  expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
-  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getCurrentChatSnapshotWithResumeDiagnostics(
   workspaceId: string,
   diagnostics: ChatResumeRequestDiagnostics,
   signal: AbortSignal,
+  expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function listChatSessions(
@@ -165,7 +189,10 @@ export async function archiveChatSession(
   }, allowAuthRecovery), "POST /chat/sessions/:sessionId/archive", parseChatSessionArchiveResponse);
 }
 
-async function requestStartChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
+async function requestStartChatRun(
+  body: StartChatRunRequestBody,
+  expectedAccountId: string | null,
+): Promise<StartChatRunResponse> {
   return parseContractResponse(await requestJson("/chat", {
     method: "POST",
     headers: {
@@ -173,39 +200,45 @@ async function requestStartChatRun(body: StartChatRunRequestBody): Promise<Start
       ...buildOwnOpenAIKeyHeaders(),
     },
     body: JSON.stringify(body),
-  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "POST /chat", parseStartChatRunResponse);
 }
 
 /**
  * A gateway timeout can arrive after the backend persisted the turn, for example while it stores uploaded
  * files, so it is retried with the same `clientRequestId`, which the backend answers from the persisted turn.
  */
-export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
-  for (let attemptCount = 1; ; attemptCount += 1) {
-    try {
-      return await requestStartChatRun(body);
-    } catch (error) {
-      if (
-        error instanceof ApiError === false
-        || error.statusCode !== 504
-        || attemptCount >= START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT
-      ) {
-        throw error;
-      }
+export async function startChatRun(
+  body: StartChatRunRequestBody,
+  expectedAccountId: string | null,
+): Promise<StartChatRunResponse> {
+  return recordingCustomInstructions(body.workspaceId, expectedAccountId, async () => {
+    for (let attemptCount = 1; ; attemptCount += 1) {
+      try {
+        return await requestStartChatRun(body, expectedAccountId);
+      } catch (error) {
+        if (
+          error instanceof ApiError === false
+          || error.statusCode !== 504
+          || attemptCount >= START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT
+        ) {
+          throw error;
+        }
 
-      console.warn("Chat start-run gateway timeout retry", {
-        attemptCount,
-        maximumAttemptCount: START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT,
-        requestId: error.requestId,
-      });
+        console.warn("Chat start-run gateway timeout retry", {
+          attemptCount,
+          maximumAttemptCount: START_CHAT_RUN_GATEWAY_TIMEOUT_MAXIMUM_ATTEMPT_COUNT,
+          requestId: error.requestId,
+        });
+      }
     }
-  }
+  });
 }
 
 export async function createNewChatSession(
   sessionId: string,
   workspaceId: string,
   uiLocale: Locale,
+  expectedAccountId: string | null,
 ): Promise<NewChatSessionResponse> {
   const requestBody: NewChatSessionRequestBody = {
     sessionId,
@@ -213,10 +246,10 @@ export async function createNewChatSession(
     uiLocale,
   };
 
-  return parseContractResponse(await requestJson("/chat/new", {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat/new", parseNewChatSessionResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "POST /chat/new", parseNewChatSessionResponse));
 }
 
 export async function stopChatRun(
