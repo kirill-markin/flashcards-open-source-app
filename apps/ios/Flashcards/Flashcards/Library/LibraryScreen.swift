@@ -79,6 +79,8 @@ struct LibraryScreen: View {
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.libraryScreen)
         .nativeNavigationTitle(AppTab.library.localizedTitle)
+        // A large title leaves an empty band in the iPad bar's row beside the side chat; Review and Progress match.
+        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
             AICompanionToolbarItem()

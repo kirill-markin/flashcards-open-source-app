@@ -428,6 +428,8 @@ struct SettingsView: View {
         .rememberedListScroll(topRowID: Bindable(self.settingsScroll).settingsTopRowID, isContentReady: true)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        // A large title leaves an empty band in the iPad bar's row beside the side chat; Review and Progress match.
+        .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)
         .toolbar { AICompanionToolbarItem() }
         #endif
