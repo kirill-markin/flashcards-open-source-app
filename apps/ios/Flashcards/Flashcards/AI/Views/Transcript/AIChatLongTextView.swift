@@ -387,24 +387,22 @@ struct AIChatFullResponseView: View {
     let isPushed: Bool
 
     var body: some View {
-        if self.sharesSectionBar {
-            self.page
-                .nativeTopBar(alignment: .leading) {
-                    AICompanionPageHeading(
-                        title: aiSettingsLocalized("ai.message.fullResponse.title", "Full response"),
-                        accessory: self.copyButton
-                            .labelStyle(.titleAndIcon)
-                            .nativeActionButtonStyle()
-                    )
-                }
-        } else {
-            self.page
-                .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
+        // A sheet keeps its plain title so the Mac still shows it with Close.
+        self.page
+            .aiCompanionPageTitle(
+                aiSettingsLocalized("ai.message.fullResponse.title", "Full response"),
+                sharesSectionBar: self.sharesSectionBar,
+                usesNativeTitle: false
+            ) {
+                self.copyButton
+                    .labelStyle(.titleAndIcon)
+                    .nativeActionButtonStyle()
+            }
+            .toolbar {
+                if self.sharesSectionBar == false {
                     self.toolbarContent
                 }
-        }
+            }
     }
 
     private var page: some View {

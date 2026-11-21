@@ -25,6 +25,8 @@ extension EnvironmentValues {
     /// True on iPad, where the pane lives in its section's navigation stack and shares its bar; the pane's pages then
     /// carry their own headings and controls instead of navigation titles.
     @Entry var aiCompanionPaneSharesSectionBar: Bool = false
+    /// The title of the page beneath a side-chat page that shares its section's bar, which its heading's Back returns to.
+    @Entry var aiCompanionBackTitle: String? = nil
 }
 
 #if !targetEnvironment(macCatalyst)
@@ -50,17 +52,17 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
     }
 
     /// iPad: one navigation stack per section keeps the section's and the chat's controls on one bar, beside a floating
-    /// tab bar. The live chat stays mounted under an open page, as it would under a pushed one.
+    /// tab bar. Every page stays mounted under the next, as in a pushed stack, so each keeps its place and content.
     private var sectionStackPane: some View {
-        ZStack {
-            let route = self.navigation.aiCompanionPath.last
+        let path = self.navigation.aiCompanionPath
+        return ZStack {
             self.liveChat
-                .opacity(route == nil ? 1 : 0)
-                .allowsHitTesting(route == nil)
-                .accessibilityHidden(route != nil)
-            if let route {
+                .aiCompanionPaneLayer(isShown: path.isEmpty)
+            ForEach(Array(path.enumerated()), id: \.element) { index, route in
                 self.page(route: route)
                     .background(Color(uiColor: .systemBackground))
+                    .environment(\.aiCompanionBackTitle, index == 0 ? aiSettingsLocalized("ai.title", "AI") : path[index - 1].title)
+                    .aiCompanionPaneLayer(isShown: index == path.count - 1)
             }
         }
         .toolbar { self.toolbar }
@@ -88,13 +90,6 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
         }
         .environment(\.aiChatPushesFullResponse, true)
         .environment(\.aiCompanionHostTab, self.hostTab)
-        .overlay(alignment: .trailing) {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                HStack(spacing: 0) { Divider() }
-                    .frame(width: 1)
-                    .allowsHitTesting(false)
-            }
-        }
     }
 
     private var path: Binding<[AICompanionPaneRoute]> {
@@ -123,43 +118,110 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
         }
     }
 }
+
+extension AICompanionPaneRoute {
+    /// The page's title, as its heading shows it.
+    var title: String {
+        switch self {
+        case .history:
+            aiSettingsLocalized("ai.history.title", "Chat history")
+        case .reader(let route):
+            route.summary.title ?? aiChatHistoryUntitledChatTitle()
+        case .fullResponse:
+            aiSettingsLocalized("ai.message.fullResponse.title", "Full response")
+        }
+    }
+}
+
+extension View {
+    /// A page of the pane, shown on top or kept beneath the next without taking touches, focus or VoiceOver.
+    func aiCompanionPaneLayer(isShown: Bool) -> some View {
+        self.opacity(isShown ? 1 : 0)
+            .allowsHitTesting(isShown)
+            .accessibilityHidden(isShown == false)
+            .disabled(isShown == false)
+    }
+}
 #endif
 
 extension View {
     /// A side-chat page's title: a navigation title in its own stack, or, where the pane shares its section's bar, a
-    /// heading at the top of the page with the page's own controls beside it.
+    /// heading at the top of the page with the page's own controls beside it. `usesNativeTitle` false keeps a plain
+    /// navigation title, for a sheet the Mac must still title.
     @ViewBuilder
     func aiCompanionPageTitle<Accessory: View>(
         _ title: String,
         sharesSectionBar: Bool,
+        usesNativeTitle: Bool = true,
         @ViewBuilder accessory: () -> Accessory
     ) -> some View {
         if sharesSectionBar {
+            #if targetEnvironment(macCatalyst)
+            self
+            #else
             self.nativeTopBar(alignment: .leading) {
                 AICompanionPageHeading(title: title, accessory: accessory())
             }
-        } else {
+            #endif
+        } else if usesNativeTitle {
             self.nativeNavigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            self.navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-struct AICompanionPageHeading<Accessory: View>: View {
+#if !targetEnvironment(macCatalyst)
+/// The heading of a side-chat page that shares its section's bar: its Back returns to the page beneath, leaving the
+/// bar's controls in place.
+private struct AICompanionPageHeading<Accessory: View>: View {
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionHostTab) private var hostTab
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
+    @Environment(\.aiCompanionBackTitle) private var backTitle
     let title: String
     let accessory: Accessory
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(self.title)
-                .font(.headline)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
+            HStack(spacing: 10) {
+                if let backTitle = self.backTitle {
+                    Button(action: self.goBack) {
+                        Image(systemName: "chevron.backward")
+                            .font(.body.weight(.semibold))
+                            .frame(minWidth: 24, minHeight: 24)
+                    }
+                    .buttonBorderShape(.circle)
+                    .buttonStyle(.bordered)
+                    .tint(Color.primary)
+                    .keyboardShortcut("[", modifiers: .command)
+                    .accessibilityLabel("\(aiSettingsLocalized("common.back", "Back")), \(backTitle)")
+                    .accessibilityIdentifier(UITestIdentifier.aiCompanionBackButton)
+                    .disabled(self.isActive == false)
+                }
+                Text(self.title)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
+            }
             self.accessory
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 10)
     }
+
+    /// Only the pane the person sees goes back, so a pane kept in another section or beneath a pushed page cannot.
+    private var isActive: Bool {
+        self.navigation.isAICompanionVisible && self.navigation.selectedTab == self.hostTab && self.isOnTopPage
+    }
+
+    private func goBack() {
+        guard self.isActive else { return }
+        _ = self.navigation.aiCompanionPath.popLast()
+    }
 }
+#endif

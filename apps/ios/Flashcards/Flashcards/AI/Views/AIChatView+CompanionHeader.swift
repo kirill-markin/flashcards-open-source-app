@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension AIChatView {
-    /// The Mac pane's controls join the window toolbar. On iOS the pane draws its own row beside its section's bar.
+    /// The Mac pane's controls join the window toolbar. On iOS they join the bar of the pane's stack: its own on Duo,
+    /// its section's on iPad.
     var usesCompactCompanionToolbar: Bool {
         #if targetEnvironment(macCatalyst)
         self.isCompanion && self.isPresentationActive
@@ -21,7 +22,8 @@ extension AIChatView {
     }
 
     /// On iPad the chat's controls join its section's bar. They all lead, so they stay clear of a floating tab bar
-    /// centred over the window and of the section's own trailing controls.
+    /// centred over the window and of the section's own trailing controls. As above the Duo pane's pushed pages,
+    /// History and New belong to the live chat; a page's Back is in its heading.
     @ToolbarContentBuilder
     private var sectionBarCompanionToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
@@ -41,42 +43,7 @@ extension AIChatView {
                         .disabled(self.isPresentationActive == false)
                 }
             }
-        } else {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(action: self.closeCompanionPage) {
-                    Label {
-                        // A long chat title must not reach a floating tab bar.
-                        Text(self.companionBackTitle)
-                            .lineLimit(1)
-                            .frame(maxWidth: 160)
-                    } icon: {
-                        Image(systemName: "chevron.backward")
-                    }
-                    .labelStyle(.titleAndIcon)
-                }
-                .accessibilityIdentifier(UITestIdentifier.aiCompanionBackButton)
-            }
         }
-    }
-
-    /// Like a native back button, it names the page it returns to.
-    private var companionBackTitle: String {
-        let path = self.navigation.aiCompanionPath
-        guard path.count >= 2 else { return aiSettingsLocalized("ai.title", "AI") }
-        switch path[path.count - 2] {
-        case .history:
-            return aiSettingsLocalized("ai.history.title", "Chat history")
-        case .reader(let route):
-            return route.summary.title ?? aiChatHistoryUntitledChatTitle()
-        case .fullResponse:
-            return aiSettingsLocalized("ai.message.fullResponse.title", "Full response")
-        }
-    }
-
-    /// The pane's previous page, from the host the person sees.
-    private func closeCompanionPage() {
-        guard self.navigation.isAICompanionVisible, self.navigation.selectedTab == self.companionHostTab else { return }
-        _ = self.navigation.aiCompanionPath.popLast()
     }
 
     @ToolbarContentBuilder
