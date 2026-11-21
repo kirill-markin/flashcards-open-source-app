@@ -63,10 +63,16 @@ extension AIChatStore {
         self.dictationState = .requestingPermission
         self.activeDictationTask = Task { @MainActor in
             defer {
-                self.activeDictationTask = nil
+                if Task.isCancelled == false {
+                    self.activeDictationTask = nil
+                    if self.dictationState == .requestingPermission {
+                        self.dictationState = .idle
+                    }
+                }
             }
 
             do {
+                try Task.checkCancellation()
                 try await self.voiceRecorder.startRecording()
                 try Task.checkCancellation()
                 guard self.hasExternalProviderConsent else {
@@ -77,18 +83,15 @@ extension AIChatStore {
                 // The recorder is running, which is what `dictation_started` means. Reporting the
                 // button tap instead would count a microphone refusal as a start.
                 Analytics.track(.dictationStarted)
-            } catch is CancellationError {
-                self.dictationState = .idle
+            } catch where Task.isCancelled || error is CancellationError {
                 Analytics.track(.dictationFailed(reason: .cancelled), screen: .ai)
             } catch let recorderError as AIChatVoiceRecorderError {
-                self.dictationState = .idle
                 Analytics.track(
                     .dictationFailed(reason: analyticsDictationFailureReason(error: recorderError)),
                     screen: .ai
                 )
                 self.handleStartDictationError(recorderError)
             } catch {
-                self.dictationState = .idle
                 Analytics.track(
                     .dictationFailed(reason: analyticsDictationFailureReason(error: error)),
                     screen: .ai
@@ -113,33 +116,31 @@ extension AIChatStore {
         )
         self.activeDictationTask = Task { @MainActor in
             defer {
-                self.activeDictationTask = nil
-            }
-
-            // A cancel that lands while transcribing never surfaces a `CancellationError` here:
-            // `AIChatTranscriptionService` rethrows every transport failure as `.serviceUnavailable`,
-            // and a cancel that lands before the request makes `stopRecording()` throw
-            // `.invalidRecording`. Only the task's own cancellation tells an abandoned attempt apart
-            // from a backend that failed it.
-            func terminalFailureReason(error: Error) -> AnalyticsDictationFailureReason {
-                Task.isCancelled ? .cancelled : analyticsDictationFailureReason(error: error)
+                if Task.isCancelled == false {
+                    self.activeDictationTask = nil
+                    self.dictationState = .idle
+                }
             }
 
             do {
-                // Reports no `dictation_failed`, and neither does the identical guard on the start
-                // path: external-provider consent is answered on its own prompt and gates the whole
-                // AI surface, so it is a precondition of dictation rather than an outcome of it.
-                guard self.hasExternalProviderConsent else {
-                    self.dictationState = .idle
-                    self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
-                    return
-                }
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                try Task.checkCancellation()
+                // Release the microphone before cloud session preparation can suspend.
                 let recordedAudio = try await self.voiceRecorder.stopRecording()
                 defer {
                     try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
                 }
+
+                try Task.checkCancellation()
+                // Reports no `dictation_failed`, and neither does the identical guard on the start
+                // path: external-provider consent is answered on its own prompt and gates the whole
+                // AI surface, so it is a precondition of dictation rather than an outcome of it.
+                guard self.hasExternalProviderConsent else {
+                    self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+                    return
+                }
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                try Task.checkCancellation()
+                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
 
                 try Task.checkCancellation()
                 _ = try self.flashcardsStore.aiConsent.requireReceipt(session: session)
@@ -160,17 +161,17 @@ extension AIChatStore {
                     id: UUID().uuidString.lowercased(),
                     transcript: transcription.text
                 )
-            } catch is CancellationError {
+            } catch where Task.isCancelled || error is CancellationError {
                 Analytics.track(.dictationFailed(reason: .cancelled), screen: .ai)
             } catch let recorderError as AIChatVoiceRecorderError {
                 Analytics.track(
-                    .dictationFailed(reason: terminalFailureReason(error: recorderError)),
+                    .dictationFailed(reason: analyticsDictationFailureReason(error: recorderError)),
                     screen: .ai
                 )
                 self.handleFinishDictationError(recorderError)
             } catch let transcriptionError as AIChatTranscriptionError {
                 Analytics.track(
-                    .dictationFailed(reason: terminalFailureReason(error: transcriptionError)),
+                    .dictationFailed(reason: analyticsDictationFailureReason(error: transcriptionError)),
                     screen: .ai
                 )
                 switch transcriptionError {
@@ -186,13 +187,11 @@ extension AIChatStore {
                 }
             } catch {
                 Analytics.track(
-                    .dictationFailed(reason: terminalFailureReason(error: error)),
+                    .dictationFailed(reason: analyticsDictationFailureReason(error: error)),
                     screen: .ai
                 )
                 self.showGeneralError(error: error)
             }
-
-            self.dictationState = .idle
         }
     }
 
