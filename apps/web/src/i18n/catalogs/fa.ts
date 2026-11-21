@@ -325,6 +325,7 @@ const faCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 روز گذشته · {{count}} در روز",
+      vsUsual: "نسبت به روال معمولت",
       studyTime: "زمان مطالعه · ≈ {{count}} دقیقه",
     },
     records: {

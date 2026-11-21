@@ -325,6 +325,7 @@ const esMxCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Últimos 7 días · {{count}} al día",
+      vsUsual: "vs. tu promedio",
       studyTime: "Tiempo de estudio · ≈ {{count}} min",
     },
     records: {

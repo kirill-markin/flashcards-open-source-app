@@ -3,7 +3,7 @@
 // retained Lambda environments also draw from the database.
 //
 // The db.t4g.small instance has 181 connections, with 3 reserved for superusers: 178 usable.
-// Main-pool allocation: (18 + 6 + 16 + 10 + 3 + 2 + 2 + 1) x 3 = 174, leaving 4 for additional draw.
+// Main-pool allocation: (18 + 6 + 16 + 10 + 3 + 2 + 2 + 1 + 1) x 3 = 177, leaving 1 for additional draw.
 // Every budgeted function receives DB_POOL_MAX_CONNECTIONS from here; the backend and auth pool
 // constructors enforce it in apps/backend/src/database/core.ts and apps/auth/src/db.ts.
 //
@@ -18,11 +18,12 @@
 //   not serialization: the two media jobs run every minute with two-minute timeouts, and retries
 //   or additional invocations can overlap. The reaper and active-days backfill also use reporting;
 //   the store analytics import also holds a session advisory lock.
+// - CardAdditionReconciliationHandler uses reporting for its scan, releasing it before each main-pool write.
 // - CatalogDumpHandler has reservation 1 but its main pool is outside this sum.
 //   GlobalMetricsSnapshotHandler uses reporting; its freshness checker reads S3, not Postgres.
 //   DbMigrationHandler uses a separate owner connection.
 //
-// The remaining 4 connections do not cover simultaneous saturation of these additional pools.
+// The remaining connection does not cover simultaneous saturation of these additional pools.
 // Reservation increases require observed database headroom and post-deploy monitoring; they do
 // not guarantee a whole-fleet worst case or eliminate throttling when demand exceeds a reservation.
 const databasePoolMaxConnectionsPerContainer = 3;
@@ -41,6 +42,7 @@ export const mcpHandlerReservedConcurrency = 16;
 export const chatLiveHandlerReservedConcurrency = 10;
 export const chatRunWorkerHandlerReservedConcurrency = 3;
 export const directImageIngestionHandlerReservedConcurrency = 2;
+export const cardAdditionReconciliationReservedConcurrency = 1;
 
 const budgetedDatabaseConnections = [
   backendHandlerReservedConcurrency,
@@ -51,6 +53,7 @@ const budgetedDatabaseConnections = [
   chatLiveHandlerReservedConcurrency,
   chatRunWorkerHandlerReservedConcurrency,
   directImageIngestionHandlerReservedConcurrency,
+  cardAdditionReconciliationReservedConcurrency,
 ].reduce((total, reserved) => total + reserved, 0) * databasePoolMaxConnectionsPerContainer;
 
 if (databasePoolMaxConnectionsPerContainer < minimumDatabasePoolMaxConnectionsPerContainer) {

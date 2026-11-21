@@ -99,14 +99,10 @@ struct WorkspaceSpreadsheetImportView: View {
             AICompanionToolbarItem()
         }
         #endif
-        .sectionChildPresentation(isPresented: self.$isTagPickerPresented, onDismiss: nil) {
-            if self.canSubmitDraft {
-                TagPickerView(selectedTags: self.$tags, suggestions: makeTagSuggestions(cards: self.store.cards))
-            }
-        } sheet: { picker in
+        .sheet(isPresented: self.$isTagPickerPresented) {
             if self.canSubmitDraft {
                 NavigationStack {
-                    picker
+                    TagPickerView(selectedTags: self.$tags, suggestions: makeTagSuggestions(cards: self.store.cards))
                 }
             }
         }

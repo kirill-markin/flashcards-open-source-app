@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "ಲಗತ್ತನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.drop.overlay" = "ಲಗತ್ತಿಸಲು ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಬಿಡಿ";
 "ai.composer.dictation.start" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ಪ್ರಾರಂಭಿಸಿ";
-"ai.composer.dictation.cancel" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ರದ್ದುಮಾಡಿ";
-"ai.composer.dictation.finish" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ಮುಗಿಸಿ";
-"ai.composer.dictation.preparing" = "ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ";
-"ai.composer.dictation.recording" = "ರೆಕಾರ್ಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ %@";
+"ai.composer.dictation.stop" = "ಹೇಳಿ ಬರೆಯುವುದನ್ನು ನಿಲ್ಲಿಸಿ";
+"ai.composer.dictation.waiting" = "ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...";
+"ai.composer.dictation.listening" = "ಆಲಿಸಲಾಗುತ್ತಿದೆ...";
 "ai.composer.dictation.transcribing" = "ಲಿಪ್ಯಂತರಿಸಲಾಗುತ್ತಿದೆ...";
-"ai.composer.dictation.dismissError" = "ಹೇಳಿ ಬರೆಯುವ ದೋಷವನ್ನು ಮುಚ್ಚಿ";
-"ai.composer.dictation.announcement.started" = "ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭವಾಗಿದೆ";
-"ai.composer.dictation.announcement.inserted" = "ಪಠ್ಯವನ್ನು ಸೇರಿಸಲಾಗಿದೆ";
 "ai.error.title" = "ದೋಷ";
 "ai.error.requestTooLarge.title" = "ಸಂದೇಶ ತುಂಬಾ ದೊಡ್ಡದು";
 "ai.error.requestTooLarge.message" = "AI ಚಾಟ್ ಒಂದೇ ಬಾರಿ ಇಷ್ಟು ವಿಷಯ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಒಂದು ಅಥವಾ ಹೆಚ್ಚು ಲಗತ್ತುಗಳನ್ನು ತೆಗೆದುಹಾಕಿ, ಚಿಕ್ಕ ಫೈಲ್ ಅಥವಾ ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ವಿನಂತಿಯನ್ನು ಭಾಗಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "ರೆಕಾರ್ಡ್ ಮಾಡಿದ ಆಡಿಯೊ ಸಿದ್ಧಪಡಿಸಲಾಗಲಿಲ್ಲ.";
 "ai.dictation.error.recordingStartFailed" = "ಮೈಕ್ರೊಫೋನ್ ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ.";
 "ai.dictation.error.emptyRecording" = "ಯಾವುದೇ ಮಾತು ರೆಕಾರ್ಡ್ ಆಗಿಲ್ಲ.";
-"ai.dictation.error.interrupted" = "ರೆಕಾರ್ಡಿಂಗ್‌ಗೆ ಅಡಚಣೆಯಾಗಿದೆ";
 "ai.dictation.error.network" = "ನೆಟ್‌ವರ್ಕ್ ಸಮಸ್ಯೆ ಇದೆ. ಅದನ್ನು ಸರಿಪಡಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.dictation.error.invalidAudio" = "ಆ ರೆಕಾರ್ಡಿಂಗ್ ಸಂಸ್ಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.message.unsupportedContent" = "ಬೆಂಬಲವಿಲ್ಲದ ವಿಷಯ";

@@ -332,6 +332,7 @@ export const ruCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Последние 7 дней · {{count}} в день",
+      vsUsual: "к вашему среднему",
       studyTime: "Время занятий · ≈ {{count}} мин",
     },
     records: {

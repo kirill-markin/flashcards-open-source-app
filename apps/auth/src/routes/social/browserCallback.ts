@@ -1,4 +1,4 @@
-import { completeConnectionBrowserProof } from "../../server/social/accountConnectionProof.js";
+import { completeConnectionBrowserProof } from "../../server/social/accountConnection/index.js";
 import { browserManagementError, browserManagementFailure, managementReturnUri } from "./browserManagementReturn.js";
 import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { randomBytes } from "node:crypto";

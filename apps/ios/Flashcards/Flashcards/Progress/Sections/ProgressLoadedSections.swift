@@ -149,7 +149,6 @@ private struct ProgressStreakLeaderboardCard: View {
 
 private struct ProgressReviewsCard: View {
     private let chartDays: [ProgressChartDay]
-    private let chartPages: [ProgressReviewChartPage]
     private let pace: ProgressPace
     private let studyMinutes: Int?
     private let selectionResetKey: String
@@ -158,7 +157,6 @@ private struct ProgressReviewsCard: View {
 
     init(progressSnapshot: ProgressSnapshot, pageSelection: Binding<ProgressReviewChartPageSelection?>) {
         self.chartDays = progressSnapshot.chartData.chartDays
-        self.chartPages = progressSnapshot.reviewChartPages
         self.pace = makeProgressPace(dayReviewCounts: progressSnapshot.chartData.chartDays.map(\.reviewCount))
         self.studyMinutes = progressSnapshot.insights?.studySecondsByDay.flatMap { studyDays in
             makeStudyTimeMinutes(seconds: studyDays.reduce(0) { total, studyDay in total + studyDay.seconds })
@@ -172,7 +170,6 @@ private struct ProgressReviewsCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ProgressReviewsSection(
                 chartDays: self.chartDays,
-                chartPages: self.chartPages,
                 pace: self.pace,
                 studyMinutes: self.studyMinutes,
                 chartCalendar: self.presentationCalendar,

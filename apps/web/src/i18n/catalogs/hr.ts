@@ -332,6 +332,7 @@ const hrCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Zadnjih 7 dana · {{count}} dnevno",
+      vsUsual: "prema vašem prosjeku",
       studyTime: "Vrijeme učenja · ≈ {{count}} min",
     },
     records: {

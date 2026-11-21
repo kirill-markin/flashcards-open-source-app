@@ -325,6 +325,7 @@ export const jaCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "過去7日間 · 1日{{count}}回",
+      vsUsual: "いつものペース比",
       studyTime: "学習時間 · ≈ {{count}}分",
     },
     records: {

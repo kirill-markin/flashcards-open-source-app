@@ -5,7 +5,7 @@ import type { verifyCurrentAccountSession } from "../browserSession.js";
 import { exchangeAppleAuthorizationCode } from "./apple.js";
 import { exchangeGoogleAuthorizationCode, verifyGoogleIdentityToken } from "./google.js";
 import { beginEnrollmentMailboxOtp, normalizeEnrollmentEmail, type MailboxProofBinding } from "./mailboxProof.js";
-import type { ConnectionSqlParameters } from "./accountConnectionContract.js";
+import type { ConnectionSqlParameters } from "./accountConnection/contract.js";
 import type { ProviderEnrollmentProof } from "./principalEnrollment.js";
 import { browserAttemptBinding, type BrowserCallbackState } from "./browserState.js";
 import { appleRequestNonce, assertProviderCallback, socialAuthOrigins, SocialProofError } from "./providers.js";

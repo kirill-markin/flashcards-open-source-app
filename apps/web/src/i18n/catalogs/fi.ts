@@ -325,6 +325,7 @@ const fiCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Viimeiset 7 päivää · {{count}} päivässä",
+      vsUsual: "verrattuna omaan keskiarvoon",
       studyTime: "Opiskeluaika · ≈ {{count}} min",
     },
     records: {

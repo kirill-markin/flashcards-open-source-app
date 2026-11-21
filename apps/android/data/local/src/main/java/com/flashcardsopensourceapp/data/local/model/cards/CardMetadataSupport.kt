@@ -5,6 +5,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 internal const val cardMaintenanceRevisionKey: String = "maintenanceRevision"
+private const val cardCreationKindKey: String = "creationKind"
 
 fun normalizeCardType(rawValue: String): String {
     val trimmedValue: String = rawValue.trim()
@@ -47,6 +48,11 @@ fun buildCardMetadataJsonObject(metadata: CardMetadata): JSONObject {
         .put("source", metadata.source?.let(::buildCardSourceMetadataJsonObject) ?: JSONObject.NULL)
     metadata.maintenanceRevision?.let { revision ->
         result.put(cardMaintenanceRevisionKey, revision)
+    }
+    if (metadata.onboardingDemo == null) {
+        metadata.creationKind?.let { kind ->
+            result.put(cardCreationKindKey, kind.wireValue)
+        }
     }
     metadata.onboardingDemo?.let { demo ->
         result.put("onboardingDemo", JSONObject()
@@ -97,8 +103,14 @@ fun decodeCardMetadataJsonObject(metadataObject: JSONObject): CardMetadata {
             }
         } else {
             null
-        }
+        },
+        creationKind = decodeCardCreationKind(metadataObject = metadataObject)
     )
+}
+
+internal fun decodeCardCreationKind(metadataObject: JSONObject): CardCreationKind? {
+    val value = metadataObject.opt(cardCreationKindKey) as? String
+    return CardCreationKind.entries.firstOrNull { kind -> kind.wireValue == value }
 }
 
 internal fun parseCardMaintenanceRevision(value: Any): Long? {

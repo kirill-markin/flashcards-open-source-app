@@ -325,6 +325,7 @@ const trCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Son 7 gün · günde {{count}}",
+      vsUsual: "kendi ortalamana göre",
       studyTime: "Çalışma süresi · ≈ {{count}} dk",
     },
     records: {

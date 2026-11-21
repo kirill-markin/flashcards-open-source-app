@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Liitteen lähettäminen epäonnistui. Tarkista yhteys ja yritä uudelleen.";
 "ai.drop.overlay" = "Liitä tiedostot pudottamalla ne tähän";
 "ai.composer.dictation.start" = "Aloita sanelu";
-"ai.composer.dictation.cancel" = "Peru sanelu";
-"ai.composer.dictation.finish" = "Päätä sanelu";
-"ai.composer.dictation.preparing" = "Valmistellaan";
-"ai.composer.dictation.recording" = "Tallennetaan %@";
+"ai.composer.dictation.stop" = "Lopeta sanelu";
+"ai.composer.dictation.waiting" = "Odotetaan mikrofonin käyttöoikeutta...";
+"ai.composer.dictation.listening" = "Kuunnellaan...";
 "ai.composer.dictation.transcribing" = "Kirjoitetaan puhetta tekstiksi...";
-"ai.composer.dictation.dismissError" = "Sulje sanelun virhe";
-"ai.composer.dictation.announcement.started" = "Tallennus alkoi";
-"ai.composer.dictation.announcement.inserted" = "Teksti lisätty";
 "ai.error.title" = "Virhe";
 "ai.error.requestTooLarge.title" = "Viesti on liian suuri";
 "ai.error.requestTooLarge.message" = "Tekoälykeskustelu ei voi lähettää näin paljon sisältöä kerralla. Poista liitteitä, valitse pienempi tiedosto tai kuva tai jaa pyyntö osiin ja yritä uudelleen.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Tallennetun äänen valmistelu epäonnistui.";
 "ai.dictation.error.recordingStartFailed" = "Mikrofonitallennuksen aloittaminen epäonnistui.";
 "ai.dictation.error.emptyRecording" = "Puhetta ei tallennettu.";
-"ai.dictation.error.interrupted" = "Tallennus keskeytyi";
 "ai.dictation.error.network" = "Verkkoyhteydessä on ongelma. Korjaa se ja yritä uudelleen.";
 "ai.dictation.error.invalidAudio" = "Tallennetta ei voitu käsitellä. Yritä uudelleen.";
 "ai.message.unsupportedContent" = "Sisältöä ei tueta";

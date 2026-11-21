@@ -143,6 +143,7 @@
         <item quantity="other">%1$s cartões</item>
     </plurals>
     <string name="progress_reviews_pace_last_7_days">Últimos 7 dias · %1$s por dia</string>
+    <string name="progress_reviews_pace_vs_usual">vs. a sua média</string>
     <plurals name="progress_reviews_study_time">
         <item quantity="one">Tempo de estudo · ≈ %1$d min</item>
         <item quantity="many">Tempo de estudo · ≈ %1$d min</item>

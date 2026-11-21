@@ -1,6 +1,6 @@
 import { makeDefaultCardMetadata } from "../../domain/cardMetadata";
 import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
-import { loadCardById, putCard } from "../../../localDb/cards/cards";
+import { loadCardById, putCard, putCardWithOutboxRecord } from "../../../localDb/cards/cards";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { loadDeckById, putDeck } from "../../../localDb/cards/decks";
 import { putOutboxRecord, type PersistedOutboxRecord } from "../../../localDb/sync/outbox";
@@ -123,7 +123,7 @@ export async function createCardLocally(
 ): Promise<LocalCardMutationResult> {
   return createCardWithMetadataLocally(
     input,
-    makeDefaultCardMetadata(input.clientUpdatedAt),
+    { ...makeDefaultCardMetadata(input.clientUpdatedAt), creationKind: "user_added" },
     indexedDbOpenRecoveryState,
   );
 }
@@ -170,11 +170,7 @@ async function createCardWithMetadataLocally(
   };
 
   await runRecoveryGuardedSyncLocalOperation(
-    () => putCard(input.workspaceId, nextCard),
-    indexedDbOpenRecoveryState,
-  );
-  await runRecoveryGuardedSyncLocalOperation(
-    () => putOutboxRecord(nextOutboxRecord),
+    () => putCardWithOutboxRecord(nextCard, nextOutboxRecord),
     indexedDbOpenRecoveryState,
   );
   return {

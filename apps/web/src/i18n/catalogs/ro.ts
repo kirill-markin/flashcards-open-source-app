@@ -332,6 +332,7 @@ const roCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Ultimele 7 zile · {{count}} pe zi",
+      vsUsual: "față de media ta",
       studyTime: "Timp de studiu · ≈ {{count}} min",
     },
     records: {

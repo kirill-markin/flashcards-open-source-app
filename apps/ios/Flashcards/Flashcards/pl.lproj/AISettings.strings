@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Nie udało się przesłać załącznika. Sprawdź połączenie i spróbuj ponownie.";
 "ai.drop.overlay" = "Upuść pliki, aby je dołączyć";
 "ai.composer.dictation.start" = "Rozpocznij dyktowanie";
-"ai.composer.dictation.cancel" = "Anuluj dyktowanie";
-"ai.composer.dictation.finish" = "Zakończ dyktowanie";
-"ai.composer.dictation.preparing" = "Przygotowywanie";
-"ai.composer.dictation.recording" = "Nagrywanie %@";
+"ai.composer.dictation.stop" = "Zatrzymaj dyktowanie";
+"ai.composer.dictation.waiting" = "Oczekiwanie na dostęp do mikrofonu...";
+"ai.composer.dictation.listening" = "Słuchanie...";
 "ai.composer.dictation.transcribing" = "Transkrypcja...";
-"ai.composer.dictation.dismissError" = "Zamknij błąd dyktowania";
-"ai.composer.dictation.announcement.started" = "Rozpoczęto nagrywanie";
-"ai.composer.dictation.announcement.inserted" = "Dodano transkrypcję";
 "ai.error.title" = "Błąd";
 "ai.error.requestTooLarge.title" = "Wiadomość jest zbyt duża";
 "ai.error.requestTooLarge.message" = "Czat AI nie może wysłać tyle treści naraz. Usuń co najmniej jeden załącznik, wybierz mniejszy plik lub zdjęcie albo podziel żądanie i spróbuj ponownie.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Nie udało się przygotować nagrania audio.";
 "ai.dictation.error.recordingStartFailed" = "Nie udało się rozpocząć nagrywania z mikrofonu.";
 "ai.dictation.error.emptyRecording" = "Nie nagrano mowy.";
-"ai.dictation.error.interrupted" = "Nagrywanie zostało przerwane";
 "ai.dictation.error.network" = "Wystąpił problem z siecią. Rozwiąż go i spróbuj ponownie.";
 "ai.dictation.error.invalidAudio" = "Nie udało się przetworzyć tego nagrania. Spróbuj ponownie.";
 "ai.message.unsupportedContent" = "Nieobsługiwana treść";

@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Privitak nije bilo moguće prenijeti. Provjerite vezu pa pokušajte ponovno.";
 "ai.drop.overlay" = "Ispustite datoteke za prilaganje";
 "ai.composer.dictation.start" = "Pokreni diktiranje";
-"ai.composer.dictation.cancel" = "Odustani od diktiranja";
-"ai.composer.dictation.finish" = "Završi diktiranje";
-"ai.composer.dictation.preparing" = "Priprema";
-"ai.composer.dictation.recording" = "Snimanje %@";
+"ai.composer.dictation.stop" = "Zaustavi diktiranje";
+"ai.composer.dictation.waiting" = "Čekanje pristupa mikrofonu...";
+"ai.composer.dictation.listening" = "Slušanje...";
 "ai.composer.dictation.transcribing" = "Transkripcija...";
-"ai.composer.dictation.dismissError" = "Zatvori pogrešku diktiranja";
-"ai.composer.dictation.announcement.started" = "Snimanje je započelo";
-"ai.composer.dictation.announcement.inserted" = "Transkript je dodan";
 "ai.error.title" = "Pogreška";
 "ai.error.requestTooLarge.title" = "Poruka je prevelika";
 "ai.error.requestTooLarge.message" = "AI razgovor ne može poslati toliko sadržaja odjednom. Uklonite jedan ili više privitaka, odaberite manju datoteku ili fotografiju ili podijelite zahtjev i pokušajte ponovno.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Priprema snimljenog zvuka nije uspjela.";
 "ai.dictation.error.recordingStartFailed" = "Pokretanje snimanja mikrofona nije uspjelo.";
 "ai.dictation.error.emptyRecording" = "Govor nije snimljen.";
-"ai.dictation.error.interrupted" = "Snimanje je prekinuto";
 "ai.dictation.error.network" = "Postoji problem s mrežom. Otklonite ga i pokušajte ponovno.";
 "ai.dictation.error.invalidAudio" = "Nije moguće obraditi tu snimku. Pokušajte ponovno.";
 "ai.message.unsupportedContent" = "Nepodržani sadržaj";

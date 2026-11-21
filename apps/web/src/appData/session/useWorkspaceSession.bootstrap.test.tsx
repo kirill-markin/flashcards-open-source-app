@@ -732,7 +732,7 @@ describe("useWorkspaceSession bootstrap", () => {
       ...seededWorkspace,
       isVisible: true,
     });
-    expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_deferred");
+    expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_started");
     expect(getWorkspaceTransitionEventNames()).not.toContain("workspace_activate_bootstrap_succeeded");
     initialVerifiedSyncDeferred.resolve();
     await vi.waitFor(() => {

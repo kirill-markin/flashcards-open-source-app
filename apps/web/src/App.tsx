@@ -110,7 +110,7 @@ import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { aiImportSources } from "./screens/settings/workspace/packages/aiImportSources";
-import { WorkspacePackageImportProvider } from "./screens/settings/workspace/packages/WorkspacePackageImportContext";
+import { WorkspacePackageImportProvider } from "./screens/settings/workspace/packages/fileImport/WorkspacePackageImportContext";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
 import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";

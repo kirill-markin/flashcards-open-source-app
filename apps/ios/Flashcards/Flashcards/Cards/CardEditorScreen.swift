@@ -22,18 +22,6 @@ struct CardFormState {
     var observedTags: [String]
     var tags: [String]
     var mediaAssetIdsReadyForUpload: Set<String>
-
-    /// Whether the draft differs from the card it opened with, or holds any input for a new card.
-    var hasUnsavedChanges: Bool {
-        cardEditorTextDiffers(self.frontText, from: self.observedFrontText ?? "")
-            || cardEditorTextDiffers(self.backText, from: self.observedBackText ?? "")
-            || self.tags != self.observedTags
-    }
-}
-
-private func cardEditorTextDiffers(_ text: String, from observedText: String) -> Bool {
-    text != observedText
-        && text.trimmingCharacters(in: .whitespacesAndNewlines) != observedText.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
 func cardEditorInlineErrorMessage(error: Error) -> String? {
@@ -132,7 +120,6 @@ private enum CardEditorDestination: Hashable {
 }
 
 struct CardEditorScreen: View {
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
     @State private var isDeleteConfirmationPresented: Bool = false
 
     let title: String
@@ -145,18 +132,6 @@ struct CardEditorScreen: View {
     let onDelete: () -> Void
 
     var body: some View {
-        if self.presentationStyle == .push {
-            self.editor
-                .sectionChildBackGuard(isLocked: false, hasUnsavedChanges: self.formState.hasUnsavedChanges, onDiscard: self.onCancel)
-        } else {
-            self.editor
-                .navigationDestination(for: CardEditorDestination.self) { destination in
-                    self.destinationView(destination)
-                }
-        }
-    }
-
-    private var editor: some View {
         ReadableContentLayout(
             maxWidth: flashcardsReadableFormMaxWidth,
             horizontalPadding: 0
@@ -177,7 +152,7 @@ struct CardEditorScreen: View {
                 }
 
                 Section {
-                    self.editorLink(CardEditorDestination.text(.front)) {
+                    NavigationLink(value: CardEditorDestination.text(.front)) {
                         CardTextPreviewRow(
                             field: .front,
                             text: formState.frontText
@@ -185,7 +160,7 @@ struct CardEditorScreen: View {
                     }
                     .accessibilityIdentifier(UITestIdentifier.cardEditorFrontRow)
 
-                    self.editorLink(CardEditorDestination.text(.back)) {
+                    NavigationLink(value: CardEditorDestination.text(.back)) {
                         CardTextPreviewRow(
                             field: .back,
                             text: formState.backText
@@ -197,7 +172,7 @@ struct CardEditorScreen: View {
                 }
 
                 Section {
-                    self.editorLink(CardEditorDestination.tags) {
+                    NavigationLink(value: CardEditorDestination.tags) {
                         TagsFieldRow(summary: localizedTagSelectionSummary(tags: formState.tags))
                     }
 
@@ -240,7 +215,24 @@ struct CardEditorScreen: View {
                 }
             }
         }
-        .pageNavigationTitle(title)
+        .navigationDestination(for: CardEditorDestination.self) { destination in
+            switch destination {
+            case .text(let field):
+                CardTextEditorScreen(
+                    field: field,
+                    text: field == .front ? $formState.frontText : $formState.backText,
+                    textSelection: field == .front ? $formState.frontTextSelection : $formState.backTextSelection,
+                    editorSessionId: $formState.editorSessionId,
+                    mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
+                )
+            case .tags:
+                TagPickerView(
+                    selectedTags: $formState.tags,
+                    suggestions: availableTagSuggestions
+                )
+            }
+        }
+        .navigationTitle(title)
         .alert(String(localized: "Delete this card?", table: reviewCardsStringsTableName), isPresented: self.$isDeleteConfirmationPresented) {
             Button(String(localized: "Cancel", table: reviewCardsStringsTableName), role: .cancel) {}
             Button(String(localized: "Delete", table: reviewCardsStringsTableName), role: .destructive, action: onDelete)
@@ -249,13 +241,10 @@ struct CardEditorScreen: View {
         }
         .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         .toolbar {
-            // Pushed into a section, Back leaves the editor.
-            if self.presentationStyle == .sheet {
-                ToolbarItem(placement: .cancellationAction) {
-                    self.cancelButton
-                        .reviewCardsShortcutHelp(key: "⎋")
-                        .accessibilityIdentifier(UITestIdentifier.cardEditorCancelButton)
-                }
+            ToolbarItem(placement: .cancellationAction) {
+                self.cancelButton
+                    .reviewCardsShortcutHelp(key: "⎋")
+                    .accessibilityIdentifier(UITestIdentifier.cardEditorCancelButton)
             }
 
             ToolbarItem(placement: .confirmationAction) {
@@ -263,42 +252,6 @@ struct CardEditorScreen: View {
                     .reviewCardsShortcutHelp(key: "⌘S")
                     .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
-        }
-    }
-
-    /// As a sheet the editor's own stack keeps its pages in `formState.navigationPath`. Pushed into a section's stack,
-    /// whose path holds only that section's pages, they push as views.
-    @ViewBuilder
-    private func editorLink<Label: View>(_ destination: CardEditorDestination, @ViewBuilder label: () -> Label) -> some View {
-        if self.presentationStyle == .push {
-            NavigationLink {
-                self.destinationView(destination)
-                    .aiCompanionColumnPage()
-            } label: {
-                label()
-            }
-        } else {
-            NavigationLink(value: destination, label: label)
-        }
-    }
-
-    @ViewBuilder
-    private func destinationView(_ destination: CardEditorDestination) -> some View {
-        switch destination {
-        case .text(let field):
-            CardTextEditorScreen(
-                field: field,
-                text: field == .front ? $formState.frontText : $formState.backText,
-                textSelection: field == .front ? $formState.frontTextSelection : $formState.backTextSelection,
-                editorSessionId: $formState.editorSessionId,
-                mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
-            )
-        case .tags:
-            TagPickerView(
-                selectedTags: $formState.tags,
-                suggestions: availableTagSuggestions
-            )
-            .environment(\.sectionChildPresentationStyle, self.presentationStyle)
         }
     }
 
@@ -406,7 +359,7 @@ private struct CardTextEditorScreen: View {
             }
         }
         .padding(.vertical, 16)
-        .pageNavigationTitle(self.field.title)
+        .navigationTitle(self.field.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

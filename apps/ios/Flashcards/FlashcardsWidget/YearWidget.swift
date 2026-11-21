@@ -94,8 +94,7 @@ struct YearWidgetView: View {
                             kind: .year,
                             workspaceId: self.entry.workspaceId,
                             size: .large,
-                            cardId: nil,
-                            revealAnswer: false
+                            cardId: nil
                         )
                     )
                 )

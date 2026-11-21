@@ -211,6 +211,21 @@ export type StreakLeaderboardSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type CardAdditionReconciliationCompletedDetails = Readonly<{
+  batchSize: number;
+  maxBatches: number;
+  scannedCount: number;
+  recoveredCount: number;
+  batchCount: number;
+  finished: boolean;
+}>;
+
+export type CardAdditionReconciliationFailureDetails = Readonly<{
+  batchSize: number | null;
+  maxBatches: number | null;
+  message: string;
+}>;
+
 export type ProgressActiveDaysBackfillCompletedDetails = Readonly<{
   batchSize: number;
   maxPages: number;
@@ -253,8 +268,9 @@ export type ProgressActiveDaysBackfillFailureDetails = Readonly<{
  * on `maxPages` or on its deadline with candidates still waiting, so web guest rows are being
  * minted faster than this schedule reaps them and the accumulation the job exists to stop is still
  * running. No count on its own can distinguish that from a run that simply had a busy day, and such
- * a run is a successful invocation with no errors, so neither Lambda alarm sees it:
- * `WebGuestReaperSaturatedAlarm` in `infra/aws/lib/monitoring.ts` is the metric filter that does.
+ * a run is a successful invocation with no errors, so neither Lambda alarm sees it.
+ * `WebGuestReaperSaturationMetricFilter` feeds `WebGuestReaperSaturatedAlarm` in
+ * `infra/aws/lib/scheduled-data-job-monitoring.ts`.
  *
  * `scanFailed` separates the two ways a run can end with `finished: false`. It means the run
  * stopped because a candidate scan threw, so the counters above cover only the pages it got
@@ -920,6 +936,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
+  | EventByAction<"card_addition_reconciliation_completed", CardAdditionReconciliationCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
   | EventByAction<"guest_browser_challenge", GuestBrowserChallengeDetails>
   | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
@@ -1026,6 +1043,7 @@ export type OperationsWarningEvent =
   > & Readonly<{ message: string }>);
 
 export type OperationsExceptionEvent =
+  | (EventByAction<"card_addition_reconciliation_failed", CardAdditionReconciliationFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)

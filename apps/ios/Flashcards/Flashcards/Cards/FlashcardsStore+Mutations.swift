@@ -78,6 +78,7 @@ extension FlashcardsStore {
         )
         self.reviewRuntime.invalidateReviewSource()
         if editingCardId == nil {
+            Analytics.track(.manualCardSaved)
             self.handleReviewScheduleLocalCardStateDidChange(now: now)
         } else {
             self.replaceEditedCardsInMemory(editedCards: [savedCard], now: now)

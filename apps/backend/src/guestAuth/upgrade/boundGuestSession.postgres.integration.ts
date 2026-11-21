@@ -18,6 +18,7 @@ import {
 import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
 import { parseAccountPreferencesInput } from "../../routes/system/support";
 import { HttpError } from "../../shared/errors";
+import { configureBackendRuntimeObservability, resetBackendRuntimeObservability } from "../../observability/runtime";
 import { loadPaywallState, recordPaywallShown, type PaywallShownInput } from "../../paywallState";
 import {
   authenticateGuestSession,
@@ -683,24 +684,96 @@ test("demo-only qualification preserves edited, ordinary, invalid, deleted and m
   }
 });
 
-test("demo-only completion refuses a stale preparation and a concurrent writer without consuming the guest", async () => {
-  await withDemoUpgradeFixture(async ({ ownerPool, guest, subject, targetWorkspaceId, snapshot }) => {
-    assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).demoOnlyDestinationWorkspaceId, targetWorkspaceId);
-    const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
-    await unsafeTransaction(async (executor) => {
-      await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guest.userId, workspaceId: guest.workspaceId });
+test("demo-only completion retries a short guest scope, but preserves a busy or edited guest", { timeout: 10_000 }, async () => {
+  const retries: Array<Readonly<{ attempt: number; delayMs: number }>> = [];
+  let notifyFirstRetry!: () => void;
+  const firstRetry = new Promise<void>((resolve) => { notifyFirstRetry = resolve; });
+  configureBackendRuntimeObservability("backend-api", {
+    addBreadcrumb: () => undefined,
+    captureException: (event) => { throw event.error; },
+    captureWarning: (event) => {
+      if (event.action === "guest_upgrade_guest_busy_retry") {
+        retries.push({ attempt: event.details.attempt, delayMs: event.details.delayMs });
+        notifyFirstRetry();
+      }
+    },
+  });
+  try {
+    await withDemoUpgradeFixture(async (fixture) => {
+      const { ownerPool, guest, subject, targetUserId, targetWorkspaceId, snapshot } = fixture;
+      const reviewEventId = await reviewDemoInFixture(fixture);
+      assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).demoOnlyDestinationWorkspaceId, targetWorkspaceId);
+      const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
+      const { completion } = await unsafeTransaction(async (executor) => {
+        await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guest.userId, workspaceId: guest.workspaceId });
+        const completion = completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+        await Promise.race([firstRetry, completion.then(() => assert.fail("Completion must first refuse the held guest scope."))]);
+        const subjectLock = await ownerPool.query<Readonly<{ locked: boolean }>>(
+          "SELECT pg_try_advisory_xact_lock(hashtextextended('auth.cognito_identity:' || $1::text, 2::bigint)) AS locked",
+          [subject],
+        );
+        assert.equal(subjectLock.rows[0]?.locked, true);
+        return { completion };
+      });
+      const completed = await completion;
+      assert.equal(completed.outcome, "fresh_completion");
+      assert.equal(completed.targetWorkspaceId, targetWorkspaceId);
+      assert.deepEqual(completed.droppedEntities, {
+        cardIds: [snapshot.cardId], deckIds: [], reviewEventIds: [reviewEventId], mediaAssetIds: [],
+      });
+      assert.deepEqual(retries, [{ attempt: 1, delayMs: 100 }]);
+      assert.deepEqual(await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId), {
+        userSettingsRows: 0, workspaceRows: 0, liveGuestSessionRows: 0,
+      });
+      const replay = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+      assert.equal(replay.outcome, "idempotent_replay");
+      assert.equal(replay.targetWorkspaceId, targetWorkspaceId);
+      assert.deepEqual(replay.droppedEntities, completed.droppedEntities);
+      assert.deepEqual((await ownerPool.query(
+        "SELECT target_user_id, target_workspace_id FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1",
+        [guest.userId],
+      )).rows, [{ target_user_id: targetUserId, target_workspace_id: targetWorkspaceId }]);
+      assert.equal((await ownerPool.query(
+        "SELECT event_id FROM analytics.product_events WHERE event_name = 'guest_upgrade_completed' AND guest_session_id = $1",
+        [completed.guestSessionId],
+      )).rowCount, 1);
+      assert.equal((await ownerPool.query(
+        "SELECT link_id FROM analytics.identity_links WHERE anonymous_id = $1 AND user_id = $2",
+        [guest.userId, targetUserId],
+      )).rowCount, 1);
+    });
+    retries.length = 0;
+    await withDemoUpgradeFixture(async ({ ownerPool, guest, subject, targetWorkspaceId, snapshot }) => {
+      assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).demoOnlyDestinationWorkspaceId, targetWorkspaceId);
+      const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
+      await unsafeTransaction(async (executor) => {
+        await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guest.userId, workspaceId: guest.workspaceId });
+        await assert.rejects(
+          completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES),
+          (error: unknown) => error instanceof HttpError && error.statusCode === 409 && error.code === "GUEST_UPGRADE_GUEST_BUSY",
+        );
+      });
+      assert.deepEqual(retries, [{ attempt: 1, delayMs: 100 }, { attempt: 2, delayMs: 200 }]);
+      assert.deepEqual(await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId), {
+        userSettingsRows: 1, workspaceRows: 1, liveGuestSessionRows: 1,
+      });
+      assert.equal((await ownerPool.query(
+        "SELECT upgrade_id FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1", [guest.userId],
+      )).rowCount, 0);
+      assert.equal((await ownerPool.query(
+        "SELECT event_id FROM analytics.product_events WHERE event_name = 'guest_upgrade_completed' AND subject_user_id = $1", [guest.userId],
+      )).rowCount, 0);
+      await ownerPool.query("UPDATE content.cards SET front_text = 'New authored question' WHERE card_id = $1", [snapshot.cardId]);
       await assert.rejects(
         completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES),
-        (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_GUEST_BUSY",
+        (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE",
       );
+      assert.deepEqual(retries, [{ attempt: 1, delayMs: 100 }, { attempt: 2, delayMs: 200 }]);
+      assert.equal((await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId)).liveGuestSessionRows, 1);
     });
-    await ownerPool.query("UPDATE content.cards SET front_text = 'New authored question' WHERE card_id = $1", [snapshot.cardId]);
-    await assert.rejects(
-      completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES),
-      (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE",
-    );
-    assert.equal((await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId)).liveGuestSessionRows, 1);
-  });
+  } finally {
+    resetBackendRuntimeObservability();
+  }
 });
 
 test("new-account binding and legacy explicit merge retain the demo and its reviews", async () => {

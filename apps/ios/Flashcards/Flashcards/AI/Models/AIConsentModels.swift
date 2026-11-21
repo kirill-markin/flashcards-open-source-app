@@ -101,15 +101,10 @@ enum AIConsentError: LocalizedError {
     }
 }
 
-/// ISO8601DateFormatter is thread-safe, and this one is never mutated after creation.
-private nonisolated(unsafe) let aiConsentDateFormatter: ISO8601DateFormatter = {
+func aiConsentDate(_ value: String) -> Date? {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter
-}()
-
-func aiConsentDate(_ value: String) -> Date? {
-    aiConsentDateFormatter.date(from: value)
+    return formatter.date(from: value)
 }
 
 func aiConsentActionTime() -> String {

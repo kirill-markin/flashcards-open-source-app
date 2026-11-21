@@ -20,7 +20,6 @@ import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
 import com.flashcardsopensourceapp.app.widget.analyticsWidgetKind
 import com.flashcardsopensourceapp.app.widget.analyticsWidgetSize
-import com.flashcardsopensourceapp.app.widget.analyticsWidgetTarget
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
 import com.flashcardsopensourceapp.data.local.model.cloud.parseCloudAppleBrowserReturn
@@ -272,8 +271,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
         appGraphOrNull?.analytics?.track(
             event = AnalyticsEvent.WidgetOpened(
                 widgetSize = analyticsWidgetSize(size = request.size),
-                widgetKind = analyticsWidgetKind(kind = request.kind),
-                widgetTarget = analyticsWidgetTarget(request = request)
+                widgetKind = analyticsWidgetKind(kind = request.kind)
             )
         )
         reviewWidgetTapStateMutable.value = ReviewWidgetTapHandoffRequest(

@@ -14,17 +14,17 @@ struct AIChatView: View {
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.tabBarPlacement) var tabBarPlacement
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
-    @Environment(\.usesRegularToolbarLayout) var usesRegularToolbarLayout
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let chatStore: AIChatStore
     let isCompanion: Bool
     let companionHostTab: AppTab?
 
     var isPresentationActive: Bool {
-        self.isCompanion
-            ? self.navigation.isAICompanionVisible
-                && (self.companionHostTab == nil || self.navigation.selectedTab == self.companionHostTab)
-            : self.navigation.selectedTab == .ai
+        self.navigation.isLiveAIChatVisible && (
+            self.isCompanion
+                ? self.navigation.selectedTab == self.companionHostTab
+                : self.navigation.selectedTab == .ai
+        )
     }
     @State var isCameraPresented: Bool
     @State var isFileImporterPresented: Bool
@@ -174,7 +174,7 @@ struct AIChatView: View {
     var bodyBaseModifiers: some View {
         if self.isCompanion {
             #if targetEnvironment(macCatalyst)
-            if UIDevice.current.userInterfaceIdiom == .pad || self.usesRegularToolbarLayout {
+            if UIDevice.current.userInterfaceIdiom == .pad {
                 self.companionBody
                     .safeAreaInset(edge: .top, spacing: 0) {
                         if self.usesCompactCompanionToolbar == false {
@@ -190,18 +190,15 @@ struct AIChatView: View {
                     }
             }
             #else
-            // The pane has no navigation bar. It draws one row, level with the section's bar, for whichever page is on
-            // top; at the live chat that row holds these controls.
-            AICompanionPane {
-                self.companionPaneHeader
+            AICompanionPane(hostTab: self.companionHostTab) {
+                self.companionPaneToolbar
             } liveChat: {
                 self.companionBody
             }
             #endif
         } else {
-            // The regular toolbar layout names sections only in the tab bar.
             self.bodyCommonModifiers
-                .nativeNavigationTitle(self.usesRegularToolbarLayout ? "" : aiSettingsLocalized("ai.title", "AI"))
+                .nativeNavigationTitle(aiSettingsLocalized("ai.title", "AI"))
                 .navigationBarTitleDisplayMode(.inline)
                 #if !targetEnvironment(macCatalyst)
                 .toolbar {
@@ -247,13 +244,14 @@ struct AIChatView: View {
     }
 
     var bodyCommonModifiers: some View {
-        self.bodyContent
+        let showsBarBackground = self.composerBarShowsBackground
+        return self.bodyContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
             .nativeBottomBar(
                 alignment: .center,
-                usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad,
-                showsBackground: self.composerBarShowsBackground
+                usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad && showsBarBackground,
+                showsBackground: showsBarBackground
             ) {
                 self.bottomBarContent
                     #if !targetEnvironment(macCatalyst)
@@ -517,12 +515,11 @@ struct AIChatView: View {
         .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
         .disabled(self.chatStore.dictationState != .idle)
-        // Regular-layout toolbar buttons are primary while they can be used and dim when they cannot.
-        .tint(self.usesRegularToolbarLayout ? Color.primary : nil)
     }
 
     private func openChatHistory() {
         self.dismissComposerFocus()
+        self.chatStore.cancelDictation()
         let route = AIChatHistoryListRoute(model: AIChatHistoryListModel(chatStore: self.chatStore))
         #if !targetEnvironment(macCatalyst)
         // The side chat's history opens inside its pane, beside the section.
@@ -1082,8 +1079,7 @@ struct AIChatView: View {
             #endif
             self.frozenTranscriptMessages = self.chatStore.messages
             #if !targetEnvironment(macCatalyst)
-            if self.navigation.isAIChatVisible == false {
-                // No chat on screen takes the keyboard over, so it ends instead of staying with a field off screen.
+            if self.navigation.isLiveAIChatVisible == false {
                 AIChatComposerUITextView.releaseKeyboard(in: self.composerWindowScene.scene)
             }
             #endif

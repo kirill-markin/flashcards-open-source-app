@@ -12,50 +12,35 @@ private enum ProgressLeaderboardProfileLoadState: Hashable {
 struct ProgressLeaderboardProfileSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     let selectedProfile: ProgressLeaderboardSelectedProfile
 
     @State private var loadState: ProgressLeaderboardProfileLoadState = .loading
 
     var body: some View {
-        self.page
-            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardProfileSheet)
+        NavigationStack {
+            self.content
+                .navigationTitle(self.navigationTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(
+                            String(
+                                localized: "progress.leaderboard_profile.done_button",
+                                defaultValue: "Done",
+                                table: "Foundation",
+                                comment: "Toolbar button title for dismissing a leaderboard profile sheet"
+                            )
+                        ) {
+                            self.dismiss()
+                        }
+                    }
+                }
+        }
+        .accessibilityIdentifier(UITestIdentifier.progressLeaderboardProfileSheet)
         .task(id: self.selectedProfile.publicProfileId) {
             await self.loadProfile()
         }
-    }
-
-    /// Pushed beside the side chat, the profile sits in Progress's own stack and Back closes it.
-    @ViewBuilder
-    private var page: some View {
-        if self.presentationStyle == .push {
-            self.titledContent
-        } else {
-            NavigationStack {
-                self.titledContent
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(
-                                String(
-                                    localized: "progress.leaderboard_profile.done_button",
-                                    defaultValue: "Done",
-                                    table: "Foundation",
-                                    comment: "Toolbar button title for dismissing a leaderboard profile sheet"
-                                )
-                            ) {
-                                self.dismiss()
-                            }
-                        }
-                    }
-            }
-        }
-    }
-
-    private var titledContent: some View {
-        self.content
-            .pageNavigationTitle(self.navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder

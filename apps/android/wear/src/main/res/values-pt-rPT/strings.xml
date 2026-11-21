@@ -2,7 +2,16 @@
     <string name="app_name">Nibomo Flashcards</string>
     <string name="wear_retry">Tentar novamente</string>
     <string name="wear_session_open_phone_app">Abra o Nibomo no telemóvel</string>
-    <string name="wear_session_not_connected_message">Inicie sessão no telemóvel para rever os seus cartões no relógio.</string>
+    <string name="wear_session_not_connected_message">Inicie sessão no telemóvel e toque em Tentar novamente.</string>
+    <string name="wear_session_connect_android_phone">Ligue um telemóvel Android</string>
+    <string name="wear_session_connect_android_phone_message">Confirme que o relógio está emparelhado e ligado e toque em Tentar novamente.</string>
+    <string name="wear_session_setup_phone_app">Configure o Nibomo no telemóvel</string>
+    <string name="wear_session_install_phone_app_message">Instale ou atualize o Nibomo no Google Play, inicie sessão e toque em Tentar novamente.</string>
+    <string name="wear_session_check_phone_message">Confirme que o telemóvel está ligado ao relógio. Se necessário, instale ou atualize o Nibomo, inicie sessão e toque em Tentar novamente.</string>
+    <string name="wear_session_open_play_store">Abrir o Google Play</string>
+    <string name="wear_session_play_store_requested_message">Conclua no Google Play do telemóvel. Depois, inicie sessão no Nibomo e toque em Tentar novamente.</string>
+    <string name="wear_session_play_store_failed">Não foi possível abrir o Google Play</string>
+    <string name="wear_session_play_store_failed_message">Procure Nibomo Flashcards no Google Play do telemóvel. Depois, inicie sessão e toque em Tentar novamente.</string>
     <string name="wear_session_connecting">A ligar ao telemóvel…</string>
     <string name="wear_session_syncing">A sincronizar cartões…</string>
     <string name="wear_session_update_required">Atualize o Nibomo no telemóvel e no relógio</string>

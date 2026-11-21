@@ -325,6 +325,7 @@ export const zhHansCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "过去 7 天 · 每天 {{count}}",
+      vsUsual: "较平时",
       studyTime: "学习时间 · ≈ {{count}}分钟",
     },
     records: {

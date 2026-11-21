@@ -71,7 +71,7 @@ extension AIChatStore {
         )
     }
 
-    func captureUserVisibleAIChatFailure(error: Error) {
+    private func captureUserVisibleAIChatFailure(error: Error) {
         if isAIChatRequestTooLargeError(error: error) {
             return
         }

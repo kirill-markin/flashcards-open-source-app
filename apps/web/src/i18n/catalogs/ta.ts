@@ -325,6 +325,7 @@ const taCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "கடந்த 7 நாட்கள் · நாளுக்கு {{count}}",
+      vsUsual: "உங்கள் சராசரியுடன் ஒப்பிடுகையில்",
       studyTime: "படிப்பு நேரம் · ≈ {{count}} நிமி",
     },
     records: {

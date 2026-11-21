@@ -41,8 +41,7 @@ private struct ReviewsChartWidgetView: View {
                             kind: .reviewsChart,
                             workspaceId: self.entry.workspaceId,
                             size: size.deepLinkSize,
-                            cardId: nil,
-                            revealAnswer: false
+                            cardId: nil
                         )
                     )
                 )
@@ -150,11 +149,13 @@ private struct ReviewsChartPaceView: View {
                 Image(systemName: self.percentChange > 0 ? "arrow.up" : "arrow.down")
             }
             Text(Double(abs(self.percentChange)) / 100, format: .percent.precision(.fractionLength(0)))
+            Text("widget.reviews_chart.vs_usual", tableName: widgetStringsTableName)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(self.accent.color)
         .lineLimit(1)
-        .fixedSize()
         .widgetAccentable()
     }
 }

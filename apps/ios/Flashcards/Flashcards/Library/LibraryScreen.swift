@@ -5,7 +5,6 @@ private let libraryStringsTableName: String = "Foundation"
 /// The Library tab's root: every workspace content screen, pushed on the Library stack.
 struct LibraryScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @Environment(\.usesRegularToolbarLayout) private var usesRegularToolbarLayout
 
     let tagsCount: Int?
 
@@ -79,9 +78,7 @@ struct LibraryScreen: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.libraryScreen)
-        // The regular toolbar layout names sections only in the tab bar.
-        .nativeNavigationTitle(self.usesRegularToolbarLayout ? "" : AppTab.library.localizedTitle)
-        .navigationBarTitleDisplayMode(self.usesRegularToolbarLayout ? .inline : .automatic)
+        .nativeNavigationTitle(AppTab.library.localizedTitle)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
             AICompanionToolbarItem()

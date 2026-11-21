@@ -20,7 +20,6 @@ struct ProgressScreen: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(ProgressScreenState.self) private var progressState: ProgressScreenState
     @Environment(\.tabBarPlacement) private var tabBarPlacement
-    @Environment(\.usesRegularToolbarLayout) private var usesRegularToolbarLayout
     @State private var selectedLeaderboardProfile: ProgressLeaderboardSelectedProfile?
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
@@ -62,11 +61,9 @@ struct ProgressScreen: View {
             presentationContext: .standard(originSurface: .progress)
         )
         .friendInviteSheet(isPresented: self.$isFriendInvitePresented, store: self.store)
-        .sectionChildPresentation(item: self.$selectedLeaderboardProfile, onDismiss: nil) { selectedProfile in
+        .sheet(item: self.$selectedLeaderboardProfile) { selectedProfile in
             ProgressLeaderboardProfileSheet(selectedProfile: selectedProfile)
                 .environment(self.store)
-        } sheet: { _, profile in
-            profile
         }
     }
 
@@ -115,15 +112,14 @@ struct ProgressScreen: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .accessibilityIdentifier(UITestIdentifier.progressScreen)
             .nativeNavigationTitle(
-                // The regular toolbar layout names sections only in the tab bar.
-                (self.usesRegularToolbarLayout || self.usesTopTabNavigation || self.usesPairedCompanionToolbar) ? "" : String(
+                (self.usesTopTabNavigation || self.usesPairedCompanionToolbar) ? "" : String(
                     localized: "progress.screen.title",
                     defaultValue: "Progress",
                     table: "Foundation",
                     comment: "Progress screen title"
                 )
             )
-            .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.usesRegularToolbarLayout ? .inline : .automatic)
+            .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
             .refreshable {
                 await self.store.refreshProgressManually()
             }

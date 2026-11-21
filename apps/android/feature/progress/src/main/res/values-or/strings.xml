@@ -132,6 +132,7 @@
         <item quantity="other">%1$sଟି କାର୍ଡ</item>
     </plurals>
     <string name="progress_reviews_pace_last_7_days">ଗତ 7 ଦିନ · ଦିନକୁ %1$s</string>
+    <string name="progress_reviews_pace_vs_usual">ନିଜ ହାରାହାରି ତୁଳନାରେ</string>
     <plurals name="progress_reviews_study_time">
         <item quantity="one">ଅଧ୍ୟୟନ ସମୟ · ≈ %1$d ମିନିଟ୍</item>
         <item quantity="other">ଅଧ୍ୟୟନ ସମୟ · ≈ %1$d ମିନିଟ୍</item>

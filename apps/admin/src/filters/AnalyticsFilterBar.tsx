@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import {
   productEventDeviceTypes,
   reviewEventCohorts,
@@ -17,9 +17,8 @@ import {
 } from "../charts/chartPrimitives";
 import type { UserColorScale } from "../dashboard/userColors";
 import { ExplanationTip } from "../explanations/ExplanationTip";
-import { AdminLink } from "../navigation/AdminLink";
 import type { CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
-import { getUserPath, type AnalyticsArea } from "../routing";
+import type { AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypeLabels,
   analyticsThresholdEventTypes,
@@ -40,16 +39,8 @@ import { DateRangeCalendar, type DateRangeCalendarRange } from "./DateRangeCalen
 import { FilterFieldResetButton } from "./FilterFieldResetButton";
 import { MinimumEventCountsEditor } from "./MinimumEventCountsEditor";
 import type { AppStoreProductPageFilterOptions, CatalogDeckOption, SiteVisitorFilterOptions } from "./optionsQuery";
-import {
-  buildActiveUserFilters,
-  buildSearchableUserFilterOptions,
-  doesUserMatchSearch,
-  getNormalizedSearchValue,
-  getUserFilterLabel,
-  visibleUserFilterOptionLimit,
-  type ActiveUserFilter,
-  type SearchableUserFilterOption,
-} from "./userFilters";
+import { useUserFilterPicker } from "./UserFilterPicker";
+import { getNormalizedSearchValue, visibleUserFilterOptionLimit } from "./userFilters";
 
 // The filter bar every analytics area renders. It offers exactly the fields its caller lists, so a
 // later field is wired in `buildFilterFieldView` rather than by editing this layout, and a field
@@ -61,9 +52,6 @@ import {
 // explanation behind an `(i)`, a picker and a reset to its default. The selection is committed on
 // every click, so there is no draft to be overwritten by an arriving report.
 
-// A selected user the range no longer offers names no series any chart gave a colour to, so its
-// option in the users list takes this neutral swatch instead.
-const unknownUserSwatchColor = "rgba(255, 255, 255, 0.36)";
 // A threshold, a country and a locale tag name no value a chart gives a colour to, so their options
 // take the accent every filtered control in the bar already uses.
 const filterValueSwatchColor = "var(--accent-strong)";
@@ -360,163 +348,6 @@ function FilterOptionList<Value extends string>(
   );
 }
 
-// A link inside the option's label: the label ignores a click on interactive content it holds, so
-// following the link never toggles the checkbox.
-function UserPageLink(
-  props: Readonly<{
-    userId: string;
-    label: string;
-    onNavigate: (path: string) => void;
-  }>,
-): JSX.Element {
-  return (
-    <AdminLink className="user-filter-open-link" path={getUserPath(props.userId, "profile")} onNavigate={props.onNavigate}>
-      Open<span className="visually-hidden"> {props.label}</span>
-    </AdminLink>
-  );
-}
-
-// Users are an open-ended list of thousands, so this one is searched rather than listed, and only
-// the first matches are rendered; the count line says how many more the search still matches. The
-// search index is built by the bar rather than here, because this component is mounted only while
-// its popover is open and would otherwise re-index every user on every open. A selected user the
-// range no longer offers has no option of its own, so it is listed first, checked, rather than being
-// applied with no control for it.
-function UserFilterOptions(
-  props: Readonly<{
-    searchableOptions: ReadonlyArray<SearchableUserFilterOption>;
-    selectedUsersOutsideOptions: ReadonlyArray<ActiveUserFilter>;
-    selectedUserIds: ReadonlySet<string>;
-    searchValue: string;
-    userColorScale: UserColorScale;
-    onSearchChange: (searchValue: string) => void;
-    onToggle: (userId: string, isChecked: boolean) => void;
-    onNavigate: (path: string) => void;
-  }>,
-): JSX.Element {
-  const searchableOptions = props.searchableOptions;
-  const normalizedSearchValue = useMemo(
-    () => getNormalizedSearchValue(props.searchValue),
-    [props.searchValue],
-  );
-  const matchingOptions = useMemo(
-    () => searchableOptions
-      .filter((option) => doesUserMatchSearch(option, normalizedSearchValue))
-      .map((option) => option.user),
-    [normalizedSearchValue, searchableOptions],
-  );
-  const selectedUserIds = props.selectedUserIds;
-  // Every matching user that is picked is rendered, and the limit governs the unpicked ones alone.
-  // The offered users arrive ordered by their id, so the limit would otherwise decide by an arbitrary
-  // ordering which selections keep a checkbox, and a hidden one would stay applied with nothing on
-  // screen naming it. Being picked decides whether a user may show and never where: the rows stay in
-  // the order the report offers them in, so ticking a box moves nothing under the pointer.
-  const visibleOptions = useMemo(
-    () => {
-      const visibleUnpickedUserIds: ReadonlySet<string> = new Set<string>(
-        matchingOptions
-          .filter((user) => selectedUserIds.has(user.userId) === false)
-          .slice(0, visibleUserFilterOptionLimit)
-          .map((user) => user.userId),
-      );
-
-      return matchingOptions.filter((user) => (
-        selectedUserIds.has(user.userId) || visibleUnpickedUserIds.has(user.userId)
-      ));
-    },
-    [matchingOptions, selectedUserIds],
-  );
-  // What the limit still holds back: offered users the search matches and this list does not render.
-  // A selected-but-unoffered row is never held back, so it cannot be part of this count.
-  const hiddenOptionCount = matchingOptions.length - visibleOptions.length;
-  const selectedUsersOutsideOptions = props.selectedUsersOutsideOptions;
-  // Searched by the same text as the offered users, so one search narrows the whole list.
-  const matchingUsersOutsideOptions = useMemo(
-    () => selectedUsersOutsideOptions.filter((userFilter) => (
-      getNormalizedSearchValue(`${userFilter.label} ${userFilter.userId}`)
-        .includes(normalizedSearchValue)
-    )),
-    [normalizedSearchValue, selectedUsersOutsideOptions],
-  );
-  // Both numbers on the count line count the same rows, so the line can be checked against what is on
-  // screen: every row this list renders, against every user the search matches. The selected-but-
-  // unoffered rows are rendered and are matches of that same search, so they belong on both sides.
-  const renderedUserCount = visibleOptions.length + matchingUsersOutsideOptions.length;
-  const matchingUserCount = matchingOptions.length + matchingUsersOutsideOptions.length;
-
-  if (searchableOptions.length === 0 && selectedUsersOutsideOptions.length === 0) {
-    return <p className="user-filter-empty">No users with activity in this range.</p>;
-  }
-
-  return (
-    <>
-      <label className="user-filter-search">
-        <span>Search users</span>
-        <input
-          type="search"
-          value={props.searchValue}
-          placeholder="Email or user ID"
-          onChange={(event) => props.onSearchChange(event.currentTarget.value)}
-        />
-      </label>
-      {visibleOptions.length + matchingUsersOutsideOptions.length > 0 ? (
-        <div className="user-filter-options">
-          {matchingUsersOutsideOptions.map((userFilter) => (
-            <label key={userFilter.userId} className="user-filter-option selected">
-              <input
-                type="checkbox"
-                value={userFilter.userId}
-                checked
-                onChange={(event) => props.onToggle(userFilter.userId, event.currentTarget.checked)}
-              />
-              <span
-                className="user-filter-swatch"
-                style={{ backgroundColor: unknownUserSwatchColor }}
-              />
-              <span className="user-filter-option-text">
-                <span className="user-filter-option-primary">{userFilter.label}</span>
-                <span className="user-filter-option-secondary">{userFilter.secondaryLabel}</span>
-              </span>
-              <UserPageLink userId={userFilter.userId} label={userFilter.label} onNavigate={props.onNavigate} />
-            </label>
-          ))}
-          {visibleOptions.map((user) => (
-            <label
-              key={user.userId}
-              className={`user-filter-option${selectedUserIds.has(user.userId) ? " selected" : ""}`}
-            >
-              <input
-                type="checkbox"
-                value={user.userId}
-                checked={selectedUserIds.has(user.userId)}
-                onChange={(event) => props.onToggle(user.userId, event.currentTarget.checked)}
-              />
-              <span
-                className="user-filter-swatch"
-                style={{ backgroundColor: props.userColorScale(user.userId) }}
-              />
-              <span className="user-filter-option-text">
-                <span className="user-filter-option-primary">{getUserFilterLabel(user)}</span>
-                <span className="user-filter-option-secondary">
-                  {user.userId} - {user.totalReviewEvents.toLocaleString("en-US")} events
-                </span>
-              </span>
-              <UserPageLink userId={user.userId} label={getUserFilterLabel(user)} onNavigate={props.onNavigate} />
-            </label>
-          ))}
-        </div>
-      ) : (
-        <p className="user-filter-empty">No users match this search.</p>
-      )}
-      {hiddenOptionCount > 0 ? (
-        <p className="user-filter-limit">
-          Showing {renderedUserCount.toLocaleString("en-US")} of {matchingUserCount.toLocaleString("en-US")} matching users.
-        </p>
-      ) : null}
-    </>
-  );
-}
-
 /** The picked labels while they still fit on the popover header, and a count once they do not. */
 function getOptionSelectionSummary(
   selectedLabels: ReadonlyArray<string>,
@@ -630,7 +461,6 @@ function assertEveryFilterFieldIsWired(field: never): never {
 
 export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element {
   const [openField, setOpenField] = useState<AnalyticsFilterField | null>(null);
-  const [userSearchValue, setUserSearchValue] = useState<string>("");
   const panelRef = useRef<HTMLElement | null>(null);
   const fieldButtonsRef = useRef<Map<AnalyticsFilterField, HTMLButtonElement>>(new Map());
 
@@ -702,20 +532,15 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     props.filters.minimumEventCounts,
   );
 
-  // Every opening of the users popover starts with an empty search. That search lives on the bar
-  // rather than in the popover it is typed in, because the popover is mounted only while it is open,
-  // so a term left behind by an earlier opening would otherwise still be narrowing the list - and
-  // could hide a selected user from the one place that can uncheck them. It is cleared before the
-  // browser paints rather than after, so the opening cannot show the previous opening's term and its
-  // narrowed list for a frame first.
-  useLayoutEffect(() => {
-    if (openField === "users") {
-      setUserSearchValue("");
-    }
-  }, [openField]);
-
+  const userFilterPicker = useUserFilterPicker({
+    userOptions: props.userOptions,
+    selectedUserIds: props.filters.users,
+    isOpen: openField === "users",
+    userColorScale: props.userColorScale,
+    onSelectionChange: (users) => props.onFiltersChange({ ...props.filters, users }),
+    onNavigate: props.onNavigate,
+  });
   const defaultFilters = buildDefaultAnalyticsFilterState(props.defaultRange);
-  const selectedUserIds = useMemo(() => new Set(props.filters.users), [props.filters.users]);
   const selectedCohorts = useMemo(() => new Set(props.filters.userCohorts), [props.filters.userCohorts]);
   const selectedPlatforms = useMemo(
     () => new Set(props.filters.eventPlatforms),
@@ -724,25 +549,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
   const selectedDeviceTypes = useMemo(
     () => new Set(props.filters.eventDeviceTypes),
     [props.filters.eventDeviceTypes],
-  );
-  const userOptionById = useMemo(
-    () => new Map<string, ReviewEventsByDateUser>(
-      props.userOptions.map((user) => [user.userId, user]),
-    ),
-    [props.userOptions],
-  );
-  // The bar stays mounted while popovers open and close, so the one pass over every user that the
-  // search needs is paid once per option list rather than once per opening of the users popover.
-  const searchableUserOptions = useMemo(
-    () => buildSearchableUserFilterOptions(props.userOptions),
-    [props.userOptions],
-  );
-  // A selected user the range no longer offers has no option of its own in the list, so the list is
-  // given one for them: every selection stays visible, and removable, in the one place that shows it.
-  const selectedUsersOutsideOptions = useMemo(
-    () => buildActiveUserFilters(props.filters.users, userOptionById)
-      .filter((userFilter) => userFilter.hasUserInReport === false),
-    [props.filters.users, userOptionById],
   );
 
   // The two date fields are the only ones whose pickers dismiss themselves, because a picked range is
@@ -765,7 +571,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
   }
 
   function handleAllFiltersReset(): void {
-    setUserSearchValue("");
     props.onFiltersChange(withDefaultFields(props.filters, defaultFilters, props.fields));
 
     if (openField !== null) {
@@ -842,29 +647,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           : `${props.filters.users.length.toLocaleString("en-US")} selected`,
         isFiltered: props.filters.users.length > 0,
         isWide: true,
-        content: (
-          <>
-            <UserFilterOptions
-              searchableOptions={searchableUserOptions}
-              selectedUsersOutsideOptions={selectedUsersOutsideOptions}
-              selectedUserIds={selectedUserIds}
-              searchValue={userSearchValue}
-              userColorScale={props.userColorScale}
-              onSearchChange={setUserSearchValue}
-              onToggle={(userId, isChecked) => props.onFiltersChange({
-                ...props.filters,
-                users: toggleSelectedValue(props.filters.users, userId, isChecked),
-              })}
-              onNavigate={props.onNavigate}
-            />
-            {props.filters.users.length === 0 ? null : (
-              <FilterFieldResetButton
-                label="Select all users"
-                onReset={() => props.onFiltersChange({ ...props.filters, users: defaultFilters.users })}
-              />
-            )}
-          </>
-        ),
+        content: userFilterPicker,
       };
     }
 

@@ -134,7 +134,6 @@ extension AIChatView {
             self.selectedPhotoItem = nil
             self.isPhotoPickerPresented = true
         case .chooseFile:
-            aiChatInvalidateImporterContentTypes()
             self.isFileImporterPresented = true
         }
     }

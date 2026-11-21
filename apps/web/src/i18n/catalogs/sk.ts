@@ -332,6 +332,7 @@ const skCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Posledných 7 dní · {{count}} denne",
+      vsUsual: "oproti vášmu priemeru",
       studyTime: "Čas učenia · ≈ {{count}} min",
     },
     records: {

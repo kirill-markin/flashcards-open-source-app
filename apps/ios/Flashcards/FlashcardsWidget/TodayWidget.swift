@@ -138,8 +138,7 @@ struct TodayWidgetView: View {
                                 kind: .today,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: nil,
-                                revealAnswer: false
+                                cardId: nil
                             )
                         )
                     )

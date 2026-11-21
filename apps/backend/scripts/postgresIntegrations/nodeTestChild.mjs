@@ -237,6 +237,9 @@ function expectedUsernameForClient(client) {
   if (configuredUsername === expectedOwnerUsername) {
     return expectedOwnerUsername;
   }
+  if (configuredUsername === "reporting_readonly") {
+    return configuredUsername;
+  }
   throw new Error(
     "PostgreSQL integration test connection uses an unexpected database username. "
     + "configuredUsername=" + (configuredUsername ?? "missing"),

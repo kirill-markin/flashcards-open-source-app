@@ -1,5 +1,5 @@
 import { clearEntitlementState } from "../../../premium/entitlementStore";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import {
   ApiError,
   createWorkspace as createWorkspaceRequest,
@@ -38,9 +38,9 @@ import {
   logWorkspaceTransition,
 } from "../observation/workspaceSessionObservation";
 import {
-  getSyncFailureObservationCaptureState,
-  isSyncFailurePresentedByCaller,
-} from "../../sync/observation/syncErrorObservation";
+  useDeferredWorkspaceBootstrap,
+  type WorkspaceBootstrapOutcome,
+} from "./useDeferredWorkspaceBootstrap";
 import type {
   WorkspaceSessionActivation,
   WorkspaceSessionSetters,
@@ -48,13 +48,13 @@ import type {
   WorkspaceSessionSyncActions,
   WorkspaceSessionUiActions,
 } from "../workspaceSessionTypes";
-import { normalizeCaughtError, type WorkspaceActivationBootstrapPhase } from "../../../observability/webObservability";
+import { normalizeCaughtError } from "../../../observability/webObservability";
 
 type UseWorkspaceActivationParams =
   & Readonly<{
     indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   }>
-  & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">
+  & Pick<WorkspaceSessionState, "activeWorkspace" | "session" | "sessionVerificationState">
   & WorkspaceSessionSetters
   & WorkspaceSessionSyncActions
   & WorkspaceSessionUiActions;
@@ -123,12 +123,40 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     discardAllSyncWork,
     resetUserScopedUiState,
     activeWorkspace,
+    session,
     sessionVerificationState,
     indexedDbOpenRecoveryState,
   } = params;
-  const workspaceBootstrapGenerationRef = useRef<number>(0);
-  const deferredBootstrapWorkspaceRef = useRef<WorkspaceSummary | null>(null);
-  const [deferredBootstrapVersion, setDeferredBootstrapVersion] = useState<number>(0);
+  const applyBootstrapOutcome = useCallback(function applyBootstrapOutcome(outcome: WorkspaceBootstrapOutcome): void {
+    if (outcome.kind === "redirected") {
+      setSessionLoadState("redirecting");
+      return;
+    }
+
+    const errorMessage = outcome.kind === "failed" ? outcome.errorMessage : "";
+    const technicalError = outcome.kind === "failed" ? outcome.technicalError : null;
+    setSessionErrorMessage(errorMessage);
+    setErrorMessage(errorMessage);
+    setSessionTechnicalError(technicalError);
+    setTechnicalError(technicalError);
+  }, [
+    setErrorMessage,
+    setSessionErrorMessage,
+    setSessionLoadState,
+    setSessionTechnicalError,
+    setTechnicalError,
+  ]);
+
+  const { scheduleWorkspaceBootstrap, invalidateWorkspaceBootstrap } = useDeferredWorkspaceBootstrap({
+    activeWorkspaceId: activeWorkspace?.workspaceId,
+    selectedWorkspaceId: session?.selectedWorkspaceId,
+    sessionUserId: session?.userId,
+    sessionVerificationState,
+    indexedDbOpenRecoveryState,
+    onOutcome: applyBootstrapOutcome,
+    refreshWorkspaceView,
+    runSyncForWorkspace,
+  });
 
   const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(
     reason: LocalBrowserDataCleanupReason,
@@ -153,8 +181,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     // whoever signs in next (`webGuestSession.ts`).
     resetWebGuestSession();
     clearEntitlementState();
-    workspaceBootstrapGenerationRef.current += 1;
-    deferredBootstrapWorkspaceRef.current = null;
+    invalidateWorkspaceBootstrap();
     setSession(null);
     setActiveWorkspace(null);
     setAvailableWorkspaces([]);
@@ -173,6 +200,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   }, [
     discardAllSyncWork,
     indexedDbOpenRecoveryState,
+    invalidateWorkspaceBootstrap,
     resetUserScopedUiState,
     setActiveWorkspace,
     setAvailableWorkspaces,
@@ -209,154 +237,6 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setAvailableWorkspaces,
     setSession,
     setSessionLoadState,
-  ]);
-
-  const bootstrapWorkspaceInBackground = useCallback(function bootstrapWorkspaceInBackground(
-    workspace: WorkspaceSummary,
-  ): void {
-    const bootstrapGeneration = workspaceBootstrapGenerationRef.current;
-    const isCurrentBootstrapGeneration = function isCurrentBootstrapGeneration(): boolean {
-      return bootstrapGeneration === workspaceBootstrapGenerationRef.current;
-    };
-
-    logWorkspaceTransition("workspace_activate_bootstrap_started", {
-      workspaceId: workspace.workspaceId,
-      sessionVerificationState,
-      bootstrapPhase: "refresh_before_sync",
-    });
-
-    void (async (): Promise<void> => {
-      let bootstrapPhase: WorkspaceActivationBootstrapPhase = "refresh_before_sync";
-      try {
-        await refreshWorkspaceView(workspace.workspaceId);
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
-        }
-
-        if (sessionVerificationState !== "verified") {
-          if (isCurrentBootstrapGeneration() === false) {
-            return;
-          }
-
-          bootstrapPhase = "deferred_until_verified";
-          deferredBootstrapWorkspaceRef.current = workspace;
-          setDeferredBootstrapVersion((currentVersion) => currentVersion + 1);
-          logWorkspaceTransition("workspace_activate_bootstrap_deferred", {
-            workspaceId: workspace.workspaceId,
-            sessionVerificationState,
-            bootstrapPhase,
-          });
-          return;
-        }
-
-        deferredBootstrapWorkspaceRef.current = null;
-        bootstrapPhase = "run_sync";
-        await runSyncForWorkspace(workspace);
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
-        }
-
-        if (isCurrentBootstrapGeneration() === false) {
-          return;
-        }
-
-        bootstrapPhase = "final_refresh";
-        await refreshWorkspaceView(workspace.workspaceId);
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
-        }
-
-        if (isCurrentBootstrapGeneration() === false) {
-          return;
-        }
-
-        bootstrapPhase = "completed";
-        setSessionErrorMessage("");
-        setErrorMessage("");
-        setSessionTechnicalError(null);
-        setTechnicalError(null);
-        logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
-          workspaceId: workspace.workspaceId,
-          sessionVerificationState,
-          bootstrapPhase,
-        });
-      } catch (error) {
-        const normalizedError = normalizeCaughtError(error);
-        indexedDbOpenRecoveryState.markFailed(normalizedError);
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
-        }
-
-        if (isCurrentBootstrapGeneration() === false) {
-          return;
-        }
-
-        if (isAuthRedirectError(error)) {
-          logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
-            workspaceId: workspace.workspaceId,
-            redirected: true,
-            sessionVerificationState,
-            bootstrapPhase,
-          });
-          setSessionLoadState("redirecting");
-          return;
-        }
-
-        if (bootstrapPhase === "run_sync" && isSyncFailurePresentedByCaller(normalizedError)) {
-          return;
-        }
-
-        const nextErrorMessage = getErrorMessage(normalizedError);
-        const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
-        if (syncFailureCaptureState === null) {
-          captureWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
-            workspaceId: workspace.workspaceId,
-            errorMessage: nextErrorMessage,
-            sessionVerificationState,
-            bootstrapPhase,
-          }, normalizedError);
-        }
-        setSessionErrorMessage(nextErrorMessage);
-        setErrorMessage(nextErrorMessage);
-        setSessionTechnicalError(syncFailureCaptureState === false ? null : normalizedError);
-        setTechnicalError(syncFailureCaptureState === false ? null : normalizedError);
-      }
-    })();
-  }, [
-    indexedDbOpenRecoveryState,
-    refreshWorkspaceView,
-    runSyncForWorkspace,
-    sessionVerificationState,
-    setErrorMessage,
-    setSessionErrorMessage,
-    setSessionTechnicalError,
-    setSessionLoadState,
-    setTechnicalError,
-  ]);
-
-  useEffect(() => {
-    if (indexedDbOpenRecoveryState.hasFailed() || sessionVerificationState !== "verified") {
-      return;
-    }
-
-    const deferredWorkspace = deferredBootstrapWorkspaceRef.current;
-    if (deferredWorkspace === null) {
-      return;
-    }
-
-    if (activeWorkspace?.workspaceId !== deferredWorkspace.workspaceId) {
-      deferredBootstrapWorkspaceRef.current = null;
-      return;
-    }
-
-    deferredBootstrapWorkspaceRef.current = null;
-    bootstrapWorkspaceInBackground(activeWorkspace);
-  }, [
-    activeWorkspace,
-    bootstrapWorkspaceInBackground,
-    deferredBootstrapVersion,
-    indexedDbOpenRecoveryState,
-    sessionVerificationState,
   ]);
 
   const activateWorkspace = useCallback(async function activateWorkspace(
@@ -403,11 +283,11 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       selectedWorkspaceId: workspace.workspaceId,
       availableWorkspaceIds: currentWorkspaces.map((currentWorkspace) => currentWorkspace.workspaceId),
     });
-    bootstrapWorkspaceInBackground(workspace);
+    scheduleWorkspaceBootstrap(currentSession.userId, workspace);
   }, [
-    bootstrapWorkspaceInBackground,
     indexedDbOpenRecoveryState,
     publishSelectedWorkspace,
+    scheduleWorkspaceBootstrap,
     setCloudSettings,
     setErrorMessage,
     setSessionErrorMessage,
@@ -465,8 +345,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
             throw error;
           }
 
-          // Bookkeeping for the other clients, written after this workspace was already published
-          // and its bootstrap started. Failing it leaves the account exactly where it already was
+          // Failing it leaves the account exactly where it already was
           // (`selectedWorkspaceId: null`), which the next boot retries, so it must not reject the
           // bootstrap: that would replace the link's workspace with the error gate, leave the
           // session unverified, and loop on a retry that re-runs this same call. The address stays

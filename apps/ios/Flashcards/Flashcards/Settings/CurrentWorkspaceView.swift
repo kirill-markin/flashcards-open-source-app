@@ -62,7 +62,7 @@ struct CurrentWorkspaceView: View {
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Workspace"))
-        .sectionChildPresentation(isPresented: self.$isWorkspacePickerPresented, onDismiss: nil) {
+        .sheet(isPresented: self.$isWorkspacePickerPresented) {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,
                 isLoading: self.isWorkspacePickerLoading,
@@ -73,18 +73,14 @@ struct CurrentWorkspaceView: View {
                 }
             )
             .environment(self.store)
-        } sheet: { picker in
-            picker
-                .technicalErrorSheetHost(store: self.store)
+            .technicalErrorSheetHost(store: self.store)
         }
-        .sectionChildPresentation(isPresented: self.$isRenameSheetPresented, onDismiss: nil) {
+        .sheet(isPresented: self.$isRenameSheetPresented) {
             CurrentWorkspaceRenameSheet(
                 initialWorkspaceName: self.store.workspace?.name ?? ""
             )
             .environment(self.store)
-        } sheet: { rename in
-            rename
-                .technicalErrorSheetHost(store: self.store)
+            .technicalErrorSheetHost(store: self.store)
         }
     }
 
@@ -140,14 +136,12 @@ struct CurrentWorkspaceView: View {
 private struct CurrentWorkspaceRenameSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     let initialWorkspaceName: String
 
     @State private var workspaceNameDraft: String
     @State private var guidanceMessage: String = ""
     @State private var isSubmitting: Bool = false
-    @State private var hasPreparedDraft: Bool = false
     @FocusState private var isWorkspaceNameFieldFocused: Bool
 
     private var trimmedWorkspaceName: String {
@@ -167,90 +161,64 @@ private struct CurrentWorkspaceRenameSheet: View {
     }
 
     var body: some View {
-        // Pushed beside the side chat, the form sits in Settings' own stack and Back closes it.
-        if self.presentationStyle == .push {
-            self.prepared(self.form)
-                .sectionChildBackGuard(
-                    isLocked: self.isSubmitting,
-                    hasUnsavedChanges: self.trimmedWorkspaceName
-                        != self.initialWorkspaceName.trimmingCharacters(in: .whitespacesAndNewlines),
-                    onDiscard: { self.dismiss() }
-                )
-        } else {
-            self.prepared(NavigationStack {
-                self.form
-            })
-            .interactiveDismissDisabled(self.isSubmitting)
-            .presentationDetents([.medium])
-        }
-    }
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"),
+                        text: self.$workspaceNameDraft
+                    )
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(true)
+                        .submitLabel(.done)
+                        .focused(self.$isWorkspaceNameFieldFocused)
+                        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
+                        .onSubmit {
+                            self.submitRenameIfEnabled()
+                        }
 
-    private func prepared<Content: View>(_ content: Content) -> some View {
-        content
-            .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameSheet)
-            .task {
-                // Once per presentation: a pushed form appears again after a section switch and keeps its draft.
-                guard self.hasPreparedDraft == false else {
-                    return
-                }
-                self.hasPreparedDraft = true
-                self.workspaceNameDraft = self.initialWorkspaceName
-                self.guidanceMessage = ""
-                await Task.yield()
-                self.isWorkspaceNameFieldFocused = true
-            }
-    }
-
-    private var form: some View {
-        Form {
-            Section {
-                TextField(
-                    aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"),
-                    text: self.$workspaceNameDraft
-                )
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled(true)
-                    .submitLabel(.done)
-                    .focused(self.$isWorkspaceNameFieldFocused)
-                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
-                    .onSubmit {
-                        self.submitRenameIfEnabled()
+                    if self.guidanceMessage.isEmpty == false {
+                        Text(self.guidanceMessage)
+                            .foregroundStyle(.secondary)
                     }
-
-                if self.guidanceMessage.isEmpty == false {
-                    Text(self.guidanceMessage)
-                        .foregroundStyle(.secondary)
                 }
             }
-        }
-        .pageNavigationTitle(
-            aiSettingsLocalized("settings.currentWorkspace.renameWorkspace", "Rename Workspace")
-        )
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if self.presentationStyle == .sheet {
+            .navigationTitle(
+                aiSettingsLocalized("settings.currentWorkspace.renameWorkspace", "Rename Workspace")
+            )
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(aiSettingsLocalized("common.cancel", "Cancel")) {
                         self.dismiss()
                     }
                     .disabled(self.isSubmitting)
                 }
-            }
 
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    self.submitRenameIfEnabled()
-                } label: {
-                    if self.isSubmitting {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Text(aiSettingsLocalized("settings.workspace.overview.saveName", "Save Name"))
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        self.submitRenameIfEnabled()
+                    } label: {
+                        if self.isSubmitting {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Text(aiSettingsLocalized("settings.workspace.overview.saveName", "Save Name"))
+                        }
                     }
+                    .disabled(self.isSaveDisabled)
+                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
                 }
-                .disabled(self.isSaveDisabled)
-                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
             }
+        }
+        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameSheet)
+        .interactiveDismissDisabled(self.isSubmitting)
+        .presentationDetents([.medium])
+        .task {
+            self.workspaceNameDraft = self.initialWorkspaceName
+            self.guidanceMessage = ""
+            await Task.yield()
+            self.isWorkspaceNameFieldFocused = true
         }
     }
 
@@ -287,8 +255,6 @@ private struct CurrentWorkspaceRenameSheet: View {
 }
 
 private struct CurrentWorkspacePickerContainer: View {
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
-
     let workspaces: [CloudWorkspaceSummary]?
     let isLoading: Bool
     let guidanceMessage: String
@@ -296,54 +262,44 @@ private struct CurrentWorkspacePickerContainer: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        // Pushed beside the side chat, the chooser sits in Settings' own stack and Back closes it.
-        if self.presentationStyle == .push {
-            self.picker
-        } else {
-            NavigationStack {
-                self.picker
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(aiSettingsLocalized("common.close", "Close")) {
-                                self.onDismiss()
-                            }
-                        }
+        NavigationStack {
+            Group {
+                if self.isLoading {
+                    ProgressView(aiSettingsLocalized("settings.currentWorkspace.loadingWorkspaces", "Loading workspaces..."))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                } else if let workspaces = self.workspaces {
+                    CurrentWorkspacePickerSheet(
+                        workspaces: workspaces,
+                        localWorkspaceName: self.localWorkspaceName,
+                        onDismiss: self.onDismiss
+                    )
+                } else {
+                    Text(
+                        self.guidanceMessage.isEmpty
+                            ? aiSettingsLocalized("settings.currentWorkspace.loadError", "Failed to load linked workspaces.")
+                            : self.guidanceMessage
+                    )
+                        .foregroundStyle(.secondary)
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+            .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
+            .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.chooseWorkspaceTitle", "Choose Workspace"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(aiSettingsLocalized("common.close", "Close")) {
+                        self.onDismiss()
                     }
+                }
             }
         }
-    }
-
-    private var picker: some View {
-        Group {
-            if self.isLoading {
-                ProgressView(aiSettingsLocalized("settings.currentWorkspace.loadingWorkspaces", "Loading workspaces..."))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else if let workspaces = self.workspaces {
-                CurrentWorkspacePickerSheet(
-                    workspaces: workspaces,
-                    localWorkspaceName: self.localWorkspaceName,
-                    onDismiss: self.onDismiss
-                )
-            } else {
-                Text(
-                    self.guidanceMessage.isEmpty
-                        ? aiSettingsLocalized("settings.currentWorkspace.loadError", "Failed to load linked workspaces.")
-                        : self.guidanceMessage
-                )
-                    .foregroundStyle(.secondary)
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
-        .pageNavigationTitle(aiSettingsLocalized("settings.currentWorkspace.chooseWorkspaceTitle", "Choose Workspace"))
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct CurrentWorkspacePickerSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     let workspaces: [CloudWorkspaceSummary]
     let localWorkspaceName: String
@@ -398,8 +354,6 @@ private struct CurrentWorkspacePickerSheet: View {
                     self.switchWorkspace(selection: .createNewNamed(name: name))
                 }
             )
-            .environment(\.sectionChildPresentationStyle, self.presentationStyle)
-            .aiCompanionColumnPage(when: self.presentationStyle)
         }
     }
 

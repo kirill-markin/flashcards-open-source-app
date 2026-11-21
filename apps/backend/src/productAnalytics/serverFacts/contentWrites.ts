@@ -32,6 +32,7 @@ import type {
   productAnalyticsEventCatalog,
 } from "../catalog";
 import { productAnalyticsMaxEventAgeMs } from "../validation";
+import { setCardAdditionWriterInExecutor } from "./cardAdditions";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
@@ -854,7 +855,10 @@ export async function transactionWithWorkspaceScopeReportingContentWrites<Result
   budget?: PostCommitAnalyticsBudget,
 ): Promise<Result> {
   return runTransactionReportingContentWrites<Result>(
-    (body) => transactionWithWorkspaceScope(scope, body),
+    (body) => transactionWithWorkspaceScope(scope, async (executor) => {
+      await setCardAdditionWriterInExecutor(executor, "save");
+      return body(executor);
+    }),
     callback,
     () => scope.userId,
     resolvePostCommitAnalyticsBudget(budget),

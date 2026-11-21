@@ -1,20 +1,6 @@
 import SwiftUI
 
 extension View {
-    @ViewBuilder
-    func nativeTextInputFocusTarget(isFocused: FocusState<Bool>.Binding) -> some View {
-        #if targetEnvironment(macCatalyst)
-        self
-        #else
-        self.background {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture { isFocused.wrappedValue = true }
-                .accessibilityHidden(true)
-        }
-        #endif
-    }
-
     func nativeTextInputBackground(cornerRadius: CGFloat, isInteractive: Bool = true) -> some View {
         self.modifier(NativeTextInputBackground(cornerRadius: cornerRadius, isInteractive: isInteractive))
     }

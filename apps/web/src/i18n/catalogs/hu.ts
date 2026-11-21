@@ -325,6 +325,7 @@ const huCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Az elmúlt 7 nap · napi {{count}}",
+      vsUsual: "a szokásoshoz képest",
       studyTime: "Tanulási idő · ≈ {{count}} perc",
     },
     records: {

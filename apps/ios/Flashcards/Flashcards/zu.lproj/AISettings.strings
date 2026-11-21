@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Akukwazekanga ukulayisha okunamathiselwe. Hlola uxhumano lwakho bese uzama futhi.";
 "ai.drop.overlay" = "Yehlisa amafayela ukuze uwanamathisele";
 "ai.composer.dictation.start" = "Qala ukubhala ngokukhuluma";
-"ai.composer.dictation.cancel" = "Khansela ukubhala ngokukhuluma";
-"ai.composer.dictation.finish" = "Qeda ukubhala ngokukhuluma";
-"ai.composer.dictation.preparing" = "Kuyalungiselelwa";
-"ai.composer.dictation.recording" = "Kuyaqoshwa %@";
+"ai.composer.dictation.stop" = "Misa ukubhala ngokukhuluma";
+"ai.composer.dictation.waiting" = "Kulindwe imvume yemakrofoni...";
+"ai.composer.dictation.listening" = "Kulalelwe...";
 "ai.composer.dictation.transcribing" = "Kuguqulelwa embhalweni...";
-"ai.composer.dictation.dismissError" = "Vala iphutha lokubhala ngokukhuluma";
-"ai.composer.dictation.announcement.started" = "Ukuqopha kuqalile";
-"ai.composer.dictation.announcement.inserted" = "Umbhalo wengeziwe";
 "ai.error.title" = "Iphutha";
 "ai.error.requestTooLarge.title" = "Umyalezo mkhulu kakhulu";
 "ai.error.requestTooLarge.message" = "Ingxoxo ye-AI ayikwazi ukuthumela okuqukethwe okungaka ngesikhathi esisodwa. Susa okunamathiselwe okuthile, khetha ifayela noma isithombe esincane, noma uhlukanise isicelo bese uzama futhi.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Umsindo orekhodiwe awulungisekanga.";
 "ai.dictation.error.recordingStartFailed" = "Ukuqopha ngemakrofoni akuqalanga.";
 "ai.dictation.error.emptyRecording" = "Ayikho inkulumo eqoshiwe.";
-"ai.dictation.error.interrupted" = "Ukuqopha kuphazamisekile";
 "ai.dictation.error.network" = "Kunenkinga yenethiwekhi. Yilungise bese uzama futhi.";
 "ai.dictation.error.invalidAudio" = "Asikwazanga ukucubungula lokho okuqoshiwe. Sicela uzame futhi.";
 "ai.message.unsupportedContent" = "Okuqukethwe akusekelwe";

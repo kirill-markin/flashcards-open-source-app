@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { unsafeTransaction } from "../../../database/unsafe";
+import { authenticateGuestSession } from "../../../guestAuth";
+import { createBrowserGuestSessionInExecutor } from "../../../guestAuth/session";
 import { HttpError } from "../../../shared/errors";
+import { ensureWorkspaceReplica } from "../../../sync/identity/replica";
 import type {
   CatalogPackageInstallActor,
   CatalogPackageInstallConfirmInput,
@@ -40,7 +44,10 @@ test("catalog install atomically replays one request and rejects key or operatio
   const userId = randomUUID();
   const workspaceId = randomUUID();
   const extraWorkspaceIds: Array<string> = [];
+  const guestInstallationId = randomUUID();
+  let guestUserId: string | null = null;
   const replicaId = randomUUID();
+  const installationId = randomUUID();
   const authorId = randomUUID();
   const packageId = randomUUID();
   // The package slug and the version's own copy of it are deliberately different here: only
@@ -88,12 +95,16 @@ test("catalog install atomically replays one request and rejects key or operatio
         [workspaceId, userId],
       );
       await setupClient.query(
+        "INSERT INTO sync.installations (installation_id, user_id, platform) VALUES ($1, $2, 'web')",
+        [installationId, userId],
+      );
+      await setupClient.query(
         [
           "INSERT INTO sync.workspace_replicas",
-          "(replica_id, workspace_id, user_id, actor_kind, actor_key, platform, app_version)",
-          "VALUES ($1, $2, $3, 'ai_chat', $4, 'system', 'postgres-integration')",
+          "(replica_id, workspace_id, user_id, actor_kind, installation_id, platform, app_version)",
+          "VALUES ($1, $2, $3, 'client_installation', $4, 'web', 'postgres-integration')",
         ].join(" "),
-        [replicaId, workspaceId, userId, `catalog-install-${suffix}`],
+        [replicaId, workspaceId, userId, installationId],
       );
       await setupClient.query(
         [
@@ -184,6 +195,51 @@ test("catalog install atomically replays one request and rejects key or operatio
     assert.equal(firstResult.installedCards.length, 1);
     assert.equal(firstResult.installedMediaAssets.length, 1);
     assert.equal(firstResult.summary.importTag, "imported");
+    const additions = await ownerPool.query(
+      `SELECT event_properties, occurred_at = server_received_at AS used_server_time
+       FROM analytics.product_events WHERE workspace_id = $1 AND event_name = 'card_addition_committed'`,
+      [workspaceId],
+    );
+    assert.deepEqual(additions.rows, [{ event_properties: { demo_status: "non_demo" }, used_server_time: true }]);
+
+    const { session: guest } = await unsafeTransaction(
+      (executor) => createBrowserGuestSessionInExecutor(executor, randomUUID()),
+    );
+    guestUserId = guest.userId;
+    extraWorkspaceIds.push(guest.workspaceId);
+    const { sessionId } = await authenticateGuestSession(guest.guestToken);
+    const guestReplicaId = await ensureWorkspaceReplica({
+      userId: guest.userId, workspaceId: guest.workspaceId, installationId: guestInstallationId,
+      platform: "web", appVersion: "1.43.0", osName: null, deviceType: null,
+      isAutomation: false, isTestDistribution: false,
+    });
+    await ownerPool.query(
+      `INSERT INTO analytics.product_events (
+         event_id, schema_version, event_name, origin, trust_level, platform, network_asn,
+         server_received_at, occurred_at, user_id, subject_user_id, workspace_id, guest_session_id, event_properties
+       ) VALUES ($1, 1, 'app_opened', 'client', 'guest_client', 'web', 16509, now(), now(), $2, $2, $3, $4, '{}')`,
+      [randomUUID(), guest.userId, guest.workspaceId, sessionId],
+    );
+    await installCatalogPackageVersion(guest.userId, guest.workspaceId, packageVersionId, {
+      ...installInput, installId: randomUUID(), operationIdPrefix: randomUUID(), lastModifiedByReplicaId: guestReplicaId,
+    }, {
+      subjectUserId: guest.userId, guestSessionId: sessionId, analyticsVisitorId: null,
+    });
+    const guestEvents = await ownerPool.query(
+      "SELECT event_name FROM analytics.product_events WHERE user_id = $1 ORDER BY event_name",
+      [guest.userId],
+    );
+    assert.deepEqual(guestEvents.rows, [
+      { event_name: "app_opened" },
+      { event_name: "card_addition_committed" },
+      { event_name: "catalog_deck_installed" },
+    ]);
+    await ownerPool.query("REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.probable_scraper_fleet_visitors");
+    const scraper = await ownerPool.query(
+      "SELECT 1 FROM analytics.probable_scraper_fleet_visitors WHERE subject_kind = 'actor' AND subject_id = $1",
+      [guest.userId],
+    );
+    assert.equal(scraper.rowCount, 1);
 
     const loadEffectCounts = async (): Promise<InstallEffectCounts> => {
       const result = await ownerPool.query<InstallEffectCounts>(
@@ -451,10 +507,14 @@ test("catalog install atomically replays one request and rejects key or operatio
     )?.previousInstall, null);
   } finally {
     await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])", [[workspaceId, ...extraWorkspaceIds]]);
+    await ownerPool.query("DELETE FROM sync.installations WHERE installation_id = ANY($1::uuid[])", [[installationId, guestInstallationId]]);
     await ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
     await ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
     await ownerPool.query("DELETE FROM content.media_blobs WHERE media_blob_id = $1", [mediaBlobId]);
-    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
+    if (guestUserId !== null) {
+      await ownerPool.query("DELETE FROM auth.guest_sessions WHERE user_id = $1", [guestUserId]);
+    }
+    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[userId, guestUserId]]);
     // The install emits its analytics row on the writer's own pool, outside the install
     // transaction, so it is removed here like every other row this test created.
     await ownerPool.query("DELETE FROM analytics.product_events WHERE workspace_id = ANY($1::uuid[])", [[workspaceId, ...extraWorkspaceIds]]);

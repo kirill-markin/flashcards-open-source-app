@@ -81,6 +81,7 @@ func cardMetadataAfterAuthoredEdit(card: Card, input: CardEditorInput) -> CardMe
             frontText: demo.frontText, backText: demo.backText, tags: demo.tags,
             cardType: demo.cardType, wasEdited: wasEdited
         ),
-        maintenanceRevision: card.metadata.maintenanceRevision
+        maintenanceRevision: card.metadata.maintenanceRevision,
+        creationKind: card.metadata.creationKind
     )
 }

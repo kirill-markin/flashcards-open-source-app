@@ -107,14 +107,14 @@ func sanitizeSentrySpan(_ span: any Span) -> (any Span)? {
 }
 
 private func sanitizedSpanDataValue(_ value: Any, key: String) -> Any {
-    let keyPolicy = diagnosticKeyPolicyCache.policy(for: key)
-    if keyPolicy.isSensitive {
+    let normalizedKey: String = normalizedDiagnosticKey(key)
+    if isSensitiveKey(key) {
         return filteredDiagnosticValue
     }
-    if keyPolicy.isURLQuery, let queryString = value as? String {
+    if isURLQueryComponentKey(key), let queryString = value as? String {
         return redactedQueryString(queryString)
     }
-    if keyPolicy.normalized.contains("url"), let urlString = value as? String {
+    if normalizedKey.contains("url"), let urlString = value as? String {
         return redactedURLString(urlString)
     }
     return sanitizedValue(value)
@@ -150,12 +150,12 @@ private func sanitizedBreadcrumbData(_ dictionary: [String: Any]?) -> [String: A
 
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
-        let keyPolicy = diagnosticKeyPolicyCache.policy(for: key)
-        if keyPolicy.isSensitive {
+        let normalizedKey: String = normalizedDiagnosticKey(key)
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
-        } else if keyPolicy.isURLQuery, let queryString = value as? String {
+        } else if isURLQueryComponentKey(key), let queryString = value as? String {
             sanitized[key] = redactedQueryString(queryString)
-        } else if keyPolicy.normalized == "url", let urlString = value as? String {
+        } else if normalizedKey == "url", let urlString = value as? String {
             sanitized[key] = redactedURLString(urlString)
         } else {
             sanitized[key] = sanitizedValue(value)
@@ -199,12 +199,12 @@ func sanitizedDictionary(_ dictionary: [String: Any]?) -> [String: Any]? {
 
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
-        let keyPolicy = diagnosticKeyPolicyCache.policy(for: key)
-        if keyPolicy.isSensitive {
+        let normalizedKey: String = normalizedDiagnosticKey(key)
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
-        } else if keyPolicy.isURLQuery, let queryString = value as? String {
+        } else if isURLQueryComponentKey(key), let queryString = value as? String {
             sanitized[key] = redactedQueryString(queryString)
-        } else if keyPolicy.normalized == "url", let urlString = value as? String {
+        } else if normalizedKey == "url", let urlString = value as? String {
             sanitized[key] = redactedURLString(urlString)
         } else {
             sanitized[key] = sanitizedValue(value)
@@ -220,12 +220,12 @@ func sanitizedStringDictionary(_ dictionary: [String: String]?) -> [String: Stri
 
     var sanitized: [String: String] = [:]
     for (key, value) in dictionary {
-        let keyPolicy = diagnosticKeyPolicyCache.policy(for: key)
-        if keyPolicy.isSensitive {
+        let normalizedKey: String = normalizedDiagnosticKey(key)
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
-        } else if keyPolicy.isURLQuery {
+        } else if isURLQueryComponentKey(key) {
             sanitized[key] = redactedQueryString(value)
-        } else if keyPolicy.normalized == "url" {
+        } else if normalizedKey == "url" {
             sanitized[key] = redactedURLString(value)
         } else {
             sanitized[key] = redactedString(value)
@@ -250,65 +250,53 @@ private func sanitizedValue(_ value: Any) -> Any {
     return value
 }
 
-private struct DiagnosticKeyPolicy: Sendable {
-    let normalized: String
-    let isSensitive: Bool
-    let isURLQuery: Bool
-}
-
-private let diagnosticSensitiveKeyFragments = [
-    "authorization", "cookie", "csrftoken", "refreshtoken", "idtoken",
-    "otpsessiontoken", "otpcode", "token", "password", "secret", "apikey", "signature"
-]
-private let diagnosticQueryComponentKeys: Set<String> = [
-    "query", "querystring", "httpquery", "urlquery", "fragment", "httpfragment", "urlfragment"
-]
-
-private let diagnosticKeyPolicyCache = DiagnosticKeyPolicyCache()
-
-/// Only key classification is cached. Every value still passes through the existing secret redactors.
-private final class DiagnosticKeyPolicyCache: @unchecked Sendable {
-    private let lock = NSLock()
-    private var policies: [String: DiagnosticKeyPolicy] = [:]
-
-    func policy(for key: String) -> DiagnosticKeyPolicy {
-        // Bound both entry count and key size, including for arbitrary server/user dictionary keys.
-        guard key.utf8.count <= 128 else { return Self.makePolicy(for: key) }
-        self.lock.lock()
-        if let policy = self.policies[key] {
-            self.lock.unlock()
-            return policy
-        }
-        self.lock.unlock()
-
-        let policy = Self.makePolicy(for: key)
-        self.lock.lock()
-        defer { self.lock.unlock() }
-        if let existing = self.policies[key] { return existing }
-        if self.policies.count >= 512 { self.policies.removeAll(keepingCapacity: true) }
-        self.policies[key] = policy
-        return policy
-    }
-
-    private static func makePolicy(for key: String) -> DiagnosticKeyPolicy {
-        let normalized = key
-            .replacingOccurrences(of: "_", with: "")
-            .replacingOccurrences(of: "-", with: "")
-            .replacingOccurrences(of: ".", with: "")
-            .lowercased()
-        return DiagnosticKeyPolicy(
-            normalized: normalized,
-            isSensitive: diagnosticSensitiveKeyFragments.contains { normalized.contains($0) },
-            isURLQuery: diagnosticQueryComponentKeys.contains(normalized)
-                || normalized.hasSuffix("query")
-                || normalized.hasSuffix("querystring")
-                || normalized.hasSuffix("fragment")
-        )
-    }
-}
-
 func isSensitiveKey(_ key: String) -> Bool {
-    diagnosticKeyPolicyCache.policy(for: key).isSensitive
+    let normalizedKey: String = normalizedDiagnosticKey(key)
+    let sensitiveFragments: [String] = [
+        "authorization",
+        "cookie",
+        "csrftoken",
+        "refreshtoken",
+        "idtoken",
+        "otpsessiontoken",
+        "otpcode",
+        "token",
+        "password",
+        "secret",
+        "apikey",
+        "signature"
+    ]
+    return sensitiveFragments.contains { fragment in
+        normalizedKey.contains(fragment)
+    }
+}
+
+private func isURLQueryComponentKey(_ key: String) -> Bool {
+    let normalizedKey: String = normalizedDiagnosticKey(key)
+    let queryComponentKeys: Set<String> = [
+        "query",
+        "querystring",
+        "httpquery",
+        "urlquery",
+        "fragment",
+        "httpfragment",
+        "urlfragment"
+    ]
+    if queryComponentKeys.contains(normalizedKey) {
+        return true
+    }
+
+    return normalizedKey.hasSuffix("query") ||
+        normalizedKey.hasSuffix("querystring") ||
+        normalizedKey.hasSuffix("fragment")
+}
+
+private func normalizedDiagnosticKey(_ key: String) -> String {
+    key
+        .replacingOccurrences(of: "_", with: "")
+        .replacingOccurrences(of: "-", with: "")
+        .replacingOccurrences(of: ".", with: "")
+        .lowercased()
 }
 
 private func redactedURLString(_ value: String) -> String {

@@ -6,7 +6,7 @@ import {
   webGuestReaperScheduleExpression,
   webGuestReaperScheduleHours,
 } from "./web-guest-reaper";
-import { createWebGuestReaperSaturationFilterPattern } from "../monitoring";
+import { createWebGuestReaperSaturationFilterPattern } from "../scheduled-data-job-monitoring";
 
 function readLibSource(relativePath: string): string {
   return readFileSync(resolve(process.cwd(), relativePath), "utf8");
@@ -62,7 +62,7 @@ test("stack wires the web guest reaper function into monitoring, ci-cd, and outp
 });
 
 test("monitoring alarms cover web guest reaper errors and staleness", () => {
-  const source = readLibSource("lib/monitoring.ts");
+  const source = readLibSource("lib/scheduled-data-job-monitoring.ts");
 
   assert.match(source, /new cloudwatch\.Alarm\(scope, "WebGuestReaperLambdaErrorAlarm"/);
   assert.match(source, /props\.webGuestReaperFn\.metricErrors\(/);
@@ -76,7 +76,7 @@ test("monitoring alarms cover web guest reaper errors and staleness", () => {
 // A saturated run is a successful invocation with no errors, so neither alarm above sees it and the
 // completion record's finished flag is the only signal that guests were left behind.
 test("monitoring alarms on a web guest reaper run that left candidates behind", () => {
-  const source = readLibSource("lib/monitoring.ts");
+  const source = readLibSource("lib/scheduled-data-job-monitoring.ts");
   const pattern = createWebGuestReaperSaturationFilterPattern().logPatternString;
 
   assert.match(pattern, /\$\.message\.action = "web_guest_reaper_completed"/);

@@ -129,8 +129,11 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 onRemoveTag = editorViewModel::removeTag,
                 onSave = {
                     coroutineScope.launch {
-                        val didSave = editorViewModel.save(editingCardId = editingCardId)
-                        if (didSave != null) {
+                        val savedCardDraft = editorViewModel.save(editingCardId = editingCardId)
+                        if (savedCardDraft != null) {
+                            if (editingCardId == null) {
+                                appGraph.analytics.track(event = AnalyticsEvent.ManualCardSaved)
+                            }
                             withContext(Dispatchers.Main.immediate) {
                                 navController.popBackStack()
                             }

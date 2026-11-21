@@ -325,6 +325,7 @@ const teCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "గత 7 రోజులు · రోజుకు {{count}}",
+      vsUsual: "మీ సగటుతో పోలిస్తే",
       studyTime: "చదువు సమయం · ≈ {{count}} నిమి",
     },
     records: {

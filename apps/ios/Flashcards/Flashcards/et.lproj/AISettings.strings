@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Manust ei õnnestunud üles laadida. Kontrolli ühendust ja proovi uuesti.";
 "ai.drop.overlay" = "Manustamiseks lohista failid siia";
 "ai.composer.dictation.start" = "Alusta dikteerimist";
-"ai.composer.dictation.cancel" = "Tühista dikteerimine";
-"ai.composer.dictation.finish" = "Lõpeta dikteerimine";
-"ai.composer.dictation.preparing" = "Ettevalmistamine";
-"ai.composer.dictation.recording" = "Salvestamine %@";
+"ai.composer.dictation.stop" = "Peata dikteerimine";
+"ai.composer.dictation.waiting" = "Mikrofoni juurdepääsu ootamine...";
+"ai.composer.dictation.listening" = "Kuulamine...";
 "ai.composer.dictation.transcribing" = "Transkribeerimine...";
-"ai.composer.dictation.dismissError" = "Sulge dikteerimise viga";
-"ai.composer.dictation.announcement.started" = "Salvestamine algas";
-"ai.composer.dictation.announcement.inserted" = "Transkriptsioon lisati";
 "ai.error.title" = "Viga";
 "ai.error.requestTooLarge.title" = "Sõnum on liiga suur";
 "ai.error.requestTooLarge.message" = "Tehisintellekti vestlus ei saa korraga nii palju sisu saata. Eemalda mõni manus, vali väiksem fail või foto või jaga päring osadeks ja proovi uuesti.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Salvestatud heli ettevalmistamine ebaõnnestus.";
 "ai.dictation.error.recordingStartFailed" = "Mikrofonisalvestuse alustamine ebaõnnestus.";
 "ai.dictation.error.emptyRecording" = "Kõnet ei salvestatud.";
-"ai.dictation.error.interrupted" = "Salvestamine katkes";
 "ai.dictation.error.network" = "Võrguühenduses on probleem. Lahenda see ja proovi uuesti.";
 "ai.dictation.error.invalidAudio" = "Salvestist ei saanud töödelda. Palun proovi uuesti.";
 "ai.message.unsupportedContent" = "Toetamata sisu";

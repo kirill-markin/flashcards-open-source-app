@@ -26,46 +26,9 @@ private struct FirstReviewOnboardingDrawingKey: Equatable {
 }
 
 private struct FirstReviewOnboardingDrawing {
-    let key: FirstReviewOnboardingDrawingKey
     let image: UIImage
     let bounds: CGRect
 }
-
-private struct FirstReviewOnboardingCachedFrames {
-    let drawings: [FirstReviewOnboardingDrawing]
-
-    var byteCount: Int {
-        self.drawings.reduce(0) { result, drawing in
-            guard let image = drawing.image.cgImage else { return result }
-            return result + image.bytesPerRow * image.height
-        }
-    }
-}
-
-private final class FirstReviewOnboardingDrawingCache: NSObject {
-    let entries: [FirstReviewOnboardingCachedFrames]
-
-    init(entries: [FirstReviewOnboardingCachedFrames]) {
-        self.entries = entries
-    }
-}
-
-// Retain up to two recent geometries within the budget; Foundation's NSCache may evict them under memory pressure.
-@MainActor
-private let firstReviewOnboardingDrawingCache: NSCache<NSString, FirstReviewOnboardingDrawingCache> = {
-    let cache = NSCache<NSString, FirstReviewOnboardingDrawingCache>()
-    cache.countLimit = 1
-    cache.totalCostLimit = 24 * 1_024 * 1_024
-    return cache
-}()
-
-@MainActor
-func clearFirstReviewOnboardingDrawingCache() {
-    firstReviewOnboardingDrawingCache.removeAllObjects()
-}
-
-/// Moves and container resizes, such as a resizing window or side chat, redraw once the layout holds this long.
-private let firstReviewOnboardingSettledRedrawDelay: Duration = .milliseconds(150)
 
 struct FirstReviewOnboardingOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -78,10 +41,6 @@ struct FirstReviewOnboardingOverlay: View {
     private let drawingBleed: CGFloat = 40
 
     var body: some View {
-        let key = FirstReviewOnboardingDrawingKey(
-            target: self.target, size: self.size, accent: self.accent,
-            colorScheme: self.colorScheme, displayScale: self.displayScale
-        )
         let drawings = self.drawings
         return TimelineView(.animation(minimumInterval: 0.235, paused: self.animates == false)) { timeline in
             let frame = self.animates
@@ -89,79 +48,27 @@ struct FirstReviewOnboardingOverlay: View {
             Color.clear.overlay(alignment: .topLeading) {
                 if drawings.indices.contains(frame) {
                     let drawing = drawings[frame]
-                    // Until the next redraw, the last drawing follows the target's center.
-                    let shiftX = key.target.midX - drawing.key.target.midX
-                    let shiftY = key.target.midY - drawing.key.target.midY
                     Image(uiImage: drawing.image)
                         .renderingMode(.original)
                         .resizable()
                         .frame(width: drawing.bounds.width, height: drawing.bounds.height)
-                        .offset(x: drawing.bounds.minX + shiftX, y: drawing.bounds.minY + shiftY)
+                        .offset(x: drawing.bounds.minX, y: drawing.bounds.minY)
                 }
             }
         }
-        .onChange(of: key, initial: true) { previousKey, nextKey in
-            if firstReviewOnboardingRedrawsImmediately(
-                drawnKey: self.drawings.first?.key, previousKey: previousKey, nextKey: nextKey
-            ) {
-                self.draw(key: nextKey)
+        .onChange(of: FirstReviewOnboardingDrawingKey(
+            target: self.target, size: self.size, accent: self.accent,
+            colorScheme: self.colorScheme, displayScale: self.displayScale
+        ), initial: true) { _, key in
+            self.drawings = (0..<2).map {
+                makeFirstReviewOnboardingImage(
+                    key: key, frame: $0, drawingBleed: self.drawingBleed
+                )
             }
-        }
-        .task(id: key) {
-            guard self.drawings.first?.key != key else { return }
-            do {
-                try await Task.sleep(for: firstReviewOnboardingSettledRedrawDelay)
-            } catch {
-                return
-            }
-            self.draw(key: key)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
-
-    private func draw(key: FirstReviewOnboardingDrawingKey) {
-        let cacheKey: NSString = "frames"
-        let entries = firstReviewOnboardingDrawingCache.object(forKey: cacheKey)?.entries ?? []
-        if let cached = entries.first(where: { $0.drawings.first?.key == key }) {
-            self.drawings = cached.drawings
-            return
-        }
-        let drawings = (0..<2).map {
-            makeFirstReviewOnboardingImage(
-                key: key, frame: $0, drawingBleed: self.drawingBleed
-            )
-        }
-        self.drawings = drawings
-        let cachedFrames = FirstReviewOnboardingCachedFrames(drawings: drawings)
-        var updatedEntries = [cachedFrames]
-        var byteCount = cachedFrames.byteCount
-        if let previous = entries.first,
-           byteCount + previous.byteCount <= firstReviewOnboardingDrawingCache.totalCostLimit {
-            updatedEntries.append(previous)
-            byteCount += previous.byteCount
-        }
-        firstReviewOnboardingDrawingCache.setObject(
-            FirstReviewOnboardingDrawingCache(entries: updatedEntries), forKey: cacheKey, cost: byteCount
-        )
-    }
-}
-
-/// A first drawing, a new style, or a target that resizes inside a still container (the guide moving from
-/// Show answer to Again) redraws at once.
-private func firstReviewOnboardingRedrawsImmediately(
-    drawnKey: FirstReviewOnboardingDrawingKey?,
-    previousKey: FirstReviewOnboardingDrawingKey,
-    nextKey: FirstReviewOnboardingDrawingKey
-) -> Bool {
-    guard let drawnKey else { return true }
-    if drawnKey.accent != nextKey.accent || drawnKey.colorScheme != nextKey.colorScheme
-        || drawnKey.displayScale != nextKey.displayScale {
-        return true
-    }
-    return previousKey.size == nextKey.size
-        && (abs(previousKey.target.width - nextKey.target.width) > 1
-            || abs(previousKey.target.height - nextKey.target.height) > 1)
 }
 
 @MainActor
@@ -200,7 +107,7 @@ private func makeFirstReviewOnboardingImage(
             }
         }
     }
-    return FirstReviewOnboardingDrawing(key: key, image: image, bounds: bounds)
+    return FirstReviewOnboardingDrawing(image: image, bounds: bounds)
 }
 
 private func drawFirstReviewPencilBacking(

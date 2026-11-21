@@ -332,6 +332,7 @@ const ltCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Paskutinės 7 dienos · {{count}} per dieną",
+      vsUsual: "palyginti su savo vidurkiu",
       studyTime: "Mokymosi laikas · ≈ {{count}} min.",
     },
     records: {

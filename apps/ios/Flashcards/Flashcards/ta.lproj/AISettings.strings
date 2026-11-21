@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "ஓர் இணைப்பைப் பதிவேற்ற முடியவில்லை. இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.";
 "ai.drop.overlay" = "இணைக்கக் கோப்புகளை இங்கே விடவும்";
 "ai.composer.dictation.start" = "பேசித் தட்டச்சைத் தொடங்கு";
-"ai.composer.dictation.cancel" = "பேசித் தட்டச்சை ரத்துசெய்";
-"ai.composer.dictation.finish" = "பேசித் தட்டச்சை முடி";
-"ai.composer.dictation.preparing" = "தயாராகிறது";
-"ai.composer.dictation.recording" = "பதிவுசெய்கிறது %@";
+"ai.composer.dictation.stop" = "பேசித் தட்டச்சை நிறுத்து";
+"ai.composer.dictation.waiting" = "மைக்ரோஃபோன் அணுகலுக்குக் காத்திருக்கிறது...";
+"ai.composer.dictation.listening" = "கேட்கிறது...";
 "ai.composer.dictation.transcribing" = "உரையாக்குகிறது...";
-"ai.composer.dictation.dismissError" = "பேசித் தட்டச்சுப் பிழையை மூடு";
-"ai.composer.dictation.announcement.started" = "பதிவு தொடங்கியது";
-"ai.composer.dictation.announcement.inserted" = "உரை சேர்க்கப்பட்டது";
 "ai.error.title" = "பிழை";
 "ai.error.requestTooLarge.title" = "செய்தி மிகப் பெரியது";
 "ai.error.requestTooLarge.message" = "AI அரட்டையால் ஒரே நேரத்தில் இவ்வளவு உள்ளடக்கத்தை அனுப்ப முடியாது. ஓர் இணைப்பையோ பலவற்றையோ நீக்கவும், சிறிய கோப்பு அல்லது புகைப்படத்தைத் தேர்ந்தெடுக்கவும் அல்லது கோரிக்கையைப் பிரித்து மீண்டும் முயலவும்.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "பதிவுசெய்த ஒலியைத் தயாரிக்க முடியவில்லை.";
 "ai.dictation.error.recordingStartFailed" = "மைக்ரோஃபோன் பதிவைத் தொடங்க முடியவில்லை.";
 "ai.dictation.error.emptyRecording" = "பேச்சு எதுவும் பதிவாகவில்லை.";
-"ai.dictation.error.interrupted" = "பதிவு தடைபட்டது";
 "ai.dictation.error.network" = "பிணையச் சிக்கல் உள்ளது. அதைச் சரிசெய்து மீண்டும் முயலவும்.";
 "ai.dictation.error.invalidAudio" = "அந்தப் பதிவைச் செயலாக்க முடியவில்லை. மீண்டும் முயலவும்.";
 "ai.message.unsupportedContent" = "ஆதரிக்கப்படாத உள்ளடக்கம்";

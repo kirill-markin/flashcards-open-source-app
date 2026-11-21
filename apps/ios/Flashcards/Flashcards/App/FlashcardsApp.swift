@@ -83,14 +83,6 @@ private func analyticsWidgetKind(kind: WidgetDeepLinkKind) -> AnalyticsWidgetKin
     }
 }
 
-/// Set only for a tap that carries a card.
-private func analyticsWidgetTarget(deepLink: WidgetDeepLink) -> AnalyticsWidgetTarget? {
-    guard deepLink.cardId != nil else {
-        return nil
-    }
-    return deepLink.revealAnswer ? .revealAnswer : .card
-}
-
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -112,7 +104,6 @@ struct FlashcardsApp: App {
     @State private var isLowPowerModeEnabled: Bool
     /// The latest widget tap, held until the app can open Review; a newer tap replaces it.
     @State private var pendingWidgetDeepLink: WidgetDeepLink?
-    @State private var widgetDeepLinkInbox: WidgetDeepLinkInbox
     #if os(iOS) && !targetEnvironment(macCatalyst)
     @State private var watchHandoffResponder: WatchHandoffResponder
     #endif
@@ -240,7 +231,6 @@ struct FlashcardsApp: App {
         _isStartupReadyForBackgroundWork = State(initialValue: false)
         _isLowPowerModeEnabled = State(initialValue: processInfo.isLowPowerModeEnabled)
         _pendingWidgetDeepLink = State(initialValue: nil)
-        _widgetDeepLinkInbox = State(initialValue: WidgetDeepLinkInbox.shared)
         #if os(iOS) && !targetEnvironment(macCatalyst)
         // A watch message can launch the app in the background, before any scene exists.
         let watchHandoffResponder = WatchHandoffResponder(store: store)
@@ -259,18 +249,10 @@ struct FlashcardsApp: App {
                 .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
-                        self.receiveWidgetDeepLink(deepLink: widgetDeepLink)
+                        self.pendingWidgetDeepLink = widgetDeepLink
                         return
                     }
                     _ = GIDSignIn.sharedInstance.handle(url)
-                }
-                // A Reveal answer button runs `RevealAnswerIntent` in this process, which may launch it.
-                .onChange(of: self.widgetDeepLinkInbox.deepLink, initial: true) { _, deepLink in
-                    guard let deepLink else {
-                        return
-                    }
-                    self.widgetDeepLinkInbox.deepLink = nil
-                    self.receiveWidgetDeepLink(deepLink: deepLink)
                 }
                 .environment(store)
                 .environment(self.appleSubscriptions)
@@ -887,16 +869,6 @@ struct FlashcardsApp: App {
         logAppNotificationTapEvent(action: "notification_tap_consumed", metadata: consumedMetadata)
     }
 
-    /// A Reveal answer tap holds its card behind the Review loader from the first frame, so a cold start never
-    /// shows its question side while startup runs; consumption then keeps or drops the reveal.
-    @MainActor
-    private func receiveWidgetDeepLink(deepLink: WidgetDeepLink) {
-        self.pendingWidgetDeepLink = deepLink
-        if deepLink.revealAnswer {
-            self.reviewScreen.pendingWidgetRevealCardId = deepLink.cardId
-        }
-    }
-
     @MainActor
     private func consumePendingWidgetTapIfNeeded() async {
         guard self.isAppNotificationTapConsumptionReady, self.pendingWidgetDeepLink != nil else {
@@ -911,21 +883,14 @@ struct FlashcardsApp: App {
         self.pendingWidgetDeepLink = nil
         switch deepLink.destination {
         case .review:
-            let shownCardId = self.store.openReviewFromWidget(
-                deepLink: deepLink,
-                navigation: self.navigation,
-                now: Date()
-            )
-            // A card reviewed elsewhere, out of the filter, or deleted is not shown, so nothing is revealed.
-            self.reviewScreen.pendingWidgetRevealCardId = deepLink.revealAnswer ? shownCardId : nil
+            self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
         case .progress:
             self.navigation.selectTab(.progress)
         }
         Analytics.track(
             .widgetOpened(
                 widgetSize: analyticsWidgetSize(size: deepLink.size),
-                widgetKind: analyticsWidgetKind(kind: deepLink.kind),
-                widgetTarget: analyticsWidgetTarget(deepLink: deepLink)
+                widgetKind: analyticsWidgetKind(kind: deepLink.kind)
             )
         )
     }

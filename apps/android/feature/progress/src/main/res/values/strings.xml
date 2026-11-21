@@ -133,6 +133,7 @@
     </plurals>
     <!-- Reviews card: the last 7 days' daily average; the arrow and percent against the usual follow in code. -->
     <string name="progress_reviews_pace_last_7_days">Last 7 days · %1$s a day</string>
+    <string name="progress_reviews_pace_vs_usual">vs usual</string>
     <plurals name="progress_reviews_study_time">
         <item quantity="one">Study time · ≈ %1$d min</item>
         <item quantity="other">Study time · ≈ %1$d min</item>
@@ -152,6 +153,6 @@
     <string name="progress_records_last_7_days">Last 7 days</string>
     <!-- Cards reviewed for the first time ever in the last 7 days. -->
     <string name="progress_records_cards_met">Cards met</string>
-    <!-- Cards rated Again, then remembered on a later day, in the last 7 days. -->
+    <!-- Cards passed in the last 7 days that had an Again on their previous review day. -->
     <string name="progress_records_relearned">Relearned</string>
 </resources>

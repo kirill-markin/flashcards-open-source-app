@@ -27,7 +27,7 @@ Private bounded account union, exact receipts and scoped retired-shell deletion 
 Private account-connection proof reservations and exact session/transport receipts are defined in
 [`0211_account_connection_proofs.sql`](0211_account_connection_proofs.sql), with the real PostgreSQL/module boundary in
 [`accountConnectionProofs.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionProofs.postgres.integration.ts).
-The owner-only [proof services](../../apps/auth/src/server/social/accountConnectionProof.ts) have no public coordinator or union grant.
+The owner-only [proof services](../../apps/auth/src/server/social/accountConnection/proof.ts) have no public coordinator or union grant.
 
 Private saved-collision capture/adoption, durable historical workspace baselines and bounded cleanup
 are defined in [`0212_account_connection_readiness.sql`](0212_account_connection_readiness.sql).
@@ -35,7 +35,7 @@ Private replay origin binding is defined in
 [`0213_account_connection_replay_origin.sql`](0213_account_connection_replay_origin.sql), at migration count 215.
 The real module/PostgreSQL boundary is
 [`accountConnectionPreparation.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionPreparation.postgres.integration.ts).
-The [private preparation module](../../apps/auth/src/server/social/accountConnectionPreparation.ts) requires
+The [private preparation module](../../apps/auth/src/server/social/accountConnection/preparation.ts) requires
 the original login browser secret/PKCE verifier through adoption and confirmation; it provides no public action
 or consent/union writer.
 
@@ -374,7 +374,7 @@ adds is the only `sync.claim_installation`, and `0179` records why the drop wait
   [accountConnectionGate.ts](../../apps/auth/src/integration/accountConnectionGate.ts).
   Public request/result and continuation contracts live in
   [publicContract.ts](../../apps/auth/src/server/social/publicContract.ts) and
-  [accountConnection.ts](../../apps/auth/src/server/social/accountConnection.ts).
+  [account connection coordinator](../../apps/auth/src/server/social/accountConnection/index.ts).
 
 ### `0224_anonymous_event_network_and_browser_facts.sql` — the facts are not only on `anonymous_client` rows
 

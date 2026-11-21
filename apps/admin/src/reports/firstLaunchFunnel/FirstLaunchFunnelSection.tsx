@@ -29,12 +29,12 @@ import {
   type FirstLaunchFunnelReport,
 } from "./query";
 
-/** The seven funnel steps in chart order; `buildFirstLaunchFunnelStages` takes its order from this list. */
 const funnelStepIds = [
   "first-launch",
   "review-screen",
   "revealed",
   "one-review",
+  "review-and-card-added",
   "two-reviews",
   "two-review-days",
   "engaged-returning",
@@ -64,15 +64,14 @@ function loadReport(
 /** The short note shown when the selected range starts before `firstLaunchFunnelStartDate`, or `null`. */
 function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
   if (dateRange.to < firstLaunchFunnelStartDate) {
-    return `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported every step, so the selected range has no data.`;
+    return `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported review screens and answer reveals, so the selected range has no data.`;
   }
 
   return dateRange.from < firstLaunchFunnelStartDate
-    ? `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported every step, so there is no data before that day.`
+    ? `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported review screens and answer reveals, so there is no data before that day.`
     : null;
 }
 
-/** The seven steps of one group. */
 export function buildFirstLaunchFunnelStages(
   counts: FirstLaunchFunnelCounts,
 ): ReadonlyArray<FunnelStage<FirstLaunchFunnelStepId>> {
@@ -84,6 +83,7 @@ export function buildFirstLaunchFunnelStages(
     "review-screen": { label: "Review screen", count: counts.reviewScreenCount },
     revealed: { label: "Answer revealed", count: counts.revealedCount },
     "one-review": { label: "1+ review", count: counts.oneReviewCount },
+    "review-and-card-added": { label: "1+ review + 1+ card added", count: counts.reviewAndCardAddedCount },
     "two-reviews": { label: "2+ reviews", count: counts.twoReviewsCount },
     "two-review-days": { label: "Reviews on 2+ days", count: counts.twoReviewDaysCount },
     "engaged-returning": {
@@ -104,6 +104,7 @@ function sumFunnelGroups(
     reviewScreenCount: totals.reviewScreenCount + group.reviewScreenCount,
     revealedCount: totals.revealedCount + group.revealedCount,
     oneReviewCount: totals.oneReviewCount + group.oneReviewCount,
+    reviewAndCardAddedCount: totals.reviewAndCardAddedCount + group.reviewAndCardAddedCount,
     twoReviewsCount: totals.twoReviewsCount + group.twoReviewsCount,
     twoReviewDaysCount: totals.twoReviewDaysCount + group.twoReviewDaysCount,
     engagedReturningCount: totals.engagedReturningCount + group.engagedReturningCount,
@@ -113,6 +114,7 @@ function sumFunnelGroups(
     reviewScreenCount: 0,
     revealedCount: 0,
     oneReviewCount: 0,
+    reviewAndCardAddedCount: 0,
     twoReviewsCount: 0,
     twoReviewDaysCount: 0,
     engagedReturningCount: 0,
@@ -164,13 +166,18 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
       ) : null}
 
       {primaryRange !== undefined && hasEntries ? (
-        <FunnelStepsChart
-          anchor={firstLaunchFunnelAnchor}
-          stages={primaryRange.stages}
-          groups={groups}
-          countLabel="People"
-          dateRange={props.filters.dateRange}
-        />
+        <>
+          <p className="activity-coverage-note" data-testid="first-launch-card-addition-coverage">
+            Counts from “1+ review + 1+ card added” onward are lower bounds where older additions cannot be confirmed.
+          </p>
+          <FunnelStepsChart
+            anchor={firstLaunchFunnelAnchor}
+            stages={primaryRange.stages}
+            groups={groups}
+            countLabel="People"
+            dateRange={props.filters.dateRange}
+          />
+        </>
       ) : null}
 
       {primaryRange !== undefined ? (
@@ -178,8 +185,10 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
           <summary>How it&rsquo;s counted</summary>
           <div className="funnel-detail-row funnel-explainer-figure"><span>First launches still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
-          <p>One row is one person, anchored at their first app launch on iOS, Android or web in the selected UTC dates, and only when that launch is their first trusted event anywhere. The one exception is a <code>card_created</code> up to {firstLaunchDemoCardAllowanceSeconds} seconds before it, the demo card the app seeds on first launch. A launch is an <code>app_opened</code> or a <code>screen_viewed</code> the app itself sent, whichever came first. The auth service&rsquo;s sign-in page is not the app, so its rows are ignored entirely; a reconstructed <code>app_opened</code> (origin <code>backfill</code>) is never a launch but still counts as earlier activity. First launches count from {firstLaunchFunnelStartDate}, the first UTC day every app reported every step.</p>
-          <p>Every later step is that same person within seven days of the first launch, each at or after the step above it: the review screen, which the launch itself may be, a revealed answer, a first answered review, then two reviews, reviews on two UTC days, and {firstLaunchEngagedReviewThreshold} reviews over three days, on any device. A person still inside their seven-day window is not a confirmed drop-off.</p>
+          <p>One row is one person, anchored at their first app launch on iOS, Android or web in the selected UTC dates, and only when that launch is their first trusted event anywhere. The one exception is a <code>card_created</code> up to {firstLaunchDemoCardAllowanceSeconds} seconds before it, the demo card the app seeds on first launch. A launch is an <code>app_opened</code> or a <code>screen_viewed</code> the app itself sent, whichever came first. The auth service&rsquo;s sign-in page is not the app, so its rows are ignored entirely; a reconstructed <code>app_opened</code> (origin <code>backfill</code>) is never a launch but still counts as earlier activity. First launches count from {firstLaunchFunnelStartDate}, the first UTC day every app reported review screens and answer reveals.</p>
+          <p>Every step uses the same seven-day window after launch. The person opens the review screen, reveals an answer, then answers a review. The launch itself can be the review-screen view.</p>
+          <p>The first card addition can happen before or after that review. A manual save, a card created by the built-in AI or an external agent, or a catalog deck or workspace package import that adds cards all qualify. The automatic demo seed is excluded. For older saves without a clear source, a recorded creation counts only when it matches the saved card and the writer had already seeded a confirmed demo in the same workspace.</p>
+          <p>The person must review again after both their first accepted review and card addition. Reviews and distinct UTC review days accumulate from the first accepted review, on any device. The later study steps exclude reviews for which only the server receipt time is known. Each later study step is reached after the card addition, including {firstLaunchEngagedReviewThreshold}+ reviews on 3+ days. People with time left in their seven-day window can still advance.</p>
           <p>The platform is the first launch&rsquo;s, so a selection without iOS, Android or web empties this funnel; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out.</p>
         </details>
       ) : null}

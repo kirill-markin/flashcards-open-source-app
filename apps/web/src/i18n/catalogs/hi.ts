@@ -325,6 +325,7 @@ const hiCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "पिछले 7 दिन · {{count}} प्रतिदिन",
+      vsUsual: "अपने औसत से",
       studyTime: "पढ़ाई का समय · ≈ {{count}} मिनट",
     },
     records: {

@@ -155,7 +155,6 @@
     <string name="dashboard_widget_label">Dashboard</string>
     <string name="dashboard_widget_description">Today’s progress, cards due, your streak, the next question and your activity.</string>
     <!-- Shared by the widgets that show a question; opens Review on that card with the answer shown. -->
-    <string name="widget_reveal_answer">Reveal answer</string>
     <!-- Under the big count of cards to review, which counts due and new cards. -->
     <string name="review_widget_to_review_label">To review</string>
     <plurals name="review_widget_to_review_count">
@@ -190,12 +189,13 @@
     <string name="today_widget_new_best_day">New best day</string>
     <!-- The daily average of the last 7 days, with one decimal. -->
     <string name="reviews_chart_widget_daily_average_value">Daily avg <xliff:g id="average" example="13.1">%1$s</xliff:g></string>
+    <string name="reviews_chart_widget_comparison">%1$s vs usual</string>
     <!-- Under the current streak's day count. -->
     <string name="streaks_widget_day_streak_label">Day streak</string>
     <string name="streaks_widget_days_description">Your last 7 days</string>
     <!-- Question Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="question_widget_label">Question</string>
-    <string name="question_widget_description">A question from your next cards, with a button to reveal its answer.</string>
+    <string name="question_widget_description">A question from your next cards.</string>
     <!-- Sample content of the Question widget preview in the launcher's widget picker. -->
     <string name="question_widget_preview_due">12 due</string>
     <string name="premium_title">Premium</string>

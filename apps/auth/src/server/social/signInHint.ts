@@ -1,4 +1,4 @@
-import type { ConnectionSuggestion } from "./accountConnectionContract.js";
+import type { ConnectionSuggestion } from "./accountConnection/index.js";
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 import { AuthAttemptError, requireAuthHandle } from "./attemptContract.js";
 import { authHandleHash } from "./attemptStore.js";

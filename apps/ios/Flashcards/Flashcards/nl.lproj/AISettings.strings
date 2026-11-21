@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Kan een bijlage niet uploaden. Controleer je verbinding en probeer het opnieuw.";
 "ai.drop.overlay" = "Sleep bestanden hierheen om ze toe te voegen";
 "ai.composer.dictation.start" = "Dicteren starten";
-"ai.composer.dictation.cancel" = "Dicteren annuleren";
-"ai.composer.dictation.finish" = "Dicteren voltooien";
-"ai.composer.dictation.preparing" = "Voorbereiden";
-"ai.composer.dictation.recording" = "Opnemen %@";
+"ai.composer.dictation.stop" = "Dicteren stoppen";
+"ai.composer.dictation.waiting" = "Wachten op microfoontoegang...";
+"ai.composer.dictation.listening" = "Luisteren...";
 "ai.composer.dictation.transcribing" = "Transcriberen...";
-"ai.composer.dictation.dismissError" = "Dicteerfout sluiten";
-"ai.composer.dictation.announcement.started" = "Opname gestart";
-"ai.composer.dictation.announcement.inserted" = "Transcriptie toegevoegd";
 "ai.error.title" = "Fout";
 "ai.error.requestTooLarge.title" = "Bericht is te groot";
 "ai.error.requestTooLarge.message" = "De AI-chat kan niet zoveel inhoud tegelijk versturen. Verwijder een of meer bijlagen, kies een kleiner bestand of een kleinere foto, of splits je verzoek en probeer het opnieuw.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "De opgenomen audio kon niet worden voorbereid.";
 "ai.dictation.error.recordingStartFailed" = "Microfoonopname kon niet worden gestart.";
 "ai.dictation.error.emptyRecording" = "Er is geen spraak opgenomen.";
-"ai.dictation.error.interrupted" = "Opname onderbroken";
 "ai.dictation.error.network" = "Er is een netwerkprobleem. Los dit op en probeer het opnieuw.";
 "ai.dictation.error.invalidAudio" = "We konden die opname niet verwerken. Probeer het opnieuw.";
 "ai.message.unsupportedContent" = "Niet-ondersteunde inhoud";

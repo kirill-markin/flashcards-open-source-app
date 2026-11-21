@@ -55,7 +55,7 @@ test("progress responses include sorted review-history watermarks for accessible
   assert.deepEqual(reviewSchedule.reviewHistoryWatermarks, expectedWatermarks);
 
   const watermarkQueries = recordedQueries.filter((query) => (
-    query.text.includes("COALESCE(MAX(review_events.review_sequence), 0) AS review_sequence_id")
+    query.text.includes("AS review_sequence_id")
   ));
   assert.ok(watermarkQueries.length > 0);
   assert.ok(watermarkQueries.every((query) => (

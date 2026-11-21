@@ -325,6 +325,7 @@ const bnCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "গত 7 দিন · দিনে {{count}}",
+      vsUsual: "স্বাভাবিকের তুলনায়",
       studyTime: "পড়ার সময় · ≈ {{count}} মিনিট",
     },
     records: {

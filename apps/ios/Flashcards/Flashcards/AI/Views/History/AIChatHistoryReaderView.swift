@@ -7,8 +7,7 @@ enum AIChatHistoryReaderPhase: Equatable {
     case loaded(messages: [AIChatMessage])
 }
 
-/// One old chat's transcript. Its history list keeps it, so every section's side chat shows the same load and
-/// returning to the chat keeps the transcript.
+/// Every section showing the same pushed reader shares its load.
 @MainActor
 @Observable
 final class AIChatHistoryReaderModel {
@@ -77,7 +76,13 @@ struct AIChatHistoryReaderView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     let chatStore: AIChatStore
     let summary: AIChatSessionHistorySummary
-    let model: AIChatHistoryReaderModel
+    @State private var model: AIChatHistoryReaderModel
+
+    init(chatStore: AIChatStore, summary: AIChatSessionHistorySummary, model: AIChatHistoryReaderModel) {
+        self.chatStore = chatStore
+        self.summary = summary
+        self._model = State(initialValue: model)
+    }
 
     var body: some View {
         self.content

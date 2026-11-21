@@ -182,7 +182,6 @@ final class AIChatStore {
     @ObservationIgnored var conversationScopeId: String
     @ObservationIgnored var activeSendTask: Task<Void, Never>?
     @ObservationIgnored var activeDictationTask: Task<Void, Never>?
-    @ObservationIgnored let dictationRuntime: AIChatDictationRuntime = AIChatDictationRuntime()
     @ObservationIgnored var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored var activePassiveSnapshotRefreshTask: Task<Void, Never>?

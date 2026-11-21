@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useState, type ReactElement, type ReactNode } from "react";
-import type { WorkspacePackageImportConfirmSummary } from "../../../../types";
+import type { WorkspacePackageImportConfirmSummary } from "../../../../../types";
 
 type PackageImportState =
   | Readonly<{ stage: "confirming" | "syncing"; fileName: string }>
@@ -37,12 +37,18 @@ export function WorkspacePackageImportProvider({ children }: Readonly<{ children
   );
 }
 
-export function useWorkspacePackageImport(destination: string) {
+export function useWorkspacePackageImport(userId: string | undefined, workspaceId: string | null): Readonly<{
+  state: PackageImportState | undefined;
+  read: () => PackageImportState | undefined;
+  update: (state: PackageImportState | null) => void;
+}> {
   const context = useContext(WorkspacePackageImportContext);
   if (context === null) {
     throw new Error("WorkspacePackageImportProvider is missing");
   }
 
+  // A committed import still needs to sync if the browser installation changes.
+  const destination = JSON.stringify([userId, workspaceId]);
   return {
     state: context.states.get(destination),
     read: () => context.read(destination),

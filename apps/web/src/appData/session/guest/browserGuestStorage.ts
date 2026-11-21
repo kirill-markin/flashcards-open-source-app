@@ -22,14 +22,17 @@ export type BrowserGuestOwner = Readonly<{
   initialSeedAllowed: boolean;
   pending: PendingGuestConversion | null;
 }>;
-export type BrowserGuestStoredState = Readonly<{ status: "creating" }> | Readonly<{ status: "owned"; owner: BrowserGuestOwner }>;
+export type BrowserGuestStoredState = Readonly<{ status: "creating"; attemptId?: string }> | Readonly<{ status: "owned"; owner: BrowserGuestOwner }>;
 let drainingInThisTab = false;
 
 export function readBrowserGuestState(): BrowserGuestStoredState | null {
   const raw = window.localStorage.getItem(browserGuestStorageKey);
   if (raw === null) return null;
   const value = parseObject(JSON.parse(raw) as unknown, "browser guest storage", "");
-  if (value.status === "creating") return { status: "creating" };
+  if (value.status === "creating") {
+    return value.attemptId === undefined ? { status: "creating" }
+      : { status: "creating", attemptId: parseString(value.attemptId, "browser guest storage", "attemptId") };
+  }
   if (value.status !== "owned") throw new Error("Browser guest ownership metadata is invalid; preserve local data before recovery");
   const owner = parseObject(value.owner, "browser guest storage", "owner");
   let pending: PendingGuestConversion | null = null;
@@ -72,7 +75,6 @@ export function writeBrowserGuestState(state: BrowserGuestStoredState): void {
   window.dispatchEvent(new Event(browserGuestStorageKey));
 }
 
-/** Only for a creation the backend refused before committing anything: no guest exists to recover. */
 export function clearBrowserGuestCreatingMarker(): void {
   if (readBrowserGuestState()?.status !== "creating") throw new Error("Only the browser guest creation marker can be cleared.");
   window.localStorage.removeItem(browserGuestStorageKey);

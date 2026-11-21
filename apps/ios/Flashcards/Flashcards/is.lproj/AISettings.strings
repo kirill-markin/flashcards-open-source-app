@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Ekki tókst að hlaða upp viðhengi. Athugaðu tenginguna og reyndu aftur.";
 "ai.drop.overlay" = "Slepptu skrám til að hengja þær við";
 "ai.composer.dictation.start" = "Hefja innlestur";
-"ai.composer.dictation.cancel" = "Hætta við innlestur";
-"ai.composer.dictation.finish" = "Ljúka innlestri";
-"ai.composer.dictation.preparing" = "Undirbý";
-"ai.composer.dictation.recording" = "Tek upp %@";
+"ai.composer.dictation.stop" = "Stöðva innlestur";
+"ai.composer.dictation.waiting" = "Bíð eftir hljóðnemaaðgangi...";
+"ai.composer.dictation.listening" = "Hlusta...";
 "ai.composer.dictation.transcribing" = "Umrita...";
-"ai.composer.dictation.dismissError" = "Loka villu í innlestri";
-"ai.composer.dictation.announcement.started" = "Upptaka hafin";
-"ai.composer.dictation.announcement.inserted" = "Texta bætt við";
 "ai.error.title" = "Villa";
 "ai.error.requestTooLarge.title" = "Skilaboðin eru of stór";
 "ai.error.requestTooLarge.message" = "Gervigreindarspjallið getur ekki sent svona mikið efni í einu. Fjarlægðu viðhengi, veldu minni skrá eða mynd eða skiptu beiðninni upp og reyndu aftur.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Ekki tókst að undirbúa hljóðupptökuna.";
 "ai.dictation.error.recordingStartFailed" = "Ekki tókst að hefja hljóðnemaupptöku.";
 "ai.dictation.error.emptyRecording" = "Ekkert tal var tekið upp.";
-"ai.dictation.error.interrupted" = "Upptaka rofnaði";
 "ai.dictation.error.network" = "Vandamál er með netið. Leystu það og reyndu aftur.";
 "ai.dictation.error.invalidAudio" = "Ekki tókst að vinna úr upptökunni. Reyndu aftur.";
 "ai.message.unsupportedContent" = "Óstutt efni";

@@ -333,6 +333,7 @@ const msCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 hari lepas · {{count}} sehari",
+      vsUsual: "berbanding biasa",
       studyTime: "Masa belajar · ≈ {{count}} min",
     },
     records: {

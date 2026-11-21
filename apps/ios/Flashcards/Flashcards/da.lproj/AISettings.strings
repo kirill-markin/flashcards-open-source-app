@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "En vedhæftet fil kunne ikke uploades. Kontrollér forbindelsen, og prøv igen.";
 "ai.drop.overlay" = "Slip filerne for at vedhæfte dem";
 "ai.composer.dictation.start" = "Start diktering";
-"ai.composer.dictation.cancel" = "Annuller diktering";
-"ai.composer.dictation.finish" = "Afslut diktering";
-"ai.composer.dictation.preparing" = "Forbereder";
-"ai.composer.dictation.recording" = "Optager %@";
+"ai.composer.dictation.stop" = "Stop diktering";
+"ai.composer.dictation.waiting" = "Venter på mikrofonadgang…";
+"ai.composer.dictation.listening" = "Lytter…";
 "ai.composer.dictation.transcribing" = "Transskriberer…";
-"ai.composer.dictation.dismissError" = "Luk dikteringsfejl";
-"ai.composer.dictation.announcement.started" = "Optagelsen er startet";
-"ai.composer.dictation.announcement.inserted" = "Transskription tilføjet";
 "ai.error.title" = "Fejl";
 "ai.error.requestTooLarge.title" = "Beskeden er for stor";
 "ai.error.requestTooLarge.message" = "AI-chatten kan ikke sende så meget indhold på én gang. Fjern en eller flere vedhæftninger, vælg en mindre fil eller et mindre foto, eller del anmodningen op, og prøv igen.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Den optagede lyd kunne ikke klargøres.";
 "ai.dictation.error.recordingStartFailed" = "Mikrofonoptagelsen kunne ikke startes.";
 "ai.dictation.error.emptyRecording" = "Der blev ikke optaget tale.";
-"ai.dictation.error.interrupted" = "Optagelsen blev afbrudt";
 "ai.dictation.error.network" = "Der er et netværksproblem. Løs det, og prøv igen.";
 "ai.dictation.error.invalidAudio" = "Optagelsen kunne ikke behandles. Prøv igen.";
 "ai.message.unsupportedContent" = "Ikke-understøttet indhold";

@@ -325,6 +325,7 @@ const guCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "છેલ્લા 7 દિવસ · દિવસે {{count}}",
+      vsUsual: "તમારી સરેરાશ સામે",
       studyTime: "અભ્યાસ સમય · ≈ {{count}} મિનિટ",
     },
     records: {

@@ -325,6 +325,7 @@ const bgCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Последните 7 дни · {{count}} на ден",
+      vsUsual: "спрямо обичайното",
       studyTime: "Време за учене · ≈ {{count}} мин",
     },
     records: {

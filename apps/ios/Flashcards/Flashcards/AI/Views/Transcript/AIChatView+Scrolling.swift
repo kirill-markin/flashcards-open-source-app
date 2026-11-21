@@ -76,6 +76,7 @@ extension AIChatView {
 
     func detachAutoFollowForExpandedContent() {
         self.detachAutoFollow()
+        self.recordCompanionTranscriptPosition()
     }
 
     func scrollToBottomIfNeeded(proxy: ScrollViewProxy, isAnimated: Bool) {

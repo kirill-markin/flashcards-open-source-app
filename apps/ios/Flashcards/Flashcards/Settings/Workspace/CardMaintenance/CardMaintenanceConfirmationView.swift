@@ -95,7 +95,7 @@ private struct CardMaintenanceConfirmationView: View {
                     }
                 }
             }
-            .pageNavigationTitle(self.scope.kind.actionTitle)
+            .navigationTitle(self.scope.kind.actionTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

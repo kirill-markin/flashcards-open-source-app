@@ -11,47 +11,21 @@ extension AIChatView {
     }
 
     #if !targetEnvironment(macCatalyst)
-    /// The pane's row on iOS while the live chat is on top. The toggle keeps its own circle; History and New share one
-    /// glass pill, like Review's badges. Like the section, it has no title.
-    @ViewBuilder
-    var companionPaneHeader: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 12) {
-                HStack(spacing: 12) {
-                    self.companionToggleButton
-                    HStack(spacing: 0) {
-                        self.companionPillButton(self.historyButton(usesToolbarIconLabel: true))
-                        if self.accessState == .ready {
-                            self.companionPillButton(self.newCompanionChatLabelButton)
-                        }
-                    }
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    Spacer(minLength: 0)
-                }
-            }
-            .padding(.horizontal, aiChatCompanionHeaderHorizontalPadding)
-            .disabled(self.isPresentationActive == false)
-        } else {
-            HStack(spacing: 12) {
-                self.companionToggleButton
-                self.companionHistoryButton
-                if self.accessState == .ready {
-                    self.newCompanionChatButton
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, aiChatCompanionHeaderHorizontalPadding)
-            .disabled(self.isPresentationActive == false)
+    @ToolbarContentBuilder
+    var companionPaneToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            AICompanionToolbarButton()
+                .labelStyle(.iconOnly)
         }
-    }
-
-    /// One segment of the glass pill: primary while usable and dimmed while disabled, at the toolbar's 44 points.
-    private func companionPillButton<Control: View>(_ control: Control) -> some View {
-        control
-            .labelStyle(.iconOnly)
-            .buttonStyle(.plain)
-            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-            .contentShape(Rectangle())
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            self.historyButton(usesToolbarIconLabel: false)
+                .disabled(self.isPresentationActive == false)
+            if self.accessState == .ready {
+                self.newCompanionChatLabelButton
+                    .labelStyle(.iconOnly)
+                    .disabled(self.isPresentationActive == false)
+            }
+        }
     }
     #else
     /// The pane's top row, level with its section's toolbar: the controls lead and, like the section, it has no title.

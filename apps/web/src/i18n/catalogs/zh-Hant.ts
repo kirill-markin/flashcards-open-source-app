@@ -333,6 +333,7 @@ export const zhHantCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "過去 7 天 · 每天 {{count}}",
+      vsUsual: "較平時",
       studyTime: "學習時間 · ≈ {{count}}分鐘",
     },
     records: {

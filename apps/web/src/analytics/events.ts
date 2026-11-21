@@ -428,6 +428,7 @@ export type AnalyticsEvent =
     name: "card_create_started";
     entryPoint: AnalyticsCardCreateEntryPoint;
   }>
+  | Readonly<{ name: "manual_card_saved"; screen: AnalyticsSurface }>
   /**
    * Tracked while the prompt is still the stamped surface, before the screen underneath is restored,
    * so the answer is filed against the prompt it answers.
@@ -688,6 +689,8 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { reason: event.reason };
     case "card_create_started":
       return { entry_point: event.entryPoint };
+    case "manual_card_saved":
+      return null;
     case "prompt_answered":
       return { prompt: event.prompt, outcome: event.outcome };
     case "media_attached":

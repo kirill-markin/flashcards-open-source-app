@@ -19,6 +19,8 @@ export interface CiCdProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
+  cardAdditionReconciliationFn: lambda.IFunction;
+  cardAdditionReconciliationScheduleArn: string;
   webGuestReaperFn: lambda.IFunction;
   catalogDumpFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
@@ -120,6 +122,11 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       sid: "InvokeNativeProofGate",
       actions: ["lambda:InvokeFunction"],
       resources: [props.nativeProofGateFn.functionArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadCardAdditionReconciliationSchedule",
+      actions: ["scheduler:GetSchedule"],
+      resources: [props.cardAdditionReconciliationScheduleArn],
     }),
     createGeneratedMediaPromotionScheduleReadStatement(
       props.generatedMediaPromotionScheduleArn,
@@ -266,6 +273,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     sid: "InvokeProgressActiveDaysBackfillLambda",
     actions: ["lambda:InvokeFunction"],
     resources: [props.progressActiveDaysBackfillFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeCardAdditionReconciliationLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.cardAdditionReconciliationFn.functionArn],
   }));
 
   cdkDeployStatements.push(new iam.PolicyStatement({

@@ -15,9 +15,10 @@ import com.flashcardsopensourceapp.data.local.watch.WatchHandoffSignedInAccount
 import com.flashcardsopensourceapp.data.local.watch.WatchHandoffUnsupportedContractVersionException
 import com.flashcardsopensourceapp.wear.WearAppGraph
 import com.flashcardsopensourceapp.wear.handoff.WearHandoffClient
+import com.flashcardsopensourceapp.wear.handoff.WearHandoffPhoneAppRequiredException
+import com.flashcardsopensourceapp.wear.handoff.WearHandoffPhoneAvailabilityUnknownException
 import com.flashcardsopensourceapp.wear.handoff.WearHandoffPhoneUnreachableException
 import com.flashcardsopensourceapp.wear.handoff.WearHandoffReplyDecodingFailedException
-import com.flashcardsopensourceapp.wear.handoff.WearHandoffReplyTimedOutException
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -39,8 +41,17 @@ sealed interface WearSessionFailureMessage {
     data class ErrorText(val text: String) : WearSessionFailureMessage
 }
 
+enum class WearPhoneSetupMessage {
+    InstallOrUpdate,
+    CheckConnection,
+    PlayStoreRequested,
+    PlayStoreFailed
+}
+
 sealed interface WearSessionState {
-    data object NotConnected : WearSessionState
+    data object PhoneSignInRequired : WearSessionState
+    data object PhoneConnectionRequired : WearSessionState
+    data class PhoneSetup(val message: WearPhoneSetupMessage, val isOpeningPlayStore: Boolean) : WearSessionState
     data object Connecting : WearSessionState
     data object Syncing : WearSessionState
     data object Ready : WearSessionState
@@ -81,6 +92,8 @@ class WearSessionViewModel(
     val isRequestingHandoff: StateFlow<Boolean> = isRequestingHandoffMutable.asStateFlow()
     private val lastSuccessfulSyncAtMillisMutable = MutableStateFlow<Long?>(null)
     val lastSuccessfulSyncAtMillis: StateFlow<Long?> = lastSuccessfulSyncAtMillisMutable.asStateFlow()
+    private var playStoreLaunchJob: Job? = null
+    private var playStoreMessage: WearPhoneSetupMessage? = null
     private var requestedSyncJob: Job? = null
     private var isSyncRequestedAgain: Boolean = false
 
@@ -90,6 +103,37 @@ class WearSessionViewModel(
     fun refreshFromPhone() {
         viewModelScope.launch {
             refreshFromPhoneNow()
+        }
+    }
+
+    fun openPhonePlayStore() {
+        viewModelScope.launch {
+            val setup = stateMutable.value as? WearSessionState.PhoneSetup ?: return@launch
+            if (isRequestingHandoffMutable.value || playStoreLaunchJob?.isActive == true) {
+                return@launch
+            }
+
+            val launchJob = coroutineContext.job
+            playStoreLaunchJob = launchJob
+            stateMutable.value = setup.copy(isOpeningPlayStore = true)
+            val message = try {
+                handoffClient.openPhonePlayStore()
+                WearPhoneSetupMessage.PlayStoreRequested
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logWearSessionFailure(event = "watch_open_phone_play_store_failed", error = error)
+                WearPhoneSetupMessage.PlayStoreFailed
+            }
+            if (playStoreLaunchJob !== launchJob) {
+                return@launch
+            }
+            playStoreLaunchJob = null
+            playStoreMessage = message
+            val currentSetup = stateMutable.value as? WearSessionState.PhoneSetup
+            if (currentSetup != null) {
+                stateMutable.value = currentSetup.copy(message = message, isOpeningPlayStore = false)
+            }
         }
     }
 
@@ -204,12 +248,21 @@ class WearSessionViewModel(
                     return
                 }
                 if (storedAccount == null) {
-                    stateMutable.value = stateForHandoffFailure(error = error)
+                    stateMutable.value = stateForHandoffFailure(
+                        error = error,
+                        isOpeningPlayStore = playStoreLaunchJob?.isActive == true,
+                        playStoreMessage = playStoreMessage
+                    )
                     return
                 }
                 syncNow()
                 return
             }
+
+            val playStoreLaunch = playStoreLaunchJob
+            playStoreLaunchJob = null
+            playStoreMessage = null
+            playStoreLaunch?.cancel()
 
             when (reply) {
                 WatchHandoffReply.SignedOut -> {
@@ -365,7 +418,7 @@ class WearSessionViewModel(
         try {
             val cloudSettings = appGraph.cloudPreferencesStore.currentCloudSettings()
             if (cloudSettings.cloudState == CloudAccountState.DISCONNECTED && loadStoredCredentials() == null) {
-                stateMutable.value = WearSessionState.NotConnected
+                stateMutable.value = WearSessionState.PhoneSignInRequired
                 return
             }
         } catch (error: CancellationException) {
@@ -386,7 +439,7 @@ class WearSessionViewModel(
             appGraph.cloudAccountRepository.logout()
             blockedSwitchAccount = null
             logDroppedOutboxEntries(count = droppedOutboxEntryCount, reason = reason)
-            stateMutable.value = WearSessionState.NotConnected
+            stateMutable.value = WearSessionState.PhoneSignInRequired
             Log.i(wearSessionLogTag, "event=watch_signed_out reason=$reason")
         } catch (error: CancellationException) {
             throw error
@@ -509,9 +562,21 @@ private fun isWearLinked(cloudSettings: CloudSettings, account: WatchHandoffSign
         (cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId) == account.workspaceId
 }
 
-private fun stateForHandoffFailure(error: Exception): WearSessionState {
+private fun stateForHandoffFailure(
+    error: Exception,
+    isOpeningPlayStore: Boolean,
+    playStoreMessage: WearPhoneSetupMessage?
+): WearSessionState {
     return when (error) {
-        is WearHandoffPhoneUnreachableException, is WearHandoffReplyTimedOutException -> WearSessionState.NotConnected
+        is WearHandoffPhoneUnreachableException -> WearSessionState.PhoneConnectionRequired
+        is WearHandoffPhoneAppRequiredException -> WearSessionState.PhoneSetup(
+            message = playStoreMessage ?: WearPhoneSetupMessage.InstallOrUpdate,
+            isOpeningPlayStore = isOpeningPlayStore
+        )
+        is WearHandoffPhoneAvailabilityUnknownException -> WearSessionState.PhoneSetup(
+            message = playStoreMessage ?: WearPhoneSetupMessage.CheckConnection,
+            isOpeningPlayStore = isOpeningPlayStore
+        )
         is WatchHandoffUnsupportedContractVersionException, is WearHandoffReplyDecodingFailedException ->
             WearSessionState.Failed(message = WearSessionFailureMessage.UpdateRequired)
 

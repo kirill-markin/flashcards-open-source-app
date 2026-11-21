@@ -45,11 +45,8 @@ private val dashboardWidgetPadding = 12.dp
 /** `dashboard_widget_info.xml`'s minimum resize size; smaller launcher-reported sizes use it. */
 private val dashboardWidgetMinimumSize = DpSize(width = 250.dp, height = 250.dp)
 private val dashboardWidgetRingSize = 64.dp
+private val dashboardWidgetPaceWidth = 96.dp
 private val dashboardWidgetSectionSpacing = 8.dp
-private val dashboardWidgetRevealSpacing = 8.dp
-/** The Reveal answer button's padding above and below its one line of label text. */
-private val dashboardWidgetRevealButtonVerticalPadding = 20.dp
-private val dashboardWidgetRevealButtonTextSize = 14.sp
 private val dashboardWidgetFooterSpacing = 4.dp
 private val dashboardWidgetDueCountTextSize = 24.sp
 private val dashboardWidgetQuestionTextSize = 16.sp
@@ -99,8 +96,7 @@ private fun DashboardWidgetBody(content: WidgetContent?, layoutSize: DpSize) {
                     workspaceId = queue?.workspaceId,
                     size = ReviewWidgetSize.LARGE,
                     kind = WidgetKind.DASHBOARD,
-                    cardId = shownCard?.cardId,
-                    revealAnswer = false
+                    cardId = shownCard?.cardId
                 )
             )
         )
@@ -133,7 +129,9 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
             pace = progress.pace,
             bitmapSize = DpSize(width = dashboardWidgetRingSize, height = dashboardWidgetRingSize),
             numberFontSize = 13.sp,
-            modifier = GlanceModifier.size(dashboardWidgetRingSize)
+            modifier = GlanceModifier.height(dashboardWidgetRingSize).width(
+                if (progress.pace.baseline == null) dashboardWidgetRingSize else dashboardWidgetPaceWidth
+            )
         )
         Spacer(modifier = GlanceModifier.width(12.dp))
         Column(modifier = GlanceModifier.defaultWeight()) {
@@ -165,11 +163,6 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
     }
 }
 
-/**
- * The next question with Reveal answer under it, or the Review widget's all-done state with the next
- * due time; never the answer. The question always owns three lines, so the button and the heatmap
- * never move with it.
- */
 @Composable
 private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
@@ -215,14 +208,6 @@ private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: Re
                 maxLines = dashboardWidgetQuestionMaxLines
             )
         }
-        Spacer(modifier = GlanceModifier.height(dashboardWidgetRevealSpacing))
-        WidgetRevealAnswerButton(
-            workspaceId = queue.workspaceId,
-            cardId = card.cardId,
-            size = ReviewWidgetSize.LARGE,
-            kind = WidgetKind.DASHBOARD,
-            modifier = GlanceModifier
-        )
     }
 }
 
@@ -279,9 +264,8 @@ private fun DashboardWidgetActivity(progress: WidgetProgressContent, layoutSize:
 }
 
 /**
- * The height the top row, a question of [dashboardWidgetQuestionMaxLines] lines with its Reveal answer
- * button, the footer, and their spacing leave at [fontScale]; it never depends on the width, so the
- * bitmap stays positive whatever width a launcher reports.
+ * The height left after the top row, the reserved question lines, and the footer at [fontScale].
+ * The estimate stays positive regardless of the launcher's reported width.
  */
 private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): Dp {
     val contentHeight: Dp = maxOf(layoutSize.height, dashboardWidgetMinimumSize.height) - dashboardWidgetPadding * 2
@@ -294,8 +278,7 @@ private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): 
         fontSize = dashboardWidgetQuestionTextSize,
         lineCount = dashboardWidgetQuestionMaxLines,
         fontScale = fontScale
-    ) + dashboardWidgetRevealSpacing + dashboardWidgetRevealButtonVerticalPadding +
-        widgetTextHeight(fontSize = dashboardWidgetRevealButtonTextSize, lineCount = 1, fontScale = fontScale)
+    )
     val footerHeight: Dp = dashboardWidgetFooterSpacing +
         widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 1, fontScale = fontScale)
     return (contentHeight - topRowHeight - questionHeight - footerHeight - dashboardWidgetSectionSpacing * 2)

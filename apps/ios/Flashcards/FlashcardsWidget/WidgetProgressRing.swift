@@ -46,31 +46,61 @@ struct WidgetProgressRing: View {
     }
 }
 
-/// The last 7 days' reviews inside the ring that measures them against the usual 7 days. Without a baseline the
-/// number stands alone, with no ring and no track.
 struct WidgetPaceRingView: View {
+    @Environment(\.widgetFamily) private var family
     let pace: ProgressPace
     let lineWidth: CGFloat
     let numberFont: Font
 
     var body: some View {
-        ZStack {
-            if let baseline = self.pace.baseline {
-                WidgetProgressRing(laps: baseline.ringProgress, lineWidth: self.lineWidth)
+        VStack(spacing: 2) {
+            ZStack {
+                if let baseline = self.pace.baseline {
+                    WidgetProgressRing(laps: baseline.ringProgress, lineWidth: self.lineWidth)
+                }
+                VStack(spacing: 0) {
+                    Text(self.pace.lastSevenDaysReviewCount, format: .number.notation(.compactName))
+                        .font(self.numberFont.weight(.bold))
+                        .fontDesign(.rounded)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .accessibilityLabel(
+                            Text("widget.heatmap.reviews_count \(self.pace.lastSevenDaysReviewCount)", tableName: widgetStringsTableName)
+                        )
+                    Text("widget.heatmap.days_count \(progressPaceWindowDayCount)", tableName: widgetStringsTableName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                .padding(.horizontal, self.lineWidth + 6)
             }
-            VStack(spacing: 0) {
-                Text(self.pace.lastSevenDaysReviewCount, format: .number.notation(.compactName))
-                    .font(self.numberFont.weight(.bold))
-                    .fontDesign(.rounded)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Text("widget.heatmap.days_count \(progressPaceWindowDayCount)", tableName: widgetStringsTableName)
+            if self.pace.baseline != nil, self.family != .accessoryCircular {
+                self.comparisonCue
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
+                    .accessibilityHidden(true)
             }
-            .padding(.horizontal, self.lineWidth + 6)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(self.comparisonValue)
+    }
+
+    private var comparisonCue: Text {
+        Text("widget.reviews_chart.vs_usual", tableName: widgetStringsTableName)
+    }
+
+    private var comparisonValue: Text {
+        guard let baseline = self.pace.baseline else {
+            return Text(verbatim: "")
+        }
+        return Text(
+            self.pace.lastSevenDaysAveragePerDay / baseline.usualReviewsPerDay,
+            format: .percent.precision(.fractionLength(0))
+        )
+            + Text(verbatim: " ")
+            + self.comparisonCue
     }
 }

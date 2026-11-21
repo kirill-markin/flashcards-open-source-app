@@ -307,7 +307,6 @@ final class FlashcardsStore {
     @ObservationIgnored var progressStreakLeaderboardPublishedClientRevision: Int?
     @ObservationIgnored var progressReviewScheduleLocalRevision: Int
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
-    @ObservationIgnored var progressRenderedSummaryAndSeriesCache: ProgressRenderedSummaryAndSeriesCacheEntry? = nil
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
     @ObservationIgnored var capturedTechnicalErrorCaptureContextIDs: Set<String>
     @ObservationIgnored var customGuestWorkspaceRetrySession: CloudLinkedSession?

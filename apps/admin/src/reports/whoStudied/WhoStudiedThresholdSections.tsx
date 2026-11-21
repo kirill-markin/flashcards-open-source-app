@@ -17,7 +17,7 @@ export function WhoStudiedThresholdSections(props: DailyNewReturningSelection): 
     : null;
 
   return (
-    <div className="who-studied-threshold-charts" data-testid="who-studied-threshold-charts">
+    <>
       {state.status === "error" ? (
         <DailyNewReturningChartSection
           period={props.period}
@@ -51,6 +51,6 @@ export function WhoStudiedThresholdSections(props: DailyNewReturningSelection): 
           />
         );
       })}
-    </div>
+    </>
   );
 }

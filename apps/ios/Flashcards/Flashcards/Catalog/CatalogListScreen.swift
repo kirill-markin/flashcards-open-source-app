@@ -8,9 +8,10 @@ struct CatalogListScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(CatalogIndexStore.self) private var catalog: CatalogIndexStore
     @Environment(\.locale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    @FocusState private var isSearchFocused: Bool
     @State private var searchText: String = ""
+    @State private var isSearchPresented: Bool = false
     /// Nil until the person picks a language, so the default follows the loaded index.
     @State private var languageChoice: CatalogLanguageFilter? = nil
     @State private var sortOrder: CatalogSortOrder = .relevance
@@ -48,26 +49,26 @@ struct CatalogListScreen: View {
 
     var body: some View {
         let visibleDecks = self.matchingDecks()
-        ScrollViewReader { scrollProxy in
-            List {
-                #if !targetEnvironment(macCatalyst)
-                NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: self.searchPrompt)
-                #endif
-                if self.catalog.index == nil {
-                    self.indexUnavailableContent
-                } else {
-                    self.indexContent(visibleDecks: visibleDecks)
-                }
+        List {
+            if self.catalog.index == nil {
+                self.indexUnavailableContent
+            } else {
+                self.indexContent(visibleDecks: visibleDecks)
             }
-            .listStyle(.insetGrouped)
-            .nativeSearchListMargins()
-            .nativeSearchKeyboardShortcut(isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true }, prompt: self.searchPrompt, scrollProxy: scrollProxy)
         }
+        .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.catalogListScreen)
         .nativeNavigationTitle(self.title)
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(self.macCatalogToolbar)
         #else
+        .searchable(
+            text: self.$searchText,
+            isPresented: self.$isSearchPresented,
+            placement: .automatic,
+            prompt: self.searchPrompt
+        )
+        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .toolbar {
             AICompanionToolbarItem()
             ToolbarItem(placement: .topBarTrailing) {

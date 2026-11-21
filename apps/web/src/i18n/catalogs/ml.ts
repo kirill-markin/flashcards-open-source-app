@@ -325,6 +325,7 @@ const mlCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "കഴിഞ്ഞ 7 ദിവസം · ദിവസം {{count}}",
+      vsUsual: "സ്വന്തം ശരാശരിയുമായി താരതമ്യം",
       studyTime: "പഠന സമയം · ≈ {{count}} മിനിറ്റ്",
     },
     records: {
