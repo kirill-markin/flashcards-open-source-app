@@ -52,7 +52,7 @@ For a green `Android Release`, use the routine offline generator from the
 repository root. Retain the exact attempt's signed AAB
 (`android-release-bundle-r<runId>a<attempt>`, legacy `android-release-bundle`),
 [Device Run summary and private evidence](../android-ci-cd.md#device-run-results-and-release-correlation),
-`play-publisher-provenance.json` and, for runs with the Wear OS upload job,
+`play-publisher-provenance.json` and, for runs that uploaded a Wear OS draft,
 `play-wear-publisher-provenance.json` (artifact `android-wear-play-publisher-provenance`).
 Verify artifact IDs/attempt and pin the SHA, version, phone and Wear OS codes and
 both bundle checksums from the release/build records. Retain
@@ -72,7 +72,7 @@ node scripts/release/check-mobile-readiness.mjs "$record/mobile-manifest.json" >
 
 In `review.json`, supply string fields `sourceSha`, `version`, `versionCode`,
 `runId`, `attempt`, `aabSha256`, and `reviewedBy`, plus `wearVersionCode` and
-`wearAabSha256` for runs with the Wear OS upload job (omit the last argument
+`wearAabSha256` for runs that uploaded a Wear OS draft (omit the last argument
 otherwise). Set `devices` to the
 verified configured catalog IDs keyed by API: `37` and `30` for the current
 selection, and `37`, `30`, `31`, `33` for the pinned historical selection.

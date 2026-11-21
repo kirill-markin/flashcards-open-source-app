@@ -55,7 +55,8 @@ function verifyRun(run, pin, publisher, hasWear) {
   `Export GitHub jobs for the pinned run ${pin.runId} and attempt ${pin.attempt} with gh run view --attempt`);
   requireEvidence(status === "completed" && conclusion === "success" &&
     matches(headSha, /^[a-f0-9]{40}$/) && headSha === publisher.workflowSha &&
-    Array.isArray(jobs) && jobs.every((job) => job?.conclusion === "success"),
+    Array.isArray(jobs) && jobs.every((job) => job?.conclusion === "success" ||
+      (!hasWear && job?.name === wearPublisherJob && job.conclusion === "skipped")),
   "The retained Android Release workflow must be complete and green at the publisher's workflow SHA");
   const byName = new Map(jobs.map((job) => [job.name, job]));
   const requiredJobs = ["Resolve Android release target", "Android CI / Android build, unit tests, and lint",
@@ -64,6 +65,11 @@ function verifyRun(run, pin, publisher, hasWear) {
   requireEvidence(byName.size === jobs.length && requiredJobs.every((name) => byName.has(name)),
     "The retained workflow is missing required Android Release jobs or has duplicate jobs");
   const signed = byName.get(signedJob) ?? byName.get(publisherJob);
+  if (byName.get(wearPublisherJob)?.conclusion === "skipped") {
+    requireEvidence(signed.steps?.some((step) =>
+      step?.name === "Upload signed Wear OS App Bundle artifact" && step.conclusion === "skipped"),
+    "A phone-only release must skip both the Wear OS bundle artifact and Play upload");
+  }
   const requiredSteps = ["Build signed Android App Bundle", "Upload signed Android App Bundle artifact",
     "Report and gate R8 optimization coverage"];
   if (byName.has(signedJob)) requiredSteps.push("Record signed Android App Bundle checksum");
@@ -224,12 +230,12 @@ async function assemble(review, run, native, publisher, bundlePath, wearPublishe
   requireEvidence(matches(sourceSha, /^[a-f0-9]{40}$/) && isDigest(aabSha256) &&
     [versionCode, runId, attempt].every((value) => matches(value, /^[1-9][0-9]*$/)),
   "Pin the full release source SHA, signed AAB SHA-256, version code, run ID and attempt as strings");
-  // Runs dispatched before the Wear OS job existed carry no Wear OS evidence.
-  const hasWear = Array.isArray(run.value.jobs) && run.value.jobs.some((job) => job?.name === wearPublisherJob);
+  const hasWear = Array.isArray(run.value.jobs) && run.value.jobs.some((job) =>
+    job?.name === wearPublisherJob && job.conclusion !== "skipped");
   requireEvidence(hasWear === (wearPublisher !== undefined) && (!hasWear ||
     matches(wearVersionCode, /^[1-9][0-9]*$/) && wearVersionCode !== versionCode && isDigest(wearAabSha256)),
   hasWear ? "This run uploaded a Wear OS bundle: pass its publisher provenance and pin wearVersionCode and wearAabSha256"
-    : "This run has no Wear OS job: omit the Wear OS publisher provenance");
+    : "This run did not upload a Wear OS bundle: omit the Wear OS publisher provenance");
   const versions = [...sourceFile(sourceSha, "apps/android/app/build.gradle.kts").matchAll(/versionName\s*=\s*"([^"]+)"/g)];
   requireEvidence(versions.length === 1 && versions[0][1] === version, "Pinned marketing version differs from the release source");
   const selection = JSON.parse(sourceFile(sourceSha, "scripts/android/device-run-test-selection.json"));
