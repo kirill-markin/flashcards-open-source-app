@@ -17,6 +17,7 @@ struct CatalogDeckScreen: View {
     @Environment(CatalogIndexStore.self) private var catalog: CatalogIndexStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.dismiss) private var dismiss
 
     let deck: CatalogBrowseIndexDeck
@@ -25,6 +26,7 @@ struct CatalogDeckScreen: View {
     @State private var isStudying: Bool = false
     @State private var studyErrorMessage: String? = nil
     @State private var isUnavailableAlertPresented: Bool = false
+    @State private var horizontalContentMargin: CGFloat? = nil
 
     var body: some View {
         List {
@@ -34,7 +36,12 @@ struct CatalogDeckScreen: View {
 
             Section {
                 self.studyButton
-                if let studyErrorMessage = self.studyErrorMessage {
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            }
+
+            if let studyErrorMessage = self.studyErrorMessage {
+                Section {
                     Label(
                         String(localized: "catalog.deck.study_failed", table: catalogStringsTableName),
                         systemImage: "exclamationmark.triangle"
@@ -48,11 +55,20 @@ struct CatalogDeckScreen: View {
             self.previewSections
         }
         .listStyle(.insetGrouped)
+        .listSectionSpacing(.compact)
+        .contentMargins(.horizontal, self.horizontalContentMargin, for: .scrollContent)
+        .onGeometryChange(for: CGFloat?.self) { geometry in
+            let margin = (geometry.size.width - flashcardsReadableContentMaxWidth) / 2
+            return margin > 0 ? margin : nil
+        } action: { margin in
+            self.horizontalContentMargin = margin
+        }
         .accessibilityIdentifier(UITestIdentifier.catalogDeckScreen)
         .nativeNavigationTitle(self.deck.title)
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(tab: .library, role: .navigation))
         #else
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             AICompanionToolbarItem()
         }
@@ -71,12 +87,18 @@ struct CatalogDeckScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 16) {
-            CatalogDeckCover(url: self.deck.coverImageUrl, size: catalogDeckPageCoverSize)
+        let titleLayout = self.dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+        return VStack(alignment: .leading, spacing: 10) {
+            titleLayout {
+                CatalogDeckCover(url: self.deck.coverImageUrl, size: catalogDeckPageCoverSize)
 
-            VStack(alignment: .leading, spacing: 6) {
                 Text(self.deck.title)
                     .font(.title3.weight(.semibold))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
                 Text(self.deck.summary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -85,6 +107,7 @@ struct CatalogDeckScreen: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
@@ -123,7 +146,6 @@ struct CatalogDeckScreen: View {
         .accessibilityValue(
             self.isStudying ? String(localized: "catalog.deck.study_in_progress", table: catalogStringsTableName) : ""
         )
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .accessibilityIdentifier(UITestIdentifier.catalogDeckStudyButton)
     }
 
