@@ -3,8 +3,13 @@
 SET LOCAL lock_timeout = '30s';
 
 ALTER TABLE auth.guest_upgrade_history
-  ADD COLUMN requested_existing_workspace_id UUID
-  CHECK (requested_existing_workspace_id IS NULL OR selection_type = 'existing');
+  ADD COLUMN requested_existing_workspace_id UUID;
+
+ALTER TABLE auth.guest_upgrade_history
+  ADD CONSTRAINT guest_upgrade_history_check CHECK (
+    requested_existing_workspace_id IS NULL
+    OR selection_type = 'existing'
+  ) NOT VALID;
 
 CREATE FUNCTION auth.transfer_guest_owned_workspaces(upgrade UUID, secret_hash TEXT)
 RETURNS VOID
