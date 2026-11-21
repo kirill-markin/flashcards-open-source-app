@@ -41,13 +41,6 @@ data class ReviewFilterRequest(
     val reviewFilter: ReviewFilter
 )
 
-/** A widget tap's card, which Review shows first when it is still in review in [workspaceId]. */
-data class ReviewWidgetCardRequest(
-    val requestId: Long,
-    val workspaceId: String,
-    val cardId: String
-)
-
 enum class ProgressNavigationTarget {
     STREAK,
     LEADERBOARD
@@ -85,7 +78,6 @@ class AppHandoffCoordinator {
     private val aiImportState = MutableStateFlow<AiImportRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
-    private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
     private val progressNavigationState = MutableStateFlow<ProgressNavigationRequest?>(value = null)
     private val libraryNavigationState = MutableStateFlow<LibraryNavigationRequest?>(value = null)
 
@@ -107,10 +99,6 @@ class AppHandoffCoordinator {
 
     fun observeReviewFilter(): StateFlow<ReviewFilterRequest?> {
         return reviewFilterState.asStateFlow()
-    }
-
-    fun observeReviewWidgetCard(): StateFlow<ReviewWidgetCardRequest?> {
-        return reviewWidgetCardState.asStateFlow()
     }
 
     fun observeProgressNavigation(): StateFlow<ProgressNavigationRequest?> {
@@ -221,22 +209,6 @@ class AppHandoffCoordinator {
         }
 
         reviewFilterState.value = null
-    }
-
-    fun requestReviewWidgetCard(workspaceId: String, cardId: String) {
-        reviewWidgetCardState.value = ReviewWidgetCardRequest(
-            requestId = nextRequestId.incrementAndGet(),
-            workspaceId = workspaceId,
-            cardId = cardId
-        )
-    }
-
-    fun consumeReviewWidgetCard(requestId: Long) {
-        if (reviewWidgetCardState.value?.requestId != requestId) {
-            return
-        }
-
-        reviewWidgetCardState.value = null
     }
 
     fun requestProgressNavigation(target: ProgressNavigationTarget) {

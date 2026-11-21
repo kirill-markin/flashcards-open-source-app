@@ -128,6 +128,7 @@ import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -144,7 +145,7 @@ fun FlashcardsApp(
     appGraph: AppGraph,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit,
-    reviewWidgetTapRequest: ReviewWidgetTapHandoffRequest?,
+    reviewWidgetTapState: StateFlow<ReviewWidgetTapHandoffRequest?>,
     consumeReviewWidgetTap: (Long) -> Unit,
     applySystemBarAppearance: (FlashcardsAppearance) -> Unit
 ) {
@@ -819,7 +820,7 @@ fun FlashcardsApp(
                     isPowerSaveMode = isPowerSaveMode,
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = consumeAppNotificationTap,
-                    reviewWidgetTapRequest = reviewWidgetTapRequest,
+                    reviewWidgetTapState = reviewWidgetTapState,
                     consumeReviewWidgetTap = consumeReviewWidgetTap,
                     premiumPresenter = premiumPresenter
                 )

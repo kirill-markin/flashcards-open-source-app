@@ -66,6 +66,7 @@ internal fun makePinnedReviewDraftState(
         presentedCard = presentedCard,
         preparedNextCardId = null,
         revealedCardId = null,
+        widgetPresentation = null,
         reviewedInSessionCount = reviewedInSessionCount,
         pendingReviewedCards = pendingReviewedCards,
         ratingRevision = 0L,

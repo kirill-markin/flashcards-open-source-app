@@ -27,6 +27,7 @@ internal fun initialReviewAppMetadataSummary(textProvider: ReviewTextProvider): 
 internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiState {
     return ReviewUiState(
         isLoading = true,
+        widgetPresentation = null,
         sessionWorkspaceId = null,
         requestedFilter = ReviewFilter.AllCards,
         isRequestedFilterSessionPending = false,
@@ -149,8 +150,19 @@ internal fun mapToReviewUiState(
         workspaceCardCount = appMetadata.cardCount
     )
 
+    // A resolved target outside the old bounded queue is first drawable once the pinned query
+    // emits. The request must reach the screen in the same state as the resulting card and side.
+    val widgetPresentation = state.widgetPresentation?.takeIf { presentation ->
+        presentation.cardId == null ||
+            (!sessionSnapshot.isLoading && observedSession.result.workspaceId == presentation.workspaceId &&
+                observedSession.requestedFilter == state.requestedFilter &&
+                (queryInputs?.presentedCardId == presentation.cardId ||
+                    currentPreparedCard?.card?.cardId == presentation.cardId))
+    }
+
     return ReviewUiState(
         isLoading = sessionSnapshot.isLoading,
+        widgetPresentation = widgetPresentation,
         sessionWorkspaceId = observedSession.result.workspaceId,
         requestedFilter = state.requestedFilter,
         isRequestedFilterSessionPending = observedSession.requestedFilter != state.requestedFilter,

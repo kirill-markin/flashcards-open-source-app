@@ -45,7 +45,6 @@ class MainHostActivity : ComponentActivity() {
             // must stay current even outside STARTED to avoid reusing a closed graph.
             val currentAppGraph by application.appGraphState.collectAsState()
             val appNotificationTapRequest by application.appNotificationTapState.collectAsState()
-            val reviewWidgetTapRequest by application.reviewWidgetTapState.collectAsState()
             val appGraph = currentAppGraph
             if (appGraph == null) {
                 // The loading screen is always dark, whatever theme the detached app graph showed.
@@ -86,7 +85,7 @@ class MainHostActivity : ComponentActivity() {
                     appGraph = appGraph,
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = application::consumeAppNotificationTap,
-                    reviewWidgetTapRequest = reviewWidgetTapRequest,
+                    reviewWidgetTapState = application.reviewWidgetTapState,
                     consumeReviewWidgetTap = application::consumeReviewWidgetTap,
                     applySystemBarAppearance = { appearance -> applySystemBarAppearance(appearance = appearance) }
                 )

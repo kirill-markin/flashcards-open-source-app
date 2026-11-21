@@ -383,6 +383,7 @@ internal fun applyOptimisticReviewSubmission(
         presentedCard = nextPresentedCard,
         preparedNextCardId = nextPreparedNextCardId,
         revealedCardId = null,
+        widgetPresentation = state.widgetPresentation?.copy(cardId = null),
         pendingReviewedCards = state.pendingReviewedCards + pendingReviewedCard,
         optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
         previewCards = emptyList(),
