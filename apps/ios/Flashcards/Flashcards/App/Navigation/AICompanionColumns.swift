@@ -57,22 +57,7 @@ struct AICompanionColumns<Content: View>: View {
                 ? geometry.size.width / 2
                 : max(0, min(geometry.size.width, (geometry.size.width + rightInset - leftInset) / 2))
             #endif
-            HStack(spacing: 0) {
-                Color.clear
-                    .frame(width: isVisible && isLeading ? width : 0)
-                    .accessibilityHidden(true)
-                self.content
-                    #if targetEnvironment(macCatalyst)
-                    // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
-                    .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
-                    .frame(maxHeight: .infinity)
-                    #else
-                    .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
-                    #endif
-                Color.clear
-                    .frame(width: isVisible && !isLeading ? width : 0)
-                    .accessibilityHidden(true)
-            }
+            self.sectionColumn(isPad: isPad, isVisible: isVisible, isLeading: isLeading, width: width, size: geometry.size)
             .overlay(alignment: isLeading ? .leading : .trailing) {
                 if isVisible {
                     self.pane
@@ -94,6 +79,49 @@ struct AICompanionColumns<Content: View>: View {
         }
         // The paired columns share one keyboard boundary and one layout proposal.
         .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
+    }
+
+    @ViewBuilder
+    private func sectionColumn(isPad: Bool, isVisible: Bool, isLeading: Bool, width: CGFloat, size: CGSize) -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.spacedSectionColumn(isVisible: isVisible, isLeading: isLeading, width: width) {
+            self.content
+                // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
+                .frame(width: max(0, size.width - (isVisible ? width : 0)))
+                .frame(maxHeight: .infinity)
+        }
+        #else
+        if isPad {
+            // The chat's column is safe area to the section, which shares its page and stack: lists and readable
+            // layouts then take their own margins on both sides, as they did in a stack of their own. Offset by a
+            // spacer, a list inherited only the page's trailing margin.
+            self.content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .safeAreaPadding(isLeading ? .leading : .trailing, isVisible ? width : 0)
+        } else {
+            self.spacedSectionColumn(isVisible: isVisible, isLeading: isLeading, width: width) {
+                self.content
+            }
+        }
+        #endif
+    }
+
+    /// Duo and the Mac keep the section in a stack of its own, beside the chat.
+    private func spacedSectionColumn<Column: View>(
+        isVisible: Bool,
+        isLeading: Bool,
+        width: CGFloat,
+        @ViewBuilder column: () -> Column
+    ) -> some View {
+        HStack(spacing: 0) {
+            Color.clear
+                .frame(width: isVisible && isLeading ? width : 0)
+                .accessibilityHidden(true)
+            column()
+            Color.clear
+                .frame(width: isVisible && !isLeading ? width : 0)
+                .accessibilityHidden(true)
+        }
     }
 
     private var pane: some View {
