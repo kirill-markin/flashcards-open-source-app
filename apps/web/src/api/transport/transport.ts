@@ -21,6 +21,8 @@ import {
   createSessionRecovery,
   skipAuthRecoveryWithTransientNetworkRetry,
   type AuthRecoveryMode,
+  type BrowserGuestVerificationChange,
+  type ExpectedAuth,
   type NetworkRetryMode,
   type RequestOptions,
 } from "./sessionRecovery";
@@ -46,6 +48,7 @@ export {
 };
 export type {
   AuthRecoveryMode,
+  ExpectedAuth,
   NetworkRetryMode,
   RequestOptions,
 };
@@ -93,12 +96,15 @@ export function getCachedSessionAccountId(): string | null {
   return sessionRecovery.getCachedSessionAccountId();
 }
 
-function withExpectedAccountId(path: string, accountId: string | null): string {
-  if (accountId === null) {
-    return path;
-  }
-  const query = new URLSearchParams({ expectedAccountId: accountId });
-  return `${path}${path.includes("?") ? "&" : "?"}${query.toString()}`;
+export function getCachedSessionAuthKind(): ExpectedAuth["kind"] | null {
+  return sessionRecovery.getCachedSessionAuthKind();
+}
+
+function withExpectedIdentity(path: string, accountId: string | null, auth: ExpectedAuth | undefined): string {
+  const query = new URLSearchParams();
+  if (accountId !== null) query.set("expectedAccountId", accountId);
+  if (auth !== undefined) query.set("expectedAuthKind", auth.kind);
+  return query.size === 0 ? path : `${path}${path.includes("?") ? "&" : "?"}${query.toString()}`;
 }
 
 export function getCachedSessionCsrfToken(): string | null {
@@ -121,7 +127,7 @@ export function isBrowserGuestSessionVerified(userId: string, workspaceId: strin
   return sessionRecovery.isBrowserGuestSessionVerified(userId, workspaceId);
 }
 
-export function subscribeToBrowserGuestVerification(listener: () => void): () => void {
+export function subscribeToBrowserGuestVerification(listener: (change: BrowserGuestVerificationChange) => void): () => void {
   return sessionRecovery.subscribeToBrowserGuestVerification(listener);
 }
 
@@ -365,7 +371,7 @@ export async function requestJson(
   options: RequestOptions,
   expectedAccountId?: string | null,
 ): Promise<ParsedResponsePayload> {
-  const pathname = withExpectedAccountId(path, expectedAccountId ?? null);
+  const pathname = withExpectedIdentity(path, expectedAccountId ?? null, options.expectedAuth);
   const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
   try {
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);

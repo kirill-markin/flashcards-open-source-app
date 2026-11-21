@@ -39,22 +39,28 @@ export type RequestInitBinding = Readonly<{
   requestInit: RequestInit;
   dispose: () => void;
 }>;
+export type ExpectedAuth = Readonly<
+  { kind: "registered" } | { kind: "guest"; generation: number }
+>;
 export type RequestOptions = Readonly<{
   authRecoveryMode: AuthRecoveryMode;
   networkRetryMode: NetworkRetryMode;
   prepareForAuthRedirect: PrepareForAuthRedirect | null;
   expectedUserId: string | null;
+  expectedAuth?: ExpectedAuth;
 }>;
+export type BrowserGuestVerificationChange = "verification_changed" | "identity_changed";
 export type SessionRecovery = Readonly<{
   attachRecoverySignal: (init: RequestInit) => RequestInitBinding;
   bindIndexedDbOpenRecoverySignal: (signal: AbortSignal) => () => void;
   createSessionHeaders: (headers: Headers, method: string) => Headers;
   getCachedSessionCsrfToken: () => string | null;
   getCachedSessionAccountId: () => string | null;
+  getCachedSessionAuthKind: () => ExpectedAuth["kind"] | null;
   getOptionalSession: () => Promise<SessionInfo | null>;
   loadVerifiedBrowserGuestSession: (userId: string, workspaceId: string) => Promise<SessionInfo>;
   isBrowserGuestSessionVerified: (userId: string, workspaceId: string) => boolean;
-  subscribeToBrowserGuestVerification: (listener: () => void) => () => void;
+  subscribeToBrowserGuestVerification: (listener: (change: BrowserGuestVerificationChange) => void) => () => void;
   getSession: () => Promise<SessionInfo>;
   primeSessionCsrfToken: (csrfToken: string) => void;
   primeGuestSession: (userId: string, csrfToken: string) => void;
@@ -180,7 +186,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let sessionUserId: string | null = null;
   let sessionCanonicalAccountId: string | null = null;
   let verifiedBrowserGuestOwner: Readonly<{ userId: string; workspaceId: string | null }> | null = null;
-  const browserGuestVerificationListeners = new Set<() => void>();
+  const browserGuestVerificationListeners = new Set<(change: BrowserGuestVerificationChange) => void>();
   let sessionCsrfState: SessionCsrfState = "unknown";
   let sessionRecoveryPromise: Promise<void> | null = null;
   let sessionRecoveryNetworkRetryMode: NetworkRetryMode | null = null;
@@ -206,8 +212,8 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     return `${owner}:${readBrowserGuestOwnershipGeneration() ?? ""}`;
   }
 
-  function publishBrowserGuestVerification(): void {
-    for (const listener of browserGuestVerificationListeners) listener();
+  function publishBrowserGuestVerification(change: BrowserGuestVerificationChange): void {
+    for (const listener of browserGuestVerificationListeners) listener(change);
   }
 
   let guestBoundary = "";
@@ -219,7 +225,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     identityController.abort(new BrowserGuestSessionInvalidatedError("Browser guest identity boundary changed; reload session before writing."));
     identityController = new AbortController();
     resetSessionState();
-    publishBrowserGuestVerification();
+    publishBrowserGuestVerification("verification_changed");
   });
 
   function bindIndexedDbOpenRecoverySignal(signal: AbortSignal): () => void {
@@ -307,6 +313,23 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     if (sessionCsrfState === "session") {
       hasLoadedBrowserSession = true;
     }
+    if (verifiedBrowserGuestOwner !== null &&
+      (sessionCsrfState !== "guest" || verifiedBrowserGuestOwner.userId !== session.userId
+        || verifiedBrowserGuestOwner.workspaceId !== session.selectedWorkspaceId)) {
+      verifiedBrowserGuestOwner = null;
+      browserGuestVerificationGeneration += 1;
+      publishBrowserGuestVerification("identity_changed");
+    }
+  }
+
+  function getCachedSessionAuthKind(): ExpectedAuth["kind"] | null {
+    if (sessionCsrfState === "unknown") return null;
+    return sessionCsrfState === "guest" ? "guest" : "registered";
+  }
+
+  function readBrowserGuestVerificationGeneration(userId: string): number | null {
+    return browserGuestSessionPaused === false && sessionCsrfState === "guest" && sessionUserId === userId
+      && verifiedBrowserGuestOwner?.userId === userId ? browserGuestVerificationGeneration : null;
   }
 
   /**
@@ -630,7 +653,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       && (saved.owner.pending.phase === "draining" || saved.owner.pending.phase === "awaiting_auth")) {
       throw new Error("Prepare the pending guest conversion before loading the registered account.");
     }
-    const session = await loadSessionInfo({ ...options, expectedUserId: null }, signal);
+    const session = await loadSessionInfo({ ...options, expectedUserId: null, expectedAuth: undefined }, signal);
     throwIfRequestAborted(signal);
     setSessionCsrfToken(session);
     redirectInFlight = false;
@@ -746,6 +769,14 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
           responseBodyKind: "empty",
         });
       }
+      if (options.expectedAuth !== undefined && (
+        getCachedSessionAuthKind() !== options.expectedAuth.kind
+        || (options.expectedAuth.kind === "guest" && (
+          sessionUserId === null || readBrowserGuestVerificationGeneration(sessionUserId) !== options.expectedAuth.generation
+        ))
+      )) {
+        throw new BrowserGuestSessionInvalidatedError(`Browser session changed. Reload the page. (${endpoint})`);
+      }
       return performRequest();
     }
 
@@ -816,7 +847,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     isBrowserGuestSessionVerified: (userId: string, workspaceId: string): boolean => browserGuestSessionPaused === false
       && sessionCsrfState === "guest" && sessionUserId === userId
       && verifiedBrowserGuestOwner?.userId === userId && verifiedBrowserGuestOwner.workspaceId === workspaceId,
-    subscribeToBrowserGuestVerification: (listener: () => void): (() => void) => {
+    subscribeToBrowserGuestVerification: (listener): (() => void) => {
       browserGuestVerificationListeners.add(listener);
       return () => { browserGuestVerificationListeners.delete(listener); };
     },
@@ -833,6 +864,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     bindIndexedDbOpenRecoverySignal,
     createSessionHeaders,
     getCachedSessionAccountId: (): string | null => sessionCanonicalAccountId ?? sessionUserId,
+    getCachedSessionAuthKind,
     getCachedSessionCsrfToken: (): string | null => sessionCsrfState === "session" || sessionCsrfState === "guest" ? sessionCsrfToken : null,
     getOptionalSession: async (): Promise<SessionInfo | null> => {
       try {
@@ -860,7 +892,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       identityController.abort(new BrowserGuestSessionInvalidatedError("Browser guest session is unverified; remote work is paused."));
       identityController = new AbortController();
       resetSessionState();
-      publishBrowserGuestVerification();
+      publishBrowserGuestVerification("verification_changed");
     },
     resumeVerifiedBrowserSession: (session: SessionInfo): void => {
       const isSameOwner = browserGuestSessionPaused === false && sessionCsrfState === "guest"
@@ -874,11 +906,9 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       guestBoundary = readGuestBoundary();
       redirectInFlight = false;
       if (isSameOwner === false) browserGuestVerificationGeneration += 1;
-      publishBrowserGuestVerification();
+      publishBrowserGuestVerification("verification_changed");
     },
-    readBrowserGuestVerificationGeneration: (userId: string): number | null => browserGuestSessionPaused === false
-      && sessionCsrfState === "guest" && sessionUserId === userId
-      && verifiedBrowserGuestOwner?.userId === userId ? browserGuestVerificationGeneration : null,
+    readBrowserGuestVerificationGeneration,
     primeGuestSession: (userId: string, csrfToken: string): void => {
       sessionUserId = userId;
       sessionCanonicalAccountId = null;

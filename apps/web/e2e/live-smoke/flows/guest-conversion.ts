@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { trackedClick, trackedFill, trackedGoto } from "../../live-smoke.actions";
+import { trackedClick, trackedFill, trackedGoto, trackedWaitForUrl } from "../../live-smoke.actions";
 import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
 import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
 import { databaseName } from "../../../src/localDb/core/databaseSchema";
@@ -7,9 +7,12 @@ import type { BrowserGuestOwner, BrowserGuestStoredState } from "../../../src/ap
 import type { BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../src/apiContracts/guestAuth";
 import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
 import { addGuestChallengeBypass } from "../guestChallengeBypass";
+import { primaryNavigationLinkSelector } from "../navigation";
+import { openCustomInstructionsEditor, openWorkspaceCustomInstructionsEditor } from "./chat-instructions";
 import type { LiveSmokeSession } from "../types";
 
 const upgradeCompleteRoute = "**/guest-auth/browser/upgrade/complete";
+const guestInstructions = "Live smoke guest: answer in two short sentences.";
 
 type GuestSnapshot = Readonly<{
   cards: ReadonlyArray<Readonly<{ cardId: string; deletedAt: string | null; tags: ReadonlyArray<string>; reps: number }>>;
@@ -103,6 +106,33 @@ async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ wo
   return { workspaceId, demoId, cardId };
 }
 
+async function exerciseGuestCustomInstructions(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics } = session;
+  const input = page.getByTestId("chat-instructions-input");
+  const entry = page.getByTestId("chat-custom-instructions-button");
+  const save = page.getByTestId("chat-instructions-save");
+  const settingsEntry = page.getByTestId("workspace-chat-instructions-open");
+
+  await trackedClick(diagnostics, "open AI chat as the guest", page.locator(primaryNavigationLinkSelector("/chat")).first());
+  await openCustomInstructionsEditor(session, entry);
+  await expect(input).toHaveValue("");
+  await trackedFill(diagnostics, "enter guest custom instructions", input, guestInstructions);
+  await trackedClick(diagnostics, "save guest custom instructions", save);
+  await trackedWaitForUrl(page, diagnostics, "return to the guest chat", /\/chat$/, externalUiTimeoutMs);
+  await diagnostics.runAction("reload the guest chat", async () => { await page.reload(); });
+  await expect(page.getByTestId("chat-custom-instructions-preview")).toHaveText(guestInstructions, { timeout: externalUiTimeoutMs });
+
+  await openWorkspaceCustomInstructionsEditor(session);
+  await expect(input).toHaveValue(guestInstructions);
+  await trackedClick(diagnostics, "clear guest custom instructions", page.getByTestId("chat-instructions-clear"));
+  await openCustomInstructionsEditor(session, settingsEntry);
+  await expect(input).toHaveValue("");
+
+  await trackedFill(diagnostics, "enter guest custom instructions for conversion", input, guestInstructions);
+  await trackedClick(diagnostics, "save guest custom instructions before conversion", save);
+  await expect(settingsEntry).toBeVisible({ timeout: externalUiTimeoutMs });
+}
+
 async function authenticateGuest(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
   await trackedClick(diagnostics, "begin optional guest sign-in after draining writes", page.getByTestId("guest-sign-in"));
@@ -159,6 +189,8 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   expect(await guestOwner(page)).toEqual(originalOwner);
   expect(await page.evaluate(() => localStorage.getItem("flashcards-browser-reauth-required"))).toBeNull();
 
+  await exerciseGuestCustomInstructions(session);
+
   const firstSelections: Array<GuestUpgradeSelection> = [];
   await page.route(upgradeCompleteRoute, async (route) => {
     const { selection } = route.request().postDataJSON() as Readonly<{ selection: GuestUpgradeSelection }>;
@@ -188,6 +220,9 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   expect((await snapshot(page)).cards.some((card) => card.cardId === guest.cardId)).toBe(true);
   expect((await snapshot(page)).reviewIds).toEqual(before.reviewIds);
   let registeredBefore = await snapshot(page);
+  await openWorkspaceCustomInstructionsEditor(session);
+  await expect(page.getByTestId("chat-instructions-input")).toHaveValue(guestInstructions);
+  await trackedClick(diagnostics, "return to the converted workspace settings", page.getByTestId("chat-instructions-back"));
 
   const browser = session.context.browser();
   if (browser === null) throw new Error("Guest smoke requires a browser context");

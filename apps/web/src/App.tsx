@@ -24,7 +24,7 @@ import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
-import { getWorkspaceChatInstructionsAccountId } from "./chat/customInstructions/workspaceChatInstructionsStore";
+import { useWorkspaceChatInstructionsScope } from "./chat/customInstructions/workspaceChatInstructionsStore";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
@@ -1091,14 +1091,12 @@ function buildChatMainContentClassName(isFullscreenChat: boolean, isOpen: boolea
 }
 
 export function RoutedShell(): ReactElement {
-  const { session, sessionVerificationState } = useAppData();
+  const { session, sessionVerificationState, activeWorkspace } = useAppData();
   const isGuest = session?.browserGuestCapabilities?.isGuest === true;
-  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState);
-  const chatInstructionsScreen = isGuest
-    ? <AccountStatusScreen />
-    : instructionsAccountId === null
-      ? <RouteContentFallback messageKey="loading.restoringSession" />
-      : <ChatInstructionsScreen accountId={instructionsAccountId} />;
+  const instructionsScope = useWorkspaceChatInstructionsScope(session, sessionVerificationState, activeWorkspace?.workspaceId ?? null);
+  const chatInstructionsScreen = instructionsScope === null
+    ? <RouteContentFallback messageKey="loading.restoringSession" />
+    : <ChatInstructionsScreen key={instructionsScope.editorKey} scope={instructionsScope} />;
   const location = useLocation();
   const { isOpen } = useChatLayout();
   const appPath = normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath);

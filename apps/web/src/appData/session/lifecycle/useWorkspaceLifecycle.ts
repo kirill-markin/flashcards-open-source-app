@@ -1,7 +1,7 @@
 import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
 import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
-import { isBrowserGuestSessionVerified, pauseBrowserGuestSession } from "../../../api/transport/transport";
+import { isBrowserGuestSessionVerified, pauseBrowserGuestSession, subscribeToBrowserGuestVerification } from "../../../api/transport/transport";
 import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner, readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration, restoreBrowserGuestSessionAfterCleanup } from "../guest/browserGuestSession";
 import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
 import { readBrowserSignInInformationGeneration } from "../../../api/browserHints";
@@ -645,6 +645,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   useEffect(() => {
     initializeRef.current = initialize;
   }, [initialize]);
+
+  const isReadyGuestSession = session?.browserGuestCapabilities?.isGuest === true
+    && sessionLoadState === "ready" && sessionVerificationState === "verified";
+  useEffect(() => {
+    if (!isReadyGuestSession) return;
+    return subscribeToBrowserGuestVerification((change) => {
+      if (change === "identity_changed" && readPendingGuestConversion() === null) {
+        runLifecycleTaskInBackground(initializeRef.current());
+      }
+    });
+  }, [isReadyGuestSession]);
 
   // Announces, for as long as this layer is mounted, that an account owner can still be published on
   // this page load. Analytics reports nothing credential-free while that holds, so a signed-in

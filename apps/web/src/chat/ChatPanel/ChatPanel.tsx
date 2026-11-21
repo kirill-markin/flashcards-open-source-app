@@ -48,8 +48,8 @@ import { useChatComposerSend } from "../composer/useChatComposerSend";
 import { useChatDictationCapture } from "../composer/dictation/useChatDictationCapture";
 import { useChatSidebarResize } from "../layout/useChatSidebarResize";
 import {
-  getWorkspaceChatInstructionsAccountId,
   useWorkspaceChatInstructions,
+  useWorkspaceChatInstructionsScope,
 } from "../customInstructions/workspaceChatInstructionsStore";
 import { settingsChatInstructionsRoute } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
@@ -199,8 +199,8 @@ export function ChatPanel(props: Props): ReactElement {
   const accountId = appData.sessionVerificationState === "verified"
     ? appData.session?.canonicalAccountId ?? appData.session?.userId ?? null
     : null;
-  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(appData.session, appData.sessionVerificationState);
-  const savedChatInstructions = useWorkspaceChatInstructions(instructionsAccountId, activeWorkspaceId) ?? null;
+  const instructionsScope = useWorkspaceChatInstructionsScope(appData.session, appData.sessionVerificationState, activeWorkspaceId);
+  const savedChatInstructions = useWorkspaceChatInstructions(instructionsScope) ?? null;
   const isNewChatEmpty = isHistoryLoaded && messages.length === 0 && !isAssistantRunActive && activeWorkspaceId !== null;
   const attachmentLimitMessages = formatChatAttachmentLimitMessages({ t, formatNumber });
   const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
@@ -603,7 +603,7 @@ export function ChatPanel(props: Props): ReactElement {
             </div>
           ) : null}
 
-          {isNewChatEmpty && instructionsAccountId !== null ? (
+          {isNewChatEmpty && instructionsScope !== null ? (
             <div className="chat-custom-instructions-entry">
               <Link
                 className="chat-custom-instructions-button"

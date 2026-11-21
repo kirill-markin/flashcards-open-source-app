@@ -16,7 +16,7 @@ import { buildLinkedCloudSettings } from "../session/cloud/workspaceSessionCloud
 
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import {
-  getWorkspaceChatInstructionsAccountId,
+  useWorkspaceChatInstructionsScope,
   scopeWorkspaceChatInstructions,
 } from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import { useI18n } from "../../i18n";
@@ -135,13 +135,12 @@ export function AppDataProvider(props: Props): ReactElement {
   const workspaceReviewFilterStateRef = useRef<WorkspaceReviewFilterState>(workspaceReviewFilterState);
   workspaceReviewFilterStateRef.current = workspaceReviewFilterState;
   const activeWorkspace = workspaceReviewFilterState.activeWorkspace;
-  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState);
-  const instructionsWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  const instructionsScope = useWorkspaceChatInstructionsScope(session, sessionVerificationState, activeWorkspace?.workspaceId ?? null);
 
   useLayoutEffect(() => {
-    scopeWorkspaceChatInstructions(instructionsAccountId, instructionsWorkspaceId);
-    return () => scopeWorkspaceChatInstructions(null, null);
-  }, [instructionsAccountId, instructionsWorkspaceId]);
+    scopeWorkspaceChatInstructions(instructionsScope);
+    return () => scopeWorkspaceChatInstructions(null);
+  }, [instructionsScope]);
   const setActiveWorkspace = useCallback(function setActiveWorkspace(
     nextActiveWorkspace: WorkspaceSummary | null,
   ): void {

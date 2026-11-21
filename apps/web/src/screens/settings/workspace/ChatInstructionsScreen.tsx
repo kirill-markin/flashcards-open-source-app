@@ -1,15 +1,16 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { loadWorkspaceChatInstructions, saveWorkspaceChatInstructions } from "../../../api";
-import { getCachedSessionAccountId } from "../../../api/transport/transport";
 import { useAppData } from "../../../appData";
 import {
   beginWorkspaceChatInstructionsRequest,
   beginWorkspaceChatInstructionsSave,
+  isCurrentWorkspaceChatInstructionsCredential,
   isCurrentWorkspaceChatInstructionsRequest,
   recordWorkspaceChatInstructions,
   useWorkspaceChatInstructions,
   useWorkspaceChatInstructionsSaving,
+  type WorkspaceChatInstructionsScope,
 } from "../../../chat/customInstructions/workspaceChatInstructionsStore";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -25,30 +26,23 @@ function countCodePoints(text: string): number {
   return [...text.trim()].length;
 }
 
-type ChatInstructionsProps = Readonly<{ accountId: string }>;
+type ChatInstructionsProps = Readonly<{ scope: WorkspaceChatInstructionsScope }>;
 
-/** Switching accounts or workspaces invalidates the previous editor's pending UI updates. */
-export function ChatInstructionsScreen({ accountId }: ChatInstructionsProps): ReactElement {
-  const { session, activeWorkspace } = useAppData();
-  return <ChatInstructionsEditor key={`${accountId}:${session?.userId ?? ""}:${activeWorkspace?.workspaceId ?? ""}`} accountId={accountId} />;
-}
-
-function ChatInstructionsEditor({ accountId }: ChatInstructionsProps): ReactElement {
-  const { session, activeWorkspace, cloudSettings } = useAppData();
+export function ChatInstructionsScreen({ scope }: ChatInstructionsProps): ReactElement {
+  const { cloudSettings } = useAppData();
   const { t, formatNumber } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const workspacePath = useWorkspacePath();
   const parentPath = (location.state as Readonly<{ parentPath?: string }> | null)?.parentPath ?? null;
-  const workspaceId = activeWorkspace?.workspaceId ?? null;
-  const userId = session?.userId ?? null;
-  const stored = useWorkspaceChatInstructions(accountId, workspaceId);
+  const { userId, workspaceId } = scope;
+  const stored = useWorkspaceChatInstructions(scope);
   const [text, setText] = useState<string>(stored ?? "");
   const [loadedText, setLoadedText] = useState<string>("");
   const [canEdit, setCanEdit] = useState<boolean>(false);
   const [maxLength, setMaxLength] = useState<number | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const isSaving = useWorkspaceChatInstructionsSaving(accountId, workspaceId);
+  const isSaving = useWorkspaceChatInstructionsSaving(scope);
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>("");
   const isMountedRef = useRef<boolean>(true);
   const length = countCodePoints(text);
@@ -78,20 +72,20 @@ function ChatInstructionsEditor({ accountId }: ChatInstructionsProps): ReactElem
   }, []);
 
   useEffect(() => {
-    if (loadState !== "loading" || isSaving || userId === null || workspaceId === null) {
+    if (loadState !== "loading" || isSaving) {
       return;
     }
 
-    const token = beginWorkspaceChatInstructionsRequest(accountId, workspaceId);
+    const token = beginWorkspaceChatInstructionsRequest(scope);
     if (token === null) {
       return;
     }
     const abortController = new AbortController();
-    void loadWorkspaceChatInstructions(userId, accountId, workspaceId, abortController.signal).then((response) => {
+    void loadWorkspaceChatInstructions(scope, abortController.signal).then((response) => {
       if (abortController.signal.aborted || !isCurrentWorkspaceChatInstructionsRequest(token)) {
         return;
       }
-      if (getCachedSessionAccountId() !== accountId) {
+      if (!isCurrentWorkspaceChatInstructionsCredential(scope)) {
         setText("");
         setCanEdit(false);
         setLoadState("failed");
@@ -112,7 +106,7 @@ function ChatInstructionsEditor({ accountId }: ChatInstructionsProps): ReactElem
     });
 
     return () => abortController.abort();
-  }, [accountId, userId, workspaceId, isSaving, loadState]);
+  }, [scope, isSaving, loadState]);
 
   function leave(): void {
     if (parentPath !== null) {
@@ -123,10 +117,10 @@ function ChatInstructionsEditor({ accountId }: ChatInstructionsProps): ReactElem
   }
 
   async function save(customInstructions: string | null): Promise<void> {
-    if (loadState !== "ready" || !canEdit || userId === null || workspaceId === null) {
+    if (loadState !== "ready" || !canEdit) {
       return;
     }
-    const pendingSave = beginWorkspaceChatInstructionsSave(accountId, workspaceId);
+    const pendingSave = beginWorkspaceChatInstructionsSave(scope);
     if (pendingSave === null) {
       return;
     }
@@ -135,8 +129,8 @@ function ChatInstructionsEditor({ accountId }: ChatInstructionsProps): ReactElem
 
     setSaveErrorMessage("");
     try {
-      const response = await saveWorkspaceChatInstructions(userId, accountId, workspaceId, customInstructions);
-      if (getCachedSessionAccountId() !== accountId) {
+      const response = await saveWorkspaceChatInstructions(scope, customInstructions);
+      if (!isCurrentWorkspaceChatInstructionsCredential(scope)) {
         if (isCurrentEditor()) {
           setText("");
           setCanEdit(false);
