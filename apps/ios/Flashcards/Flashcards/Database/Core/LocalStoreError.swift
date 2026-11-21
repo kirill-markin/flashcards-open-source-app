@@ -5,10 +5,11 @@ enum LocalStoreError: LocalizedError {
     case validation(String)
     case notFound(String)
     case uninitialized(String)
+    case storageFull(String)
 
     var errorDescription: String? {
         switch self {
-        case .database(let message):
+        case .database(let message), .storageFull(let message):
             return message
         case .validation(let message):
             return message

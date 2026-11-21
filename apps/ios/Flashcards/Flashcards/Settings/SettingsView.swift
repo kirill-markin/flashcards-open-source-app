@@ -532,7 +532,16 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
             title: aiSettingsLocalized("settings.sync.failed.generic", "Sync failed"),
             tone: .failure
         )
+    case .localStorageFull:
+        return SyncStatusPresentation(
+            title: localizedSyncStorageFullMessage(),
+            tone: .failure
+        )
     }
+}
+
+func localizedSyncStorageFullMessage() -> String {
+    aiSettingsLocalized("settings.sync.storageFull", "Free up space on this device to resume syncing.")
 }
 
 func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
@@ -550,7 +559,7 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
     switch status {
     case .syncing:
         return true
-    case .idle, .blocked, .failed:
+    case .idle, .blocked, .failed, .localStorageFull:
         return false
     }
 }

@@ -297,6 +297,7 @@
 "settings.sync.blocked" = "Synchronisation bloquée : %@";
 "settings.sync.failed" = "Échec de la synchronisation : %@";
 "settings.sync.failed.generic" = "Échec de la synchronisation";
+"settings.sync.storageFull" = "Libérez de l’espace sur cet appareil pour reprendre la synchronisation.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Les identifiants de connexion sécurisés sont absents de cet appareil. Les données locales sont conservées. Reconnectez-vous pour rétablir la synchronisation.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "L’accès cloud à l’espace de travail lié a changé. Les données locales sont conservées. Reconnectez-vous une fois l’accès au compte et à l’espace de travail d’origine rétabli.";
 "settings.sync.recovery.guestSessionMissing" = "Les identifiants invité sont absents de cet appareil. Les données locales sont conservées, mais l’ancien compte cloud invité ne peut pas être récupéré sans son jeton.";

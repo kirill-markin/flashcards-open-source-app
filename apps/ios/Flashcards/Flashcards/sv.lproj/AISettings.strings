@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synkronisering blockerad: %@";
 "settings.sync.failed" = "Synkronisering misslyckades: %@";
 "settings.sync.failed.generic" = "Synkronisering misslyckades";
+"settings.sync.storageFull" = "Frigör utrymme på den här enheten för att återuppta synkroniseringen.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Säkra inloggningsuppgifter saknas på den här enheten. Lokala data har bevarats. Logga in igen för att återansluta synkroniseringen.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Molnåtkomsten till den länkade arbetsytan har ändrats. Lokala data har bevarats. Logga in igen när det ursprungliga kontot och åtkomsten till arbetsytan har återställts.";
 "settings.sync.recovery.guestSessionMissing" = "Gästuppgifter saknas på den här enheten. Lokala data har bevarats, men det gamla gästkontot i molnet kan inte återställas utan sin token.";

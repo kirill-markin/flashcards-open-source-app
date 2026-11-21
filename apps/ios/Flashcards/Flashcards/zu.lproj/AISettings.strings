@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Ukuvumelanisa kuvinjiwe: %@";
 "settings.sync.failed" = "Ukuvumelanisa kuhlulekile: %@";
 "settings.sync.failed.generic" = "Ukuvumelanisa kuhlulekile";
+"settings.sync.storageFull" = "Khulula isikhala kule divayisi ukuze ukuvumelanisa kuqhubeke.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Imininingwane ephephile yokungena ayikho kule divayisi. Idatha yasendaweni igciniwe. Ngena futhi ukuze uphinde uxhume ukuvumelanisa.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Ukufinyelela kwefu endaweni yokusebenza exhunyiwe kushintshile. Idatha yasendaweni igciniwe. Ngena futhi ngemva kokubuyiselwa kokufinyelela ku-akhawunti nendawo yokusebenza yasekuqaleni.";
 "settings.sync.recovery.guestSessionMissing" = "Imininingwane yesivakashi ayikho kule divayisi. Idatha yasendaweni igciniwe, kodwa i-akhawunti yefu endala yesivakashi ayibuyiseleki ngaphandle kwethokheni yayo.";

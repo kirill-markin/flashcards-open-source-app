@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Usawazishaji umezuiwa: %@";
 "settings.sync.failed" = "Usawazishaji umeshindwa: %@";
 "settings.sync.failed.generic" = "Usawazishaji umeshindwa";
+"settings.sync.storageFull" = "Ongeza nafasi iliyo wazi kwenye kifaa hiki ili usawazishaji uendelee.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Kitambulisho salama cha kuingia hakipo kwenye kifaa hiki. Data ya kifaa imehifadhiwa. Ingia tena ili kuunganisha upya usawazishaji.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Ufikiaji wa wingu wa nafasi ya kazi iliyounganishwa umebadilika. Data ya kifaa imehifadhiwa. Ingia tena baada ya ufikiaji wa akaunti na nafasi ya kazi ya awali kurejeshwa.";
 "settings.sync.recovery.guestSessionMissing" = "Kitambulisho cha mgeni hakipo kwenye kifaa hiki. Data ya kifaa imehifadhiwa, lakini akaunti ya zamani ya mgeni ya wingu haiwezi kurejeshwa bila tokeni yake.";

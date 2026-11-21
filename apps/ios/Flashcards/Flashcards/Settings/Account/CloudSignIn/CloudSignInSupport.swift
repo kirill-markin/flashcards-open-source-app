@@ -632,24 +632,43 @@ struct CloudPostAuthFailureState: Identifiable {
     let technicalError: TechnicalErrorAction?
     let retryAction: CloudPostAuthRetryAction
     let kind: CloudPostAuthFailureKind
+    private let isLocalStorageFull: Bool
 
     init(
         title: String,
         message: String,
         technicalError: TechnicalErrorAction?,
         retryAction: CloudPostAuthRetryAction,
-        kind: CloudPostAuthFailureKind
+        kind: CloudPostAuthFailureKind,
+        isLocalStorageFull: Bool
     ) {
         self.id = UUID().uuidString
         self.title = title
-        self.message = message
+        self.message = isLocalStorageFull ? localizedSyncStorageFullMessage() : message
         self.technicalError = technicalError
         self.retryAction = retryAction
         self.kind = kind
+        self.isLocalStorageFull = isLocalStorageFull
     }
 
     var allowsAccountExitActions: Bool {
         self.kind == .standard
+    }
+
+    func isRetryBlocked(syncStatus: SyncStatus) -> Bool {
+        guard self.kind == .standard else {
+            return false
+        }
+
+        switch syncStatus {
+        case .syncing:
+            return true
+        case .blocked:
+            // Credential recovery keeps sync blocked until the retry succeeds.
+            return self.isLocalStorageFull == false
+        case .idle, .failed, .localStorageFull:
+            return false
+        }
     }
 }
 
@@ -804,15 +823,4 @@ func isValidCloudEmail(_ value: String) -> Bool {
 
 func normalizedOtpCode(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
-}
-
-func isCloudSignInSyncInFlight(status: SyncStatus) -> Bool {
-    switch status {
-    case .syncing:
-        return true
-    case .blocked:
-        return true
-    case .idle, .failed:
-        return false
-    }
 }

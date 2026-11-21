@@ -288,7 +288,7 @@ func mediaUploadFailure(error: Error) -> MediaUploadTransferFailure {
         switch localError {
         case .validation, .notFound:
             return MediaUploadTransferFailure(policy: .permanent, message: Flashcards.errorMessage(error: error))
-        case .database, .uninitialized:
+        case .database, .storageFull, .uninitialized:
             return MediaUploadTransferFailure(policy: .transient, message: Flashcards.errorMessage(error: error))
         }
     }

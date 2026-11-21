@@ -509,6 +509,7 @@ struct CloudSignInSheet: View {
             if isRequestCancellationError(error: error) {
                 return
             }
+            let isLocalStorageFull: Bool = CloudSyncFailurePolicy.isLocalStorageFull(error: error)
             if self.store.cloudCredentialRecoveryState?.reason == .guestSessionMissing {
                 let failurePresentation = makeGuestLocalRecoveryPostAuthFailurePresentation(
                     retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext)
@@ -520,7 +521,8 @@ struct CloudSignInSheet: View {
                         ? nil
                         : makeTechnicalErrorAction(error: error),
                     retryAction: failurePresentation.retryAction,
-                    kind: failurePresentation.kind
+                    kind: failurePresentation.kind,
+                    isLocalStorageFull: isLocalStorageFull
                 )
             } else {
                 self.presentPostAuthFailure(
@@ -530,7 +532,8 @@ struct CloudSignInSheet: View {
                         ? nil
                         : makeTechnicalErrorAction(error: error),
                     retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext),
-                    kind: .standard
+                    kind: .standard,
+                    isLocalStorageFull: isLocalStorageFull
                 )
             }
         }
@@ -673,7 +676,10 @@ struct CloudSignInSheet: View {
                     title: aiSettingsLocalized("settings.account.cloudSignIn.unifiedTitle", "Sign in or create an account"),
                     message: aiSettingsLocalized("settings.account.cloudSignIn.rememberFailed", "Signed in. The sign-in hint could not be saved. Try again or close."),
                     technicalError: self.store.makeTechnicalErrorAction(error: error, captureContext: captureContext),
-                    retryAction: .syncOnly, kind: .standard)
+                    retryAction: .syncOnly,
+                    kind: .standard,
+                    isLocalStorageFull: false
+                )
                 return
             }
             if case .completeGuestLink = syncState.operation {
@@ -711,7 +717,8 @@ struct CloudSignInSheet: View {
                         captureContext: captureContext
                     ),
                 retryAction: retryAction,
-                kind: failurePresentation.kind
+                kind: failurePresentation.kind,
+                isLocalStorageFull: CloudSyncFailurePolicy.isLocalStorageFull(error: error)
             )
         }
     }
@@ -747,7 +754,8 @@ struct CloudSignInSheet: View {
         message: String,
         technicalError: TechnicalErrorAction?,
         retryAction: CloudPostAuthRetryAction,
-        kind: CloudPostAuthFailureKind
+        kind: CloudPostAuthFailureKind,
+        isLocalStorageFull: Bool
     ) {
         self.store.cancelCloudSignInPostAuthTasks()
         self.store.cloudSignInAttempt.authErrorPresentation = nil
@@ -762,7 +770,8 @@ struct CloudSignInSheet: View {
                 self.store.captureTechnicalErrorActionIfNeeded(action: action)
             },
             retryAction: retryAction,
-            kind: kind
+            kind: kind,
+            isLocalStorageFull: isLocalStorageFull
         )
     }
 

@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synkronointi estetty: %@";
 "settings.sync.failed" = "Synkronointi epäonnistui: %@";
 "settings.sync.failed.generic" = "Synkronointi epäonnistui";
+"settings.sync.storageFull" = "Vapauta tilaa tällä laitteella, jotta synkronointi voi jatkua.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Turvalliset kirjautumistiedot puuttuvat tältä laitteelta. Paikalliset tiedot säilyvät. Palauta synkronointiyhteys kirjautumalla uudelleen.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Yhdistetyn työtilan pilvikäyttöoikeus on muuttunut. Paikalliset tiedot säilyvät. Kirjaudu uudelleen, kun alkuperäisen tilin ja työtilan käyttöoikeus on palautettu.";
 "settings.sync.recovery.guestSessionMissing" = "Vieraan tunnistetiedot puuttuvat tältä laitteelta. Paikalliset tiedot säilyvät, mutta vanhaa vieraan pilvitiliä ei voi palauttaa ilman sen tunnusta.";

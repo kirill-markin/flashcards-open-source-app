@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synchronizace zablokována: %@";
 "settings.sync.failed" = "Synchronizace selhala: %@";
 "settings.sync.failed.generic" = "Synchronizace selhala";
+"settings.sync.storageFull" = "Uvolněte místo v tomto zařízení, aby se synchronizace obnovila.";
 "settings.sync.recovery.linkedCredentialsMissing" = "V tomto zařízení chybí zabezpečené přihlašovací údaje. Místní data jsou zachována. Pro obnovení synchronizace se znovu přihlaste.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Cloudový přístup k propojenému pracovnímu prostoru se změnil. Místní data jsou zachována. Po obnovení přístupu k původnímu účtu a pracovnímu prostoru se znovu přihlaste.";
 "settings.sync.recovery.guestSessionMissing" = "V tomto zařízení chybí přihlašovací údaje hosta. Místní data jsou zachována, ale původní cloudový účet hosta nelze obnovit bez jeho tokenu.";

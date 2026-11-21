@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sinkronizacija je blokirana: %@";
 "settings.sync.failed" = "Sinkronizacija nije uspjela: %@";
 "settings.sync.failed.generic" = "Sinkronizacija nije uspjela";
+"settings.sync.storageFull" = "Oslobodite prostor na ovom uređaju za nastavak sinkronizacije.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Na ovom uređaju nedostaju sigurni podaci za prijavu. Lokalni podaci su sačuvani. Ponovno se prijavite da biste obnovili sinkronizaciju.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Pristup povezanom radnom prostoru u oblaku promijenio se. Lokalni podaci su sačuvani. Ponovno se prijavite nakon vraćanja pristupa izvornom računu i radnom prostoru.";
 "settings.sync.recovery.guestSessionMissing" = "Na ovom uređaju nedostaju podaci za prijavu gosta. Lokalni podaci su sačuvani, ali stari račun gosta u oblaku nije moguće oporaviti bez njegova tokena.";

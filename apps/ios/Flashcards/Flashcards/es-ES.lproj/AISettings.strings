@@ -297,6 +297,7 @@
 "settings.sync.blocked" = "Sincronizacion bloqueada: %@";
 "settings.sync.failed" = "Fallo de sincronizacion: %@";
 "settings.sync.failed.generic" = "Fallo de sincronizacion";
+"settings.sync.storageFull" = "Libera espacio en este dispositivo para reanudar la sincronización.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Faltan las credenciales seguras de inicio de sesion en este dispositivo. Los datos locales se conservan. Inicia sesion de nuevo para reconectar la sincronizacion.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Ha cambiado el acceso en la nube al espacio de trabajo vinculado. Los datos locales se conservan. Inicia sesión de nuevo cuando se haya restaurado el acceso a la cuenta y al espacio de trabajo originales.";
 "settings.sync.recovery.guestSessionMissing" = "Faltan las credenciales de invitado en este dispositivo. Los datos locales se conservan, pero la antigua cuenta de invitado en la nube no se puede recuperar sin su token.";

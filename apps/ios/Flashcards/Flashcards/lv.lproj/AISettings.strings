@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sinhronizācija bloķēta: %@";
 "settings.sync.failed" = "Sinhronizācija neizdevās: %@";
 "settings.sync.failed.generic" = "Sinhronizācija neizdevās";
+"settings.sync.storageFull" = "Atbrīvojiet vietu šajā ierīcē, lai atsāktu sinhronizāciju.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Šajā ierīcē trūkst drošo pierakstīšanās datu. Vietējie dati ir saglabāti. Pierakstieties vēlreiz, lai atjaunotu sinhronizāciju.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Piekļuve saistītajai mākoņa darbvietai ir mainījusies. Vietējie dati ir saglabāti. Pierakstieties vēlreiz pēc sākotnējā konta un darbvietas piekļuves atjaunošanas.";
 "settings.sync.recovery.guestSessionMissing" = "Šajā ierīcē trūkst viesa piekļuves datu. Vietējie dati ir saglabāti, bet veco viesa mākoņa kontu nevar atgūt bez tā pilnvaras.";

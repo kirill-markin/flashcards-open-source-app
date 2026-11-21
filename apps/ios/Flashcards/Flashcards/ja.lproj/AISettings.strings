@@ -297,6 +297,7 @@
 "settings.sync.blocked" = "同期がブロックされました: %@";
 "settings.sync.failed" = "同期失敗: %@";
 "settings.sync.failed.generic" = "同期に失敗しました";
+"settings.sync.storageFull" = "同期を再開するには、このデバイスの空き容量を増やしてください。";
 "settings.sync.recovery.linkedCredentialsMissing" = "このデバイスの安全なサインイン認証情報が見つかりません。ローカルデータは保持されています。同期を再接続するにはもう一度サインインしてください。";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "リンク済みワークスペースへのクラウドアクセスが変更されました。ローカルデータは保持されています。元のアカウントとワークスペースへのアクセスが復元された後、もう一度サインインしてください。";
 "settings.sync.recovery.guestSessionMissing" = "このデバイスのゲスト認証情報が見つかりません。ローカルデータは保持されていますが、古いゲストクラウドアカウントはトークンなしでは復元できません。";

@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "ਸਿੰਕ ਬਲੌਕ ਹੈ: %@";
 "settings.sync.failed" = "ਸਿੰਕ ਅਸਫਲ ਰਿਹਾ: %@";
 "settings.sync.failed.generic" = "ਸਿੰਕ ਅਸਫਲ ਰਿਹਾ";
+"settings.sync.storageFull" = "ਸਿੰਕ ਮੁੜ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਇਸ ਡਿਵਾਈਸ ’ਤੇ ਕੁਝ ਥਾਂ ਖਾਲੀ ਕਰੋ।";
 "settings.sync.recovery.linkedCredentialsMissing" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਸੁਰੱਖਿਅਤ ਸਾਈਨ ਇਨ ਪ੍ਰਮਾਣ ਨਹੀਂ ਹਨ। ਸਥਾਨਕ ਡਾਟਾ ਸੁਰੱਖਿਅਤ ਹੈ। ਸਿੰਕ ਮੁੜ ਜੋੜਨ ਲਈ ਦੁਬਾਰਾ ਸਾਈਨ ਇਨ ਕਰੋ।";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "ਲਿੰਕ ਕੀਤੇ ਵਰਕਸਪੇਸ ਦੀ ਕਲਾਊਡ ਪਹੁੰਚ ਬਦਲ ਗਈ ਹੈ। ਸਥਾਨਕ ਡਾਟਾ ਸੁਰੱਖਿਅਤ ਹੈ। ਮੂਲ ਖਾਤਾ ਅਤੇ ਵਰਕਸਪੇਸ ਪਹੁੰਚ ਬਹਾਲ ਹੋਣ ਤੋਂ ਬਾਅਦ ਮੁੜ ਸਾਈਨ ਇਨ ਕਰੋ।";
 "settings.sync.recovery.guestSessionMissing" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਮਹਿਮਾਨ ਪ੍ਰਮਾਣ ਨਹੀਂ ਹਨ। ਸਥਾਨਕ ਡਾਟਾ ਸੁਰੱਖਿਅਤ ਹੈ, ਪਰ ਪੁਰਾਣਾ ਮਹਿਮਾਨ ਕਲਾਊਡ ਖਾਤਾ ਉਸਦੇ ਟੋਕਨ ਤੋਂ ਬਿਨਾਂ ਵਾਪਸ ਨਹੀਂ ਲਿਆ ਜਾ ਸਕਦਾ।";
