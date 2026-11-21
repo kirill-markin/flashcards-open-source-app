@@ -211,14 +211,16 @@ data class AiChatCustomInstructions(
     val canEdit: Boolean
 )
 
-/** The account and current workspace that custom chat instructions belong to; [scopeId] names the account. */
 data class AiChatCustomInstructionsScope(
     val workspaceId: String,
-    val scopeId: String
+    val scopeId: String,
+    val userId: String,
+    val cloudState: CloudAccountState,
+    val configuration: CloudServiceConfiguration
 )
 
 class AiChatCustomInstructionsScopeChangedException : IllegalStateException(
-    "The account or current workspace changed before the custom instructions were saved."
+    "The active account, workspace, or server changed while accessing chat instructions."
 )
 
 val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(

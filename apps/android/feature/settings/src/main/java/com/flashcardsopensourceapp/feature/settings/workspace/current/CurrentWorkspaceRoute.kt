@@ -284,7 +284,6 @@ fun CurrentWorkspaceRoute(
                 }
             }
 
-            // Free for guests too, so it is not locked behind a linked account.
             if (onOpenChatInstructions != null) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {

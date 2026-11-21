@@ -87,6 +87,7 @@ class CloudPreferencesStore(
     private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
     private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
+    private val isGuestUpgradePending = MutableStateFlow<Boolean?>(null)
     private val firstReviewOnboardingDeliveryGate = Mutex()
     private val localOutboxWriteGate = LocalOutboxWriteGate(hasPendingGuestUpgrade = ::hasPendingGuestUpgrade)
 
@@ -190,6 +191,7 @@ class CloudPreferencesStore(
 
     fun clearCredentials() {
         credentialStore.clear()
+        isGuestUpgradePending.value = false
     }
 
     fun clearCredentialsRetainingSignInHint() {
@@ -197,6 +199,7 @@ class CloudPreferencesStore(
             secrets.copy(refreshToken = null, idToken = null, idTokenExpiresAtMillis = null,
                 pendingGuestUpgrade = null, pendingSocialSignIn = null, pendingEmailSignIn = null, pendingAccountMethod = null)
         }
+        isGuestUpgradePending.value = false
     }
 
     fun updateIdToken(idToken: String, idTokenExpiresAtMillis: Long) {
@@ -316,6 +319,10 @@ class CloudPreferencesStore(
         }
     }
 
+    internal fun observePendingGuestUpgrade(): Flow<Boolean> {
+        return isGuestUpgradePending.map { pending -> pending ?: hasPendingGuestUpgrade() }
+    }
+
     internal fun loadPendingGuestUpgrade(): PendingGuestUpgradeState? {
         val rawValue = credentialStore.load().pendingGuestUpgrade ?: return null
         return try {
@@ -335,12 +342,14 @@ class CloudPreferencesStore(
                 pendingGuestUpgrade = encodePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState).toString()
             )
         }
+        isGuestUpgradePending.value = true
     }
 
     internal fun clearPendingGuestUpgrade() {
         credentialStore.update { secrets ->
             secrets.copy(pendingGuestUpgrade = null)
         }
+        isGuestUpgradePending.value = false
     }
 
     internal suspend fun <Result> runWithLocalOutboxWritesBlocked(
@@ -430,7 +439,7 @@ class CloudPreferencesStore(
         return "card-maintenance-attempt:${currentServerConfiguration().apiBaseUrl}:$workspaceId"
     }
 
-    private suspend fun hasPendingGuestUpgrade(): Boolean {
+    internal suspend fun hasPendingGuestUpgrade(): Boolean {
         return withContext(Dispatchers.IO) {
             credentialStore.load().pendingGuestUpgrade != null
         }
