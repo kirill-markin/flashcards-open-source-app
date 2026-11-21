@@ -15,6 +15,7 @@ struct AIChatView: View {
     @Environment(\.tabBarPlacement) var tabBarPlacement
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.aiCompanionPageIsTop) private var companionPageIsTop
     let chatStore: AIChatStore
     let isCompanion: Bool
     let companionHostTab: AppTab?
@@ -22,7 +23,7 @@ struct AIChatView: View {
     var isPresentationActive: Bool {
         self.navigation.isLiveAIChatVisible && (
             self.isCompanion
-                ? self.navigation.selectedTab == self.companionHostTab
+                ? self.navigation.selectedTab == self.companionHostTab && self.companionPageIsTop
                 : self.navigation.selectedTab == .ai
         )
     }

@@ -16,6 +16,8 @@ struct SyncStatusPresentation: Equatable {
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
+    /// iPad beside the side chat, whose bar spans both columns; the selected tab or sidebar row names the section.
+    @Environment(\.showsAICompanionBarBackground) private var isBesideCompanion
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
@@ -427,7 +429,7 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .rememberedListScroll(topRowID: Bindable(self.settingsScroll).settingsTopRowID, isContentReady: true)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
-        .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        .nativeNavigationTitle(self.isBesideCompanion ? "" : aiSettingsLocalized("settings.title", "Settings"))
         // A large title leaves an empty band in the iPad bar's row beside the side chat; Review and Progress match.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)

@@ -9,23 +9,16 @@ struct AICompanionColumns<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
-    #if !targetEnvironment(macCatalyst)
-    @State private var tabRowInset: CGFloat = 0
-    #endif
     private let hostTab: AppTab
-    /// Inside its section's navigation stack, whose bar already keeps both columns below the tab controller's row.
-    private let sharesSectionStack: Bool
     private let content: Content
 
-    init(hostTab: AppTab, sharesSectionStack: Bool = false, @ViewBuilder content: () -> Content) {
+    init(hostTab: AppTab, @ViewBuilder content: () -> Content) {
         self.hostTab = hostTab
-        self.sharesSectionStack = sharesSectionStack
         self.content = content()
     }
 
     init(hostTab: AppTab, content: Content) {
         self.hostTab = hostTab
-        self.sharesSectionStack = false
         self.content = content
     }
 
@@ -99,16 +92,6 @@ struct AICompanionColumns<Content: View>: View {
             // a Duo fold) move the pane.
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
         }
-        #if !targetEnvironment(macCatalyst)
-        .padding(.top, isPad && self.sharesSectionStack == false ? self.tabRowInset : 0)
-        .background {
-            if isPad && self.sharesSectionStack == false {
-                AICompanionTabContentInset(inset: self.$tabRowInset)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-        }
-        #endif
         // The paired columns share one keyboard boundary and one layout proposal.
         .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
     }
@@ -137,10 +120,38 @@ struct AICompanionColumns<Content: View>: View {
     }
 }
 
+#if !targetEnvironment(macCatalyst)
+/// One page of an iPad section's navigation stack with the side chat beside it. Every page carries the pane, so the
+/// section's own pushes keep native Back and swipe-back while the chat's controls stay on the one shared bar.
+struct AICompanionSectionPage<Content: View>: View {
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    let hostTab: AppTab
+    /// Whether this page tops its section's stack; only that page's chat takes the composer and its keyboard.
+    let isTopPage: (AppNavigationModel) -> Bool
+    let content: Content
+
+    init(hostTab: AppTab, isTopPage: @escaping (AppNavigationModel) -> Bool, @ViewBuilder content: () -> Content) {
+        self.hostTab = hostTab
+        self.isTopPage = isTopPage
+        self.content = content()
+    }
+
+    var body: some View {
+        AICompanionColumns(hostTab: self.hostTab) {
+            self.content
+                .aiCompanionColumnPage()
+        }
+        .environment(\.aiCompanionPageIsTop, self.isTopPage(self.navigation))
+    }
+}
+#endif
+
 extension EnvironmentValues {
     /// True inside both halves while a wide layout, iPad or Duo's inner display, shows the side chat; their pages then
     /// keep an opaque bar band.
     @Entry var showsAICompanionBarBackground: Bool = false
+    /// False for a side chat on a section page that another pushed page covers.
+    @Entry var aiCompanionPageIsTop: Bool = true
 }
 
 extension View {

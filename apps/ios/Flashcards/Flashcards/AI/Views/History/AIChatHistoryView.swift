@@ -53,6 +53,7 @@ struct AIChatHistoryView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.aiCompanionHostTab) private var companionHostTab
     @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
     private var isInPane: Bool { self.companionHostTab != nil }
     let chatStore: AIChatStore
     @Bindable private var model: AIChatHistoryListModel
@@ -156,6 +157,7 @@ struct AIChatHistoryView: View {
         if let companionHostTab = self.companionHostTab {
             guard self.navigation.isAICompanionVisible,
                   self.navigation.selectedTab == companionHostTab,
+                  self.isOnTopPage,
                   case .history(let route)? = self.navigation.aiCompanionPath.last else {
                 return false
             }

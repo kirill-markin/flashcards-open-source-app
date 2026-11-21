@@ -724,9 +724,8 @@ struct RootTabView: View {
         #else
         if UIDevice.current.userInterfaceIdiom == .pad {
             NavigationStack {
-                AICompanionColumns(hostTab: hostTab, sharesSectionStack: true) {
+                AICompanionSectionPage(hostTab: hostTab, isTopPage: { _ in true }) {
                     content()
-                        .aiCompanionColumnPage()
                 }
             }
         } else {
@@ -1067,7 +1066,30 @@ struct RootTabView: View {
         #endif
     }
 
+    @ViewBuilder
     private func libraryTab(libraryPath: Binding<LibraryNavigationPath>) -> some View {
+        #if !targetEnvironment(macCatalyst)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationStack(path: libraryPath) {
+                AICompanionSectionPage(hostTab: .library, isTopPage: { $0.libraryPath.isEmpty }) {
+                    self.libraryRoot
+                }
+                .navigationDestination(for: LibraryNavigationDestination.self) { destination in
+                    AICompanionSectionPage(hostTab: .library, isTopPage: { $0.libraryPath.last == destination }) {
+                        self.libraryDestinationView(destination: destination)
+                    }
+                }
+            }
+        } else {
+            self.libraryColumns(libraryPath: libraryPath)
+        }
+        #else
+        self.libraryColumns(libraryPath: libraryPath)
+        #endif
+    }
+
+    /// The Mac's Library, and Duo's beside the pane's own stack.
+    private func libraryColumns(libraryPath: Binding<LibraryNavigationPath>) -> some View {
         AICompanionColumns(hostTab: .library) {
             NavigationStack(path: libraryPath) {
                 self.libraryRoot
@@ -1145,9 +1167,22 @@ struct RootTabView: View {
         self.settingsStack(settingsPath: settingsPath)
             .environment(\.macToolbarOwnerTab, .settings)
         #else
-        // Settings pages push inside their column while the side chat stays open beside them.
-        AICompanionColumns(hostTab: .settings) {
-            self.settingsStack(settingsPath: settingsPath)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationStack(path: settingsPath) {
+                AICompanionSectionPage(hostTab: .settings, isTopPage: { $0.settingsPath.isEmpty }) {
+                    SettingsView()
+                }
+                .navigationDestination(for: SettingsNavigationDestination.self) { destination in
+                    AICompanionSectionPage(hostTab: .settings, isTopPage: { $0.settingsPath.last == destination }) {
+                        self.settingsDestinationView(destination: destination)
+                    }
+                }
+            }
+        } else {
+            // Settings pages push inside their column while the side chat stays open beside them.
+            AICompanionColumns(hostTab: .settings) {
+                self.settingsStack(settingsPath: settingsPath)
+            }
         }
         #endif
     }
