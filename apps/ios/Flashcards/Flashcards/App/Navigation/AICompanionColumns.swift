@@ -65,7 +65,6 @@ struct AICompanionColumns<Content: View>: View {
                     .frame(width: isVisible && isLeading ? width : 0)
                     .accessibilityHidden(true)
                 self.content
-                    .environment(\.showsAICompanionBarBackground, isPad && isVisible)
                     #if targetEnvironment(macCatalyst)
                     // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
                     .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
@@ -90,6 +89,8 @@ struct AICompanionColumns<Content: View>: View {
                         .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
                 }
             }
+            // Both columns, so their bars share one band.
+            .environment(\.showsAICompanionBarBackground, isPad && isVisible)
             // A section switch leaves this unchanged; the toggle and an availability change (rotation, a resized window,
             // a Duo fold) move the pane.
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
