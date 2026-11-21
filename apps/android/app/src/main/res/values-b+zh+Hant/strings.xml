@@ -159,6 +159,7 @@
     <string name="streaks_widget_days_description">最近 7 天</string>
     <string name="question_widget_label">問題</string>
     <string name="question_widget_description">從接下來的卡片中挑一個問題。</string>
+    <string name="widget_reveal_answer">顯示答案</string>
     <string name="question_widget_preview_due">12 張到期</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">支持應用程式的開發者</string>

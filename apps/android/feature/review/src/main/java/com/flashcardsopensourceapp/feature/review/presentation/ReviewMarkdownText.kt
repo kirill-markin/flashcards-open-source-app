@@ -111,6 +111,7 @@ internal val reviewMarkdownPlainComponents: MarkdownComponents = markdownCompone
 @Composable
 internal fun ReviewMarkdownText(
     markdown: String,
+    renderImmediately: Boolean,
     inlineFormulas: List<InlineMathFormula>,
     components: MarkdownComponents,
     modifier: Modifier
@@ -122,7 +123,7 @@ internal fun ReviewMarkdownText(
                 content = markdown,
                 lookupLinks = true,
                 retainState = false,
-                immediate = LocalInspectionMode.current
+                immediate = renderImmediately || LocalInspectionMode.current
             ),
             inlineFormulas = inlineFormulas,
             components = components,

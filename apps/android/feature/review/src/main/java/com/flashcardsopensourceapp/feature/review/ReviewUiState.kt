@@ -33,8 +33,17 @@ enum class NotificationPermissionPromptContinueAction {
     OPEN_NOTIFICATION_SETTINGS
 }
 
+data class ReviewWidgetPresentation(
+    val requestId: Long,
+    val workspaceId: String,
+    val cardId: String?,
+    val needsAnswerPosition: Boolean,
+    val didRevealAnswer: Boolean
+)
+
 data class ReviewUiState(
     val isLoading: Boolean,
+    val widgetPresentation: ReviewWidgetPresentation?,
     val sessionWorkspaceId: String?,
     val requestedFilter: ReviewFilter,
     /** True until the session for [requestedFilter] loads; the shown session is still the previous filter's. */

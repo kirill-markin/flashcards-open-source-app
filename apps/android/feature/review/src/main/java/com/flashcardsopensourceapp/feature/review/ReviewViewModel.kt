@@ -48,6 +48,7 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -64,6 +65,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -160,11 +162,12 @@ class ReviewViewModel(
         started = SharingStarted.Eagerly,
         initialValue = VisibleAppScreen.OTHER
     )
-    private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
+    private val workspaceState = workspaceRepository.observeWorkspace().shareIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = null
+        replay = 1
     )
+    private val workspaceInitialized = CompletableDeferred<Unit>()
     val workspaceId: StateFlow<String?> = workspaceState.map { workspace ->
         workspace?.workspaceId
     }.stateIn(
@@ -312,25 +315,30 @@ class ReviewViewModel(
         return true
     }
 
-    /**
-     * Starts a new session showing [cardId] first when it is still in review in [workspaceId]; otherwise
-     * the current session stays. Returns false until the workspace is known, so the caller retries.
-     */
-    fun startSessionOnCardForHandoff(workspaceId: String, cardId: String): Boolean {
-        val currentWorkspaceId = activeWorkspaceId ?: return false
-        if (currentWorkspaceId != workspaceId || isShowingOrRatingCard(cardId = cardId)) {
-            return true
+    suspend fun startSessionOnCardForHandoff(
+        requestId: Long,
+        workspaceId: String,
+        cardId: String,
+        revealAnswer: Boolean,
+        isCurrentHandoff: () -> Boolean
+    ) {
+        workspaceInitialized.await()
+        if (!isCurrentHandoff() || draftState.value.widgetPresentation?.requestId == requestId) {
+            return
         }
 
         val operationWorkspaceGeneration = workspaceGeneration
         val operationFilterGeneration = reviewFilterGeneration
         val requestedFilter = draftState.value.requestedFilter
-        viewModelScope.launch {
-            val card = try {
+        val card = if (workspaceId == activeWorkspaceId && !isRatingCard(cardId = cardId)) {
+            try {
                 reviewRepository.loadActiveReviewCard(selectedFilter = requestedFilter, cardId = cardId)
-            } catch (error: Throwable) {
+            } catch (error: Exception) {
                 if (error is CancellationException) {
                     throw error
+                }
+                if (!isCurrentHandoff()) {
+                    return
                 }
                 technicalErrorController.showTechnicalError(
                     error = makeAppTechnicalError(
@@ -340,31 +348,71 @@ class ReviewViewModel(
                     ),
                     throwable = error
                 )
-                return@launch
-            } ?: return@launch
-            if (
-                operationWorkspaceGeneration != workspaceGeneration
-                || operationFilterGeneration != reviewFilterGeneration
-                || isShowingOrRatingCard(cardId = cardId)
-            ) {
-                return@launch
+                null
             }
+        } else {
+            null
+        }
+        if (!isCurrentHandoff()) {
+            return
+        }
 
-            // A new session, like a filter change, so ratings still in flight from the old one leave it alone.
+        val target = card?.takeIf {
+            operationWorkspaceGeneration == workspaceGeneration &&
+                operationFilterGeneration == reviewFilterGeneration &&
+                !isRatingCard(cardId = cardId)
+        }
+        val presentation = ReviewWidgetPresentation(
+            requestId = requestId,
+            workspaceId = workspaceId,
+            cardId = target?.cardId,
+            needsAnswerPosition = target != null && revealAnswer,
+            didRevealAnswer = false
+        )
+        if (target == null) {
+            draftState.update { state -> state.copy(widgetPresentation = presentation) }
+            return
+        }
+
+        val startsNewSession = draftState.value.presentedCard?.cardId != cardId
+        if (startsNewSession) {
             reviewFilterGeneration += 1L
             lastObservedReviewSessionSignature = null
             ownedReviewSubmissions = emptyMap()
             reviewSessionNowMillis.value = System.currentTimeMillis()
-            draftState.update { state ->
-                applyReviewSessionStartOnCard(state = state, card = card)
-            }
         }
-        return true
+        draftState.update { state ->
+            val session = if (startsNewSession) applyReviewSessionStartOnCard(state = state, card = target) else state
+            session.copy(
+                widgetPresentation = presentation,
+                isNotificationPermissionPromptVisible = session.isNotificationPermissionPromptVisible && !revealAnswer,
+                isHardAnswerReminderVisible = session.isHardAnswerReminderVisible && !revealAnswer
+            )
+        }
     }
 
-    private fun isShowingOrRatingCard(cardId: String): Boolean {
-        return uiState.value.preparedCurrentCard?.card?.cardId == cardId
-            || draftState.value.pendingReviewedCards.any { pendingReviewedCard -> pendingReviewedCard.cardId == cardId }
+    fun completeWidgetAnswerPosition(requestId: Long) {
+        draftState.update { state ->
+            val presentation = state.widgetPresentation ?: return@update state
+            val cardId = presentation.cardId ?: return@update state
+            if (presentation.requestId != requestId || !presentation.needsAnswerPosition ||
+                state.presentedCard?.cardId != cardId
+            ) {
+                return@update state
+            }
+
+            state.copy(
+                revealedCardId = cardId,
+                widgetPresentation = presentation.copy(
+                    needsAnswerPosition = false,
+                    didRevealAnswer = state.revealedCardId != cardId
+                )
+            )
+        }
+    }
+
+    private fun isRatingCard(cardId: String): Boolean {
+        return draftState.value.pendingReviewedCards.any { pending -> pending.cardId == cardId }
     }
 
     private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
@@ -376,8 +424,6 @@ class ReviewViewModel(
     }
 
     /**
-     * The flip, and the only producer of `review_card_revealed`.
-     *
      * It is reported from the user's action rather than from an effect that observes the revealed
      * state, because an observer runs again on every recomposition and on every configuration
      * change, and it also runs for the *next* card at the moment that card is presented. Being a
@@ -1089,6 +1135,7 @@ class ReviewViewModel(
             workspaceState.collect { workspace ->
                 val workspaceId = workspace?.workspaceId
                 if (workspaceId == activeWorkspaceId) {
+                    workspaceInitialized.complete(Unit)
                     return@collect
                 }
 
@@ -1104,8 +1151,13 @@ class ReviewViewModel(
                     reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
                 }
 
-                draftState.value = makeWorkspaceScopedDraftState(reviewFilter = restoredFilter)
+                draftState.update { state ->
+                    makeWorkspaceScopedDraftState(reviewFilter = restoredFilter).copy(
+                        widgetPresentation = state.widgetPresentation?.copy(cardId = null)
+                    )
+                }
                 rebuildReviewSession(reason = ReviewDataRebuildReason.WORKSPACE_CHANGED)
+                workspaceInitialized.complete(Unit)
             }
         }
     }
@@ -1207,6 +1259,9 @@ class ReviewViewModel(
                     state.copy(
                         presentedCard = nextPresentedCard,
                         preparedNextCardId = nextPreparedNextCardId,
+                        widgetPresentation = state.widgetPresentation?.let { presentation ->
+                            if (presentation.cardId == nextPresentedCard?.cardId) presentation else presentation.copy(cardId = null)
+                        },
                         revealedCardId = if (state.revealedCardId == nextPresentedCard?.cardId) {
                             state.revealedCardId
                         } else {

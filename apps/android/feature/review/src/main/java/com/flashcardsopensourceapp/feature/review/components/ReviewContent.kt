@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
@@ -51,8 +52,13 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -61,6 +67,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,7 +77,9 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import kotlinx.coroutines.flow.first
 import java.text.NumberFormat
+import kotlin.math.roundToInt
 
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
@@ -103,6 +112,9 @@ internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible
 @Composable
 internal fun ReviewContent(
     uiState: ReviewUiState,
+    widgetAnswerRequestId: Long?,
+    isCurrentWidgetRevealRequest: (Long) -> Boolean,
+    onWidgetAnswerPositioned: (Long) -> Unit,
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: (String) -> Unit,
     onOpenCurrentCardWithAi: (
@@ -131,27 +143,46 @@ internal fun ReviewContent(
     } else {
         uiState.preparedCurrentCard?.card?.cardId
     }
+    val isAnswerVisible = uiState.isAnswerVisible || widgetAnswerRequestId != null
+    val listState = rememberLazyListState()
+    var cardLayout by remember(widgetAnswerRequestId) { mutableStateOf<LayoutCoordinates?>(null) }
+    var answerLayout by remember(widgetAnswerRequestId) { mutableStateOf<LayoutCoordinates?>(null) }
     val frontBringIntoViewRequester = remember { BringIntoViewRequester() }
     val backBringIntoViewRequester = remember { BringIntoViewRequester() }
     var textSelectionSide by remember(
         presentedCardId,
         currentCard?.frontText,
         currentCard?.backText,
-        uiState.isAnswerVisible
+        isAnswerVisible,
+        widgetAnswerRequestId
     ) {
         mutableStateOf<ReviewTextSelectionSide?>(value = null)
     }
 
-    LaunchedEffect(presentedCardId, uiState.isAnswerVisible) {
-        when (
-            onConsumeRelocationTarget(
-                presentedCardId,
-                uiState.isAnswerVisible
-            )
-        ) {
-            ReviewRelocationTarget.FRONT -> frontBringIntoViewRequester.bringIntoView()
-            ReviewRelocationTarget.BACK -> backBringIntoViewRequester.bringIntoView()
-            null -> Unit
+    LaunchedEffect(presentedCardId, isAnswerVisible, widgetAnswerRequestId) {
+        val relocation = onConsumeRelocationTarget(presentedCardId, isAnswerVisible)
+        if (widgetAnswerRequestId != null) {
+            // Measure the full card before drawing it so a long front cannot push the answer out of view.
+            val offset = snapshotFlow {
+                val item = cardLayout
+                val answer = answerLayout
+                if (item?.isAttached == true && answer?.isAttached == true) {
+                    item.localPositionOf(sourceCoordinates = answer, relativeToSource = Offset.Zero).y.roundToInt()
+                } else {
+                    null
+                }
+            }.first { it != null }
+            if (!isCurrentWidgetRevealRequest(widgetAnswerRequestId)) {
+                return@LaunchedEffect
+            }
+            listState.scrollToItem(index = 0, scrollOffset = requireNotNull(offset))
+            onWidgetAnswerPositioned(widgetAnswerRequestId)
+        } else {
+            when (relocation) {
+                ReviewRelocationTarget.FRONT -> frontBringIntoViewRequester.bringIntoView()
+                ReviewRelocationTarget.BACK -> backBringIntoViewRequester.bringIntoView()
+                null -> Unit
+            }
         }
     }
 
@@ -175,8 +206,10 @@ internal fun ReviewContent(
     }
 
     LazyColumn(
+        state = listState,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp),
+        userScrollEnabled = widgetAnswerRequestId == null,
         modifier = modifier.fillMaxSize()
     ) {
         item {
@@ -188,7 +221,8 @@ internal fun ReviewContent(
                 uiState.preparedCurrentCard != null -> {
                     ReviewCardContent(
                         currentCard = uiState.preparedCurrentCard,
-                        isAnswerVisible = uiState.isAnswerVisible,
+                        isAnswerVisible = isAnswerVisible,
+                        renderMarkdownImmediately = widgetAnswerRequestId != null,
                         activeSpeechSide = activeSpeechSide,
                         onOpenCurrentCard = {
                             uiState.currentCardIdForEditing?.let(onOpenCurrentCard)
@@ -216,7 +250,13 @@ internal fun ReviewContent(
                             textSelectionSide = ReviewTextSelectionSide.BACK
                         },
                         frontBringIntoViewRequester = frontBringIntoViewRequester,
-                        backBringIntoViewRequester = backBringIntoViewRequester
+                        backBringIntoViewRequester = backBringIntoViewRequester,
+                        modifier = if (widgetAnswerRequestId == null) Modifier else Modifier
+                            .drawWithContent { }
+                            .clearAndSetSemantics { hideFromAccessibility() }
+                            .onGloballyPositioned { cardLayout = it },
+                        answerModifier = if (widgetAnswerRequestId == null) Modifier else Modifier
+                            .onGloballyPositioned { answerLayout = it }
                     )
                 }
 
@@ -322,6 +362,7 @@ private fun ActionableEmptyReviewState(
 private fun ReviewCardContent(
     currentCard: PreparedReviewCardPresentation,
     isAnswerVisible: Boolean,
+    renderMarkdownImmediately: Boolean,
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: () -> Unit,
     onOpenCurrentCardWithAi: () -> Unit,
@@ -335,11 +376,13 @@ private fun ReviewCardContent(
     onSelectFrontText: () -> Unit,
     onSelectBackText: () -> Unit,
     frontBringIntoViewRequester: BringIntoViewRequester,
-    backBringIntoViewRequester: BringIntoViewRequester
+    backBringIntoViewRequester: BringIntoViewRequester,
+    modifier: Modifier,
+    answerModifier: Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         key(currentCard.card.cardId) {
             ReviewCardTags(
@@ -365,6 +408,7 @@ private fun ReviewCardContent(
                     cardId = currentCard.card.cardId,
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
+                    renderMarkdownImmediately = renderMarkdownImmediately,
                     sourceText = currentCard.card.frontText,
                     copyButtonTag = reviewCopyFrontTextButtonTag,
                     sectionModifier = Modifier,
@@ -390,11 +434,10 @@ private fun ReviewCardContent(
                         cardId = currentCard.card.cardId,
                         label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
+                        renderMarkdownImmediately = renderMarkdownImmediately,
                         sourceText = currentCard.card.backText,
                         copyButtonTag = reviewCopyBackTextButtonTag,
-                        sectionModifier = Modifier.bringIntoViewRequester(
-                            backBringIntoViewRequester
-                        ),
+                        sectionModifier = answerModifier.bringIntoViewRequester(backBringIntoViewRequester),
                         labelModifier = Modifier.testTag(reviewSelectBackTextButtonTag),
                         onSelectText = onSelectBackText,
                         contentModifier = Modifier,
@@ -457,6 +500,7 @@ private fun ReviewCardSideSection(
     cardId: String,
     label: String,
     content: ReviewRenderedContent,
+    renderMarkdownImmediately: Boolean,
     sourceText: String,
     copyButtonTag: String,
     sectionModifier: Modifier,
@@ -523,6 +567,7 @@ private fun ReviewCardSideSection(
             SelectionContainer {
                 ReviewRenderedContentView(
                     content = content,
+                    renderMarkdownImmediately = renderMarkdownImmediately,
                     reviewImagePreparer = reviewImagePreparer,
                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                     modifier = contentModifier

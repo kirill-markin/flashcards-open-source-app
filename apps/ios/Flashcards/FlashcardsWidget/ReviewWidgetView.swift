@@ -101,6 +101,7 @@ private struct ReviewWidgetContentView: View {
                                 minutes: widgetReviewTimeEstimateMinutes(entry: self.entry)
                             )
                         }
+                        self.revealAnswerButton(card: nextCard)
                     }
                 }
             case .large:
@@ -132,6 +133,7 @@ private struct ReviewWidgetContentView: View {
                         reservesLines: false
                     )
                     Spacer(minLength: 0)
+                    self.revealAnswerButton(card: nextCard)
                 }
             }
         case .allDone(let nextDueAt, let streakDays):
@@ -140,6 +142,18 @@ private struct ReviewWidgetContentView: View {
                 entryDate: self.entry.date,
                 nextDueAt: nextDueAt,
                 streakDays: self.size == .medium ? nil : streakDays
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func revealAnswerButton(card: WidgetSnapshotCard?) -> some View {
+        if let workspaceId = self.entry.workspaceId, let card {
+            WidgetRevealAnswerButton(
+                kind: .review,
+                workspaceId: workspaceId,
+                size: self.size.deepLinkSize,
+                cardId: card.cardId
             )
         }
     }

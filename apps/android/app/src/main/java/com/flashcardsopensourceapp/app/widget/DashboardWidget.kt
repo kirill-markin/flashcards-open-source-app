@@ -47,6 +47,9 @@ private val dashboardWidgetMinimumSize = DpSize(width = 250.dp, height = 250.dp)
 private val dashboardWidgetRingSize = 64.dp
 private val dashboardWidgetPaceWidth = 96.dp
 private val dashboardWidgetSectionSpacing = 8.dp
+private val dashboardWidgetRevealSpacing = 8.dp
+private val dashboardWidgetRevealButtonVerticalPadding = 20.dp
+private val dashboardWidgetRevealButtonTextSize = 14.sp
 private val dashboardWidgetFooterSpacing = 4.dp
 private val dashboardWidgetDueCountTextSize = 24.sp
 private val dashboardWidgetQuestionTextSize = 16.sp
@@ -208,6 +211,14 @@ private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: Re
                 maxLines = dashboardWidgetQuestionMaxLines
             )
         }
+        Spacer(modifier = GlanceModifier.height(dashboardWidgetRevealSpacing))
+        WidgetRevealAnswerButton(
+            workspaceId = queue.workspaceId,
+            cardId = card.cardId,
+            size = ReviewWidgetSize.LARGE,
+            kind = WidgetKind.DASHBOARD,
+            modifier = GlanceModifier
+        )
     }
 }
 
@@ -264,7 +275,7 @@ private fun DashboardWidgetActivity(progress: WidgetProgressContent, layoutSize:
 }
 
 /**
- * The height left after the top row, the reserved question lines, and the footer at [fontScale].
+ * The height left after the top row, the question and its button, and the footer at [fontScale].
  * The estimate stays positive regardless of the launcher's reported width.
  */
 private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): Dp {
@@ -278,7 +289,8 @@ private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): 
         fontSize = dashboardWidgetQuestionTextSize,
         lineCount = dashboardWidgetQuestionMaxLines,
         fontScale = fontScale
-    )
+    ) + dashboardWidgetRevealSpacing + dashboardWidgetRevealButtonVerticalPadding +
+        widgetTextHeight(fontSize = dashboardWidgetRevealButtonTextSize, lineCount = 1, fontScale = fontScale)
     val footerHeight: Dp = dashboardWidgetFooterSpacing +
         widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 1, fontScale = fontScale)
     return (contentHeight - topRowHeight - questionHeight - footerHeight - dashboardWidgetSectionSpacing * 2)

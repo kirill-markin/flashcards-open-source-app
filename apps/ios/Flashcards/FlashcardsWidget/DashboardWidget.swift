@@ -99,12 +99,22 @@ private struct DashboardWidgetContentView: View {
             Group {
                 switch self.entry.content {
                 case .due(_, let nextCard, _):
-                    ReviewWidgetNextCardView(
-                        nextCard: nextCard,
-                        font: .title3.weight(.semibold),
-                        lineLimit: 3,
-                        reservesLines: true
-                    )
+                    VStack(alignment: .leading, spacing: 8) {
+                        ReviewWidgetNextCardView(
+                            nextCard: nextCard,
+                            font: .title3.weight(.semibold),
+                            lineLimit: 3,
+                            reservesLines: true
+                        )
+                        if let workspaceId = self.entry.workspaceId, let nextCard {
+                            WidgetRevealAnswerButton(
+                                kind: .dashboard,
+                                workspaceId: workspaceId,
+                                size: .large,
+                                cardId: nextCard.cardId
+                            )
+                        }
+                    }
                 case .allDone(let nextDueAt, _):
                     // The top row already shows the streak.
                     ReviewWidgetAllDoneView(entryDate: self.entry.date, nextDueAt: nextDueAt, streakDays: nil)

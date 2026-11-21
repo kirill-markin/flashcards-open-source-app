@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.review
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,6 +76,9 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun ReviewRoute(
     uiState: ReviewUiState,
+    widgetRevealRequestId: Long?,
+    isCurrentWidgetRevealRequest: (Long) -> Boolean,
+    onWidgetAnswerPositioned: (Long) -> Unit,
     workspaceId: String?,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
@@ -124,12 +128,29 @@ fun ReviewRoute(
             )
         )
     }
+    val widgetAnswerRequestId = uiState.widgetPresentation?.takeIf { presentation ->
+        presentation.requestId == widgetRevealRequestId && presentation.needsAnswerPosition &&
+            presentation.cardId != null && presentation.cardId == uiState.preparedCurrentCard?.card?.cardId
+    }?.requestId
+    val isLoading = uiState.isLoading || widgetAnswerRequestId != null
+    val isFilterSheetVisible = filterSheetTransaction.isVisible && widgetRevealRequestId == null
     var appliedFilterTitle by remember {
         mutableStateOf<AppliedReviewFilterTitle?>(value = null)
     }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     var tagFilterRequest by remember {
         mutableStateOf<ReviewTagFilterRequest?>(value = null)
+    }
+    LaunchedEffect(widgetRevealRequestId) {
+        if (widgetRevealRequestId != null) {
+            tagFilterRequest = null
+            if (filterSheetTransaction.isVisible) {
+                filterSheetTransaction = closedReviewFilterSheetTransaction(
+                    workspaceId = workspaceId,
+                    selection = uiState.requestedFilter
+                )
+            }
+        }
     }
     var reviewReactionSlots by remember {
         mutableStateOf<List<ReviewReactionSlot>>(value = emptyList())
@@ -199,15 +220,15 @@ fun ReviewRoute(
     LaunchedEffect(reviewImagePreparer, reviewImageAssetsToPrepare) {
         reviewImagePreparer.prepareOnly(mediaAssets = reviewImageAssetsToPrepare)
     }
-    val isReviewSurfaceBusy = filterSheetTransaction.isVisible || tagFilterRequest != null ||
+    val isReviewSurfaceBusy = widgetRevealRequestId != null || isFilterSheetVisible || tagFilterRequest != null ||
         uiState.isHardAnswerReminderVisible || uiState.isNotificationPermissionPromptVisible
     SideEffect { onReviewSurfaceBusyChanged(isReviewSurfaceBusy) }
     DisposableEffect(Unit) {
         onDispose { onReviewSurfaceBusyChanged(true) }
     }
     // Filter options and deck due counts load only while the sheet is open.
-    DisposableEffect(filterSheetTransaction.isVisible) {
-        onFilterSheetVisibilityChanged(filterSheetTransaction.isVisible)
+    DisposableEffect(isFilterSheetVisible) {
+        onFilterSheetVisibilityChanged(isFilterSheetVisible)
         onDispose { onFilterSheetVisibilityChanged(false) }
     }
 
@@ -272,7 +293,7 @@ fun ReviewRoute(
 
     fun finalizeFilterSheetSelection(): Unit {
         val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
-        if (transaction.isVisible.not()) {
+        if (!isFilterSheetVisible) {
             return
         }
 
@@ -467,7 +488,7 @@ fun ReviewRoute(
     // The sheet's tag rows apply on close, so the title names that draft at once, as a deck choice does.
     val filterSheetDraft: ReviewFilter = filterSheetTransaction.draftSelection
     val pendingFilterTitle: String? = if (
-        filterSheetTransaction.isVisible
+        isFilterSheetVisible
         && filterSheetTransaction.workspaceId == workspaceId
         && filterSheetDraft != filterSheetTransaction.openingSelection
     ) {
@@ -491,7 +512,7 @@ fun ReviewRoute(
     Scaffold(
         topBar = {
             ReviewTopBar(
-                isLoading = uiState.isLoading,
+                isLoading = isLoading,
                 remainingCount = if (
                     workspaceId != null && uiState.sessionWorkspaceId == workspaceId &&
                     !uiState.isRequestedFilterSessionPending && pendingFilterTitle == null
@@ -505,7 +526,7 @@ fun ReviewRoute(
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = pendingFilterTitle ?: uiState.selectedFilterTitle,
                 onOpenFilter = {
-                    if (workspaceId != null && uiState.isLoading.not()) {
+                    if (workspaceId != null && !isLoading) {
                         filterSheetTransaction = openReviewFilterSheetTransaction(
                             workspaceId = workspaceId,
                             selection = uiState.requestedFilter
@@ -549,6 +570,9 @@ fun ReviewRoute(
         ) {
             ReviewContent(
                 uiState = uiState,
+                widgetAnswerRequestId = widgetAnswerRequestId,
+                isCurrentWidgetRevealRequest = isCurrentWidgetRevealRequest,
+                onWidgetAnswerPositioned = onWidgetAnswerPositioned,
                 activeSpeechSide = reviewSpeechController.activeSide,
                 onOpenCurrentCard = onOpenCurrentCard,
                 onOpenCurrentCardWithAi = onOpenCurrentCardWithAi,
@@ -605,7 +629,7 @@ fun ReviewRoute(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + reviewContentBottomPadding(
                         hasCurrentCard = uiState.preparedCurrentCard != null,
-                        isAnswerVisible = uiState.isAnswerVisible
+                        isAnswerVisible = uiState.isAnswerVisible || widgetAnswerRequestId != null
                     )
                 ),
                 contentPadding = PaddingValues(
@@ -616,7 +640,18 @@ fun ReviewRoute(
                 )
             )
 
-            if (uiState.isLoading.not() && uiState.preparedCurrentCard != null) {
+            if (widgetAnswerRequestId != null) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(top = innerPadding.calculateTopPadding() + 16.dp, start = 16.dp, end = 16.dp)
+                        .pointerInput(Unit) { detectTapGestures() }
+                ) {
+                    LoadingReviewState()
+                }
+            }
+
+            if (!isLoading && uiState.preparedCurrentCard != null) {
                 ReviewBottomActionOverlay(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     currentCard = uiState.preparedCurrentCard,
@@ -635,7 +670,7 @@ fun ReviewRoute(
             }
 
             val targetBounds = guideBounds
-            if (firstReviewOnboardingCompleted == false && !uiState.isLoading &&
+            if (firstReviewOnboardingCompleted == false && !isLoading &&
                 uiState.preparedCurrentCard != null && !isReviewSurfaceBusy &&
                 isFirstReviewOnboardingSurfaceAvailable && hasWindowFocus &&
                 lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED &&
@@ -668,7 +703,7 @@ fun ReviewRoute(
 
     if (
         workspaceId != null
-        && filterSheetTransaction.isVisible
+        && isFilterSheetVisible
         && filterSheetTransaction.workspaceId == workspaceId
     ) {
         ReviewFilterSheet(
@@ -694,7 +729,7 @@ fun ReviewRoute(
         )
     }
 
-    tagFilterRequest?.let { request ->
+    tagFilterRequest?.takeIf { widgetRevealRequestId == null }?.let { request ->
         ReviewTagFilterDialog(
             request = request,
             onConfirm = {
