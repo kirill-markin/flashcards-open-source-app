@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sincronizzazione bloccata: %@";
 "settings.sync.failed" = "Sincronizzazione non riuscita: %@";
 "settings.sync.failed.generic" = "Sincronizzazione non riuscita";
+"settings.sync.storageFull" = "Libera spazio su questo dispositivo per riprendere la sincronizzazione.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Le credenziali di accesso sicure non sono presenti sul dispositivo. I dati locali sono conservati. Accedi di nuovo per ricollegare la sincronizzazione.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "L’accesso cloud allo spazio di lavoro collegato è cambiato. I dati locali sono conservati. Accedi di nuovo dopo il ripristino dell’account originale e dell’accesso allo spazio di lavoro.";
 "settings.sync.recovery.guestSessionMissing" = "Le credenziali ospite non sono presenti sul dispositivo. I dati locali sono conservati, ma il vecchio account cloud ospite non può essere recuperato senza il suo token.";

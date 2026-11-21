@@ -273,7 +273,7 @@ private func isInlineFriendInvitationError(error: Error) -> Bool {
         switch localStoreError {
         case .validation:
             return true
-        case .database, .notFound, .uninitialized:
+        case .database, .storageFull, .notFound, .uninitialized:
             return false
         }
     }

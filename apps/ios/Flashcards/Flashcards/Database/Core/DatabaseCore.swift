@@ -92,7 +92,7 @@ final class DatabaseCore {
         var statement: OpaquePointer?
         let prepareResult = sqlite3_prepare_v2(connection, sql, -1, &statement, nil)
         guard prepareResult == SQLITE_OK, let statement else {
-            throw LocalStoreError.database("Failed to prepare statement: \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: prepareResult, context: "Failed to prepare statement")
         }
         defer {
             sqlite3_finalize(statement)
@@ -101,7 +101,7 @@ final class DatabaseCore {
         try self.bind(values: values, to: statement)
         let stepResult = sqlite3_step(statement)
         guard stepResult == SQLITE_DONE else {
-            throw LocalStoreError.database("Failed to execute statement: \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: stepResult, context: "Failed to execute statement")
         }
 
         return Int(sqlite3_changes(connection))
@@ -115,7 +115,7 @@ final class DatabaseCore {
         var statement: OpaquePointer?
         let prepareResult = sqlite3_prepare_v2(connection, sql, -1, &statement, nil)
         guard prepareResult == SQLITE_OK, let statement else {
-            throw LocalStoreError.database("Failed to prepare query: \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: prepareResult, context: "Failed to prepare query")
         }
         defer {
             sqlite3_finalize(statement)
@@ -135,7 +135,7 @@ final class DatabaseCore {
                 break
             }
 
-            throw LocalStoreError.database("Failed to execute query: \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: stepResult, context: "Failed to execute query")
         }
 
         return rows
@@ -199,18 +199,20 @@ final class DatabaseCore {
 
         let beginResult = sqlite3_exec(connection, beginStatement, nil, nil, nil)
         guard beginResult == SQLITE_OK else {
-            throw LocalStoreError.database("Failed to begin transaction: \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: beginResult, context: "Failed to begin transaction")
         }
 
         do {
             let result = try body()
             let commitResult = sqlite3_exec(connection, "COMMIT TRANSACTION", nil, nil, nil)
             guard commitResult == SQLITE_OK else {
-                throw LocalStoreError.database("Failed to commit transaction: \(self.lastErrorMessage())")
+                throw self.sqliteFailure(resultCode: commitResult, context: "Failed to commit transaction")
             }
             return result
         } catch {
-            sqlite3_exec(connection, "ROLLBACK TRANSACTION", nil, nil, nil)
+            if sqlite3_get_autocommit(connection) == 0 {
+                sqlite3_exec(connection, "ROLLBACK TRANSACTION", nil, nil, nil)
+            }
             throw error
         }
     }
@@ -271,7 +273,7 @@ final class DatabaseCore {
     func executeScript(sql: String, errorContext: String) throws {
         let resultCode = sqlite3_exec(connection, sql, nil, nil, nil)
         guard resultCode == SQLITE_OK else {
-            throw LocalStoreError.database("\(errorContext): \(self.lastErrorMessage())")
+            throw self.sqliteFailure(resultCode: resultCode, context: errorContext)
         }
     }
 
@@ -369,6 +371,15 @@ final class DatabaseCore {
                 }
             }
         }
+    }
+
+    private func sqliteFailure(resultCode: Int32, context: String) -> LocalStoreError {
+        let message = "\(context): \(self.lastErrorMessage())"
+        if resultCode == SQLITE_FULL {
+            return .storageFull(message)
+        }
+
+        return .database(message)
     }
 
     private func lastErrorMessage() -> String {

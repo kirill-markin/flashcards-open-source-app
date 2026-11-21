@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sinhronizacija je blokirana: %@";
 "settings.sync.failed" = "Sinhronizacija ni uspela: %@";
 "settings.sync.failed.generic" = "Sinhronizacija ni uspela";
+"settings.sync.storageFull" = "Sprostite prostor v tej napravi, da se sinhronizacija lahko nadaljuje.";
 "settings.sync.recovery.linkedCredentialsMissing" = "V tej napravi manjkajo varne prijavne poverilnice. Lokalni podatki so ohranjeni. Za obnovitev sinhronizacije se znova prijavite.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Dostop v oblaku do povezanega delovnega prostora se je spremenil. Lokalni podatki so ohranjeni. Znova se prijavite, ko sta obnovljena izvirni račun in dostop do delovnega prostora.";
 "settings.sync.recovery.guestSessionMissing" = "V tej napravi manjkajo poverilnice gosta. Lokalni podatki so ohranjeni, starega računa gosta v oblaku pa ni mogoče obnoviti brez njegovega žetona.";

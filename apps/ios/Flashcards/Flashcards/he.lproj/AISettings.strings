@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "הסנכרון נחסם: %@";
 "settings.sync.failed" = "הסנכרון נכשל: %@";
 "settings.sync.failed.generic" = "הסנכרון נכשל";
+"settings.sync.storageFull" = "כדי לחדש את הסנכרון, יש לפנות מקום במכשיר הזה.";
 "settings.sync.recovery.linkedCredentialsMissing" = "פרטי הכניסה המאובטחים חסרים במכשיר הזה. הנתונים המקומיים נשמרו. יש להיכנס שוב כדי לחדש את הסנכרון.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "הגישה בענן לסביבת העבודה המקושרת השתנתה. הנתונים המקומיים נשמרו. לאחר שחזור הגישה לחשבון ולסביבת העבודה המקוריים, יש להיכנס שוב.";
 "settings.sync.recovery.guestSessionMissing" = "פרטי הזיהוי של האורח חסרים במכשיר הזה. הנתונים המקומיים נשמרו, אך אי אפשר לשחזר את חשבון האורח הישן בענן ללא האסימון שלו.";

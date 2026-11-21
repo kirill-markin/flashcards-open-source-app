@@ -326,6 +326,10 @@ struct AccountStatusView: View {
             return false
         }
 
+        if case .localStorageFull = self.store.syncStatus, CloudSyncFailurePolicy.isLocalStorageFull(error: error) {
+            return false
+        }
+
         if isRetryableNetworkTransportFailure(error: error) {
             return false
         }

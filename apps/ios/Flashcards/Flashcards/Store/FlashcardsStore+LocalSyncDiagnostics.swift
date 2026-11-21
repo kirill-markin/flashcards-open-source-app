@@ -13,7 +13,7 @@ extension FlashcardsStore {
 
 private func localSyncDiagnosticsLatestSyncError(status: SyncStatus) -> String? {
     switch status {
-    case .blocked(let message), .failed(let message):
+    case .blocked(let message), .failed(let message), .localStorageFull(let message):
         return message
     case .idle, .syncing:
         return nil

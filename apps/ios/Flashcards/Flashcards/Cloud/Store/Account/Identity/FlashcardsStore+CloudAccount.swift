@@ -420,11 +420,13 @@ extension FlashcardsStore {
 
         if isAlreadyGuestLinked {
             self.cloudRuntime.setActiveCloudSession(linkedSession: guestSession)
-            if case .failed = self.syncStatus {
+            switch self.syncStatus {
+            case .failed, .localStorageFull:
                 try await self.performSameWorkspaceCloudRestore(linkedSession: guestSession, trigger: trigger)
                 return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: true)
+            case .idle, .syncing, .blocked:
+                return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: false)
             }
-            return GuestCloudSessionRestoreResult(session: guestSession, didRunSync: false)
         }
 
         try await self.finishCloudLink(linkedSession: guestSession, trigger: trigger)

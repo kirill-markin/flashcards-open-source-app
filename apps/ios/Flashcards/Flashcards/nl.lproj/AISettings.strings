@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synchronisatie geblokkeerd: %@";
 "settings.sync.failed" = "Synchronisatie mislukt: %@";
 "settings.sync.failed.generic" = "Synchronisatie mislukt";
+"settings.sync.storageFull" = "Maak ruimte vrij op dit apparaat om het synchroniseren te hervatten.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Beveiligde aanmeldgegevens ontbreken op dit apparaat. Lokale gegevens zijn bewaard. Meld je opnieuw aan om de synchronisatie te herstellen.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "De cloudtoegang tot de gekoppelde werkruimte is gewijzigd. Lokale gegevens zijn bewaard. Meld je opnieuw aan zodra de toegang tot het oorspronkelijke account en de werkruimte is hersteld.";
 "settings.sync.recovery.guestSessionMissing" = "Gastgegevens ontbreken op dit apparaat. Lokale gegevens zijn bewaard, maar het oude cloudgastaccount kan niet worden hersteld zonder het bijbehorende token.";

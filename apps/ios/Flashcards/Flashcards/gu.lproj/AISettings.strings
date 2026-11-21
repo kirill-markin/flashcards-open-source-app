@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "સિંક અવરોધિત: %@";
 "settings.sync.failed" = "સિંક નિષ્ફળ: %@";
 "settings.sync.failed.generic" = "સિંક નિષ્ફળ થયું";
+"settings.sync.storageFull" = "સિંક ફરી શરૂ કરવા માટે આ ડિવાઇસમાં થોડી જગ્યા ખાલી કરો.";
 "settings.sync.recovery.linkedCredentialsMissing" = "આ ઉપકરણ પર સુરક્ષિત સાઇન-ઇન ઓળખમાહિતી નથી. સ્થાનિક ડેટા સાચવેલો છે. સિંક ફરી જોડવા ફરી સાઇન-ઇન કરો.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "જોડાયેલા કાર્યક્ષેત્રની ક્લાઉડ ઍક્સેસ બદલાઈ છે. સ્થાનિક ડેટા સાચવેલો છે. મૂળ ખાતા અને કાર્યક્ષેત્રની ઍક્સેસ પુનઃસ્થાપિત થયા પછી ફરી સાઇન-ઇન કરો.";
 "settings.sync.recovery.guestSessionMissing" = "આ ઉપકરણ પર અતિથિ ઓળખમાહિતી નથી. સ્થાનિક ડેટા સાચવેલો છે, પણ જૂનું અતિથિ ક્લાઉડ ખાતું તેના ટોકન વગર પાછું મેળવી શકાતું નથી.";

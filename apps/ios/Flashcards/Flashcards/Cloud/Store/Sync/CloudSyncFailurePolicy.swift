@@ -17,6 +17,7 @@ enum CloudSyncFailureStatusDecision {
     case idle
     case blockedForIdentityConflict(message: String)
     case failed(message: String)
+    case localStorageFull(message: String)
 }
 
 struct CloudFailureDiagnostics {
@@ -30,11 +31,14 @@ enum CloudSyncFailurePolicy {
         recoveryReason: CloudCredentialRecoveryReason?,
         postAuthenticationFailureIsIdle: Bool,
         identityConflictMessage: String?,
-        failureMessage: String,
+        error: Error,
         fallback: CloudSyncFailureStatusFallback
     ) -> CloudSyncFailureStatusDecision {
         if let recoveryReason {
             return .blockedForRecovery(reason: recoveryReason)
+        }
+        if self.isLocalStorageFull(error: error) {
+            return .localStorageFull(message: errorMessage(error: error))
         }
         if postAuthenticationFailureIsIdle {
             return .idle
@@ -45,13 +49,20 @@ enum CloudSyncFailurePolicy {
 
         switch fallback {
         case .failed:
-            return .failed(message: failureMessage)
+            return .failed(message: errorMessage(error: error))
         case .cloudState(let cloudState):
             if cloudState == .linked || cloudState == .guest {
-                return .failed(message: failureMessage)
+                return .failed(message: errorMessage(error: error))
             }
             return .idle
         }
+    }
+
+    static func isLocalStorageFull(error: Error) -> Bool {
+        if case LocalStoreError.storageFull = technicalErrorPresentationSource(error: error) {
+            return true
+        }
+        return false
     }
 
     static func isBlockedIdentityConflict(error: Error) -> Bool {

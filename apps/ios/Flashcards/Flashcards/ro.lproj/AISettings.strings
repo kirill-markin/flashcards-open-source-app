@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sincronizare blocată: %@";
 "settings.sync.failed" = "Sincronizarea a eșuat: %@";
 "settings.sync.failed.generic" = "Sincronizarea a eșuat";
+"settings.sync.storageFull" = "Eliberați spațiu pe acest dispozitiv pentru a relua sincronizarea.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Pe acest dispozitiv lipsesc datele de autentificare securizate. Datele locale sunt păstrate. Autentifică-te din nou pentru a reconecta sincronizarea.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Accesul în cloud la spațiul de lucru asociat s-a schimbat. Datele locale sunt păstrate. Autentifică-te din nou după restabilirea accesului la contul și spațiul de lucru originale.";
 "settings.sync.recovery.guestSessionMissing" = "Pe acest dispozitiv lipsesc datele de autentificare ale vizitatorului. Datele locale sunt păstrate, dar vechiul cont de vizitator din cloud nu poate fi recuperat fără tokenul său.";

@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "ہم وقت سازی مسدود: %@";
 "settings.sync.failed" = "ہم وقت سازی ناکام: %@";
 "settings.sync.failed.generic" = "ہم وقت سازی ناکام";
+"settings.sync.storageFull" = "مطابقت پذیری دوبارہ شروع کرنے کے لیے اس ڈیوائس پر کچھ جگہ خالی کریں۔";
 "settings.sync.recovery.linkedCredentialsMissing" = "اس آلے پر محفوظ سائن اِن معلومات موجود نہیں ہیں۔ مقامی ڈیٹا محفوظ ہے۔ ہم وقت سازی دوبارہ جوڑنے کے لیے پھر سائن اِن کریں۔";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "منسلک ورک اسپیس کی کلاؤڈ رسائی بدل گئی ہے۔ مقامی ڈیٹا محفوظ ہے۔ اصل اکاؤنٹ اور ورک اسپیس کی رسائی بحال ہونے کے بعد دوبارہ سائن اِن کریں۔";
 "settings.sync.recovery.guestSessionMissing" = "اس آلے پر مہمان کی اسناد موجود نہیں ہیں۔ مقامی ڈیٹا محفوظ ہے، مگر پرانا مہمان کلاؤڈ اکاؤنٹ اس کے ٹوکن کے بغیر بحال نہیں ہو سکتا۔";

@@ -31,6 +31,7 @@ extension FlashcardsStore {
             try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
             try self.finishCardMaintenanceRefresh(linkedSession: linkedSession, token: refreshToken)
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
+            Analytics.recordSyncSucceeded()
         } catch {
             if self.isCloudCredentialRecoveryValidation(error) {
                 throw error
@@ -41,6 +42,9 @@ extension FlashcardsStore {
             if isRequestCancellationError(error: error) {
                 self.syncStatus = .idle
                 throw error
+            }
+            if CloudSyncFailurePolicy.isLocalStorageFull(error: error) {
+                Analytics.reportSyncFailure(reason: .storageFull)
             }
             self.cloudRuntime.clearActiveCloudSessionIfMatchingStableContext(linkedSession: linkedSession)
             logCloudFlowPhase(
