@@ -58,6 +58,26 @@ struct WidgetSnapshotScheduleBucket: Codable, Sendable, Equatable {
     let count: Int
 }
 
+struct WidgetSnapshotBestDay: Codable, Sendable, Equatable {
+    let localDate: String
+    let reviewCount: Int
+}
+
+struct WidgetSnapshotStudyDay: Codable, Sendable, Equatable {
+    let localDate: String
+    let seconds: Double
+}
+
+/// The server-only Progress facts the widgets show, for the same day and time zone as `progress`.
+struct WidgetSnapshotInsights: Codable, Sendable, Equatable {
+    /// The best local day before today; nil before the first review day ended.
+    let bestDayBeforeToday: WidgetSnapshotBestDay?
+    /// Nil under the server's timing sample.
+    let secondsPerDueCard: Double?
+    /// The last 7 local days; nil under the server's timing sample.
+    let studySecondsByDay: [WidgetSnapshotStudyDay]?
+}
+
 /// Review state the app hands to the Home Screen widgets through the App Group.
 /// Fields added after the first widget release are optional so an older file still decodes.
 struct WidgetSnapshot: Codable, Sendable, Equatable {
@@ -76,4 +96,10 @@ struct WidgetSnapshot: Codable, Sendable, Equatable {
     /// The Progress review schedule buckets in their stable order; nil until the app has loaded them.
     let reviewSchedule: [WidgetSnapshotScheduleBucket]?
     let accentColor: AccountAccentColor?
+    /// New cards among `dueCount`; nil in a file written before the split existed.
+    let newCount: Int?
+    /// The first cards of the saved Review filter's queue, `nextCard` first when there is one, at most 6.
+    let nextCards: [WidgetSnapshotCard]?
+    /// Nil until the server's Progress facts for `progress` have loaded.
+    let insights: WidgetSnapshotInsights?
 }

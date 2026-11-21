@@ -323,9 +323,26 @@ const lvCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Atkārtojumu vērtējumi",
     },
+    reviewsPace: {
+      lastSevenDays: "Pēdējās 7 dienas · {{count}} dienā",
+      vsUsual: "pret jūsu vidējo",
+      studyTime: "Mācību laiks · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordi",
+      bestDay: "Labākā diena",
+      bestWeek: "Labākā nedēļa",
+      longestStreak: "Garākā sērija",
+      totalReviews: "Atkārtojumi kopā",
+      lastSevenDays: "Pēdējās 7 dienas",
+      cardsMet: "Jaunas kārtis",
+      relearned: "Atkārtoti apgūtas",
+    },
     reviewSchedule: {
       title: "Atkārtošanas grafiks",
       totalCards: "Kartītes kopā: {{count}}",
+      dueToday: "Šodien jāatkārto {{count}}",
+      dueTodayWithMinutes: "Šodien jāatkārto {{count}} · ≈ {{minutes}} min",
       legendLabel: "Atkārtošanas grafika grupas",
       buckets: {
         new: "Jaunas",

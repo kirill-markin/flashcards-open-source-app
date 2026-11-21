@@ -130,6 +130,7 @@ extension FlashcardsStore {
 
         let snapshot = try makeProgressSnapshot(
             summary: renderedProgress.renderedSummary.summary,
+            insights: renderedProgress.renderedSummary.insights,
             series: renderedProgress.renderedSeries.series,
             scopeKey: scopeKey,
             summarySourceState: renderedProgress.renderedSummary.sourceState,
@@ -581,6 +582,7 @@ extension FlashcardsStore {
         do {
             snapshot = try makeProgressSnapshot(
                 summary: summary.summary,
+                insights: summary.insights,
                 series: series.series,
                 scopeKey: scopeKey,
                 summarySourceState: summary.sourceState,

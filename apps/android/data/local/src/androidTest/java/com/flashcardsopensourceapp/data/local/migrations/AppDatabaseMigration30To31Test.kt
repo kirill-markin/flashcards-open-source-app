@@ -58,7 +58,8 @@ class AppDatabaseMigration30To31Test {
                 workspace = WorkspaceEntity(workspaceId = workspaceId, name = "Workspace", createdAtMillis = 1_000L)
             )
             fixture.mediaTransferDao().upsertMediaTransfers(mediaTransfers = recoverable + otherTransfers)
-            // The migration changes data only, so the current schema can stand in for version 30.
+            // Version 30 predates insightsJson; reopening exercises both 30→31 and 31→32.
+            fixture.openHelper.writableDatabase.execSQL("ALTER TABLE progress_summary_cache DROP COLUMN insightsJson")
             fixture.openHelper.writableDatabase.version = 30
         } finally {
             fixture.close()
@@ -66,7 +67,7 @@ class AppDatabaseMigration30To31Test {
 
         val database = openDatabase(context = context)
         try {
-            assertEquals(31, database.openHelper.writableDatabase.version)
+            assertEquals(32, database.openHelper.writableDatabase.version)
             val transferDao = database.mediaTransferDao()
             val dueUploads = transferDao.loadDueMediaTransfersByKind(
                 workspaceId = workspaceId,

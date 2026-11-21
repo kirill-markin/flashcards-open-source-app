@@ -202,6 +202,7 @@ const productAnalyticsWidgetKinds = [
   "month_calendar",
   "coming_up",
   "dashboard",
+  "question",
 ] as const;
 
 // The vocabularies the server-derived billing facts report. Each mirrors whatever owns it: the tier

@@ -323,9 +323,26 @@ const elCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Βαθμοί επαναλήψεων",
     },
+    reviewsPace: {
+      lastSevenDays: "Τελευταίες 7 ημέρες · {{count}} την ημέρα",
+      vsUsual: "έναντι του μέσου σου",
+      studyTime: "Χρόνος μελέτης · ≈ {{count}} λεπ.",
+    },
+    records: {
+      title: "Ρεκόρ",
+      bestDay: "Καλύτερη ημέρα",
+      bestWeek: "Καλύτερη εβδομάδα",
+      longestStreak: "Μεγαλύτερο σερί",
+      totalReviews: "Συνολικές επαναλήψεις",
+      lastSevenDays: "Τελευταίες 7 ημέρες",
+      cardsMet: "Νέες κάρτες",
+      relearned: "Ξαναμαθημένες",
+    },
     reviewSchedule: {
       title: "Πρόγραμμα επαναλήψεων",
       totalCards: "Σύνολο καρτών: {{count}}",
+      dueToday: "Για σήμερα {{count}}",
+      dueTodayWithMinutes: "Για σήμερα {{count}} · ≈ {{minutes}} λεπ.",
       legendLabel: "Ομάδες προγράμματος επαναλήψεων",
       buckets: {
         new: "Νέες",

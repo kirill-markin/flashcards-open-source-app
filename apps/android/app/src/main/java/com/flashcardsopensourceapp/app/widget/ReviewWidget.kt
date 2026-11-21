@@ -17,10 +17,13 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
+import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
@@ -82,11 +85,8 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
                 content == null -> ReviewWidgetOpenApp()
                 content.dueCount == 0 -> ReviewWidgetAllDone(content = content, showStreak = size != ReviewWidgetSize.MEDIUM)
                 size == ReviewWidgetSize.SMALL -> ReviewWidgetSmallDue(content = content)
-                else -> ReviewWidgetDueWithCard(
-                    content = content,
-                    card = shownCard,
-                    showStreak = size == ReviewWidgetSize.LARGE
-                )
+                size == ReviewWidgetSize.MEDIUM -> ReviewWidgetMediumDue(content = content, card = shownCard)
+                else -> ReviewWidgetLargeDue(content = content, card = shownCard)
             }
         }
     }
@@ -129,37 +129,92 @@ private fun ColumnScope.ReviewWidgetAllDone(content: ReviewWidgetContent, showSt
     }
 }
 
+/** The cards to review, how many of them are due, and the streak. */
 @Composable
 private fun ColumnScope.ReviewWidgetSmallDue(content: ReviewWidgetContent) {
     val context = LocalContext.current
     Text(
         text = context.getString(R.string.review_widget_due_count, content.dueCount),
-        style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 40.sp, fontWeight = FontWeight.Bold),
+        // Smaller than a lone headline, so the due line fits under it.
+        style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 34.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
-    Text(text = context.getString(R.string.review_widget_due_label), style = secondaryStyle(), maxLines = 1)
+    Text(text = context.getString(R.string.review_widget_to_review_label), style = secondaryStyle(), maxLines = 1)
+    Text(
+        text = widgetScheduledDueText(context = context, scheduledDueCount = content.scheduledDueCount),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
     ReviewWidgetStreakFooter(streakDays = content.streakDays)
 }
 
 @Composable
-private fun ColumnScope.ReviewWidgetDueWithCard(content: ReviewWidgetContent, card: ReviewWidgetCard?, showStreak: Boolean) {
+private fun ColumnScope.ReviewWidgetMediumDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
     Text(
-        text = context.resources.getQuantityString(R.plurals.review_widget_cards_due, content.dueCount, content.dueCount),
+        text = context.resources.getQuantityString(R.plurals.review_widget_to_review_count, content.dueCount, content.dueCount),
         style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
     if (card != null) {
-        Spacer(modifier = GlanceModifier.height(8.dp))
+        Spacer(modifier = GlanceModifier.height(4.dp))
+        ReviewWidgetQuestion(card = card, maxLines = 3, modifier = GlanceModifier.defaultWeight())
+    } else {
+        Spacer(modifier = GlanceModifier.defaultWeight())
+    }
+    Text(
+        text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content)),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
+}
+
+@Composable
+private fun ColumnScope.ReviewWidgetLargeDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
+    val context = LocalContext.current
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
-            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            maxLines = if (showStreak) 6 else 3
+            text = context.resources.getQuantityString(R.plurals.review_widget_to_review_count, content.dueCount, content.dueCount),
+            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            modifier = GlanceModifier.defaultWeight()
         )
+        val streakDays: Int? = content.streakDays
+        if (streakDays != null) {
+            Text(
+                text = context.resources.getQuantityString(R.plurals.review_widget_streak_days, streakDays, streakDays),
+                style = secondaryStyle(),
+                maxLines = 1
+            )
+        }
     }
-    if (showStreak) {
-        ReviewWidgetStreakFooter(streakDays = content.streakDays)
+    val newCountDetail: List<String> = if (content.newCount > 0) {
+        listOf(context.resources.getQuantityString(R.plurals.widget_new_count, content.newCount, content.newCount))
+    } else {
+        emptyList()
     }
+    Text(
+        text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content) + newCountDetail),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
+    if (card == null) {
+        return
+    }
+    Spacer(modifier = GlanceModifier.height(8.dp))
+    ReviewWidgetQuestion(card = card, maxLines = 6, modifier = GlanceModifier.defaultWeight())
+}
+
+/** The question area; its tap is the widget's, which opens the card question-side. */
+@Composable
+internal fun ReviewWidgetQuestion(card: ReviewWidgetCard, maxLines: Int, modifier: GlanceModifier) {
+    val context = LocalContext.current
+    Text(
+        text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
+        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+        maxLines = maxLines,
+        modifier = modifier
+    )
 }
 
 @Composable

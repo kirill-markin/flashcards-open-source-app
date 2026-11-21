@@ -326,7 +326,8 @@ enum class AnalyticsWidgetKind(val wireValue: String) {
     STREAKS(wireValue = "streaks"),
     MONTH_CALENDAR(wireValue = "month_calendar"),
     COMING_UP(wireValue = "coming_up"),
-    DASHBOARD(wireValue = "dashboard")
+    DASHBOARD(wireValue = "dashboard"),
+    QUESTION(wireValue = "question")
 }
 
 enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {

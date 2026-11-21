@@ -425,6 +425,23 @@ extension CardStore {
         return snapshot
     }
 
+    /// The new cards among the workspace review due badge count.
+    func loadWorkspaceReviewNewCount(workspaceId: String) throws -> Int {
+        let counts = try self.core.query(
+            sql: """
+            SELECT COUNT(*) FROM cards INDEXED BY idx_cards_workspace_new_due_active
+            WHERE workspace_id = ? AND deleted_at IS NULL AND \(cardStoreActiveReviewNewEligibilitySQL)
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            Int(DatabaseCore.columnInt64(statement: statement, index: 0))
+        }
+        guard let count = counts.first else {
+            throw LocalStoreError.database("Expected workspace review new count query to return one row")
+        }
+        return count
+    }
+
     func loadWorkspaceReviewDueAdvance(
         workspaceId: String,
         countedThrough: Date,

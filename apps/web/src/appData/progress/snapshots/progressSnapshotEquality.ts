@@ -1,6 +1,7 @@
 import type {
   DailyReviewPoint,
   ProgressChartData,
+  ProgressInsights,
   ProgressLeaderboardLocalViewerCounts,
   ProgressLeaderboardMetric,
   ProgressLeaderboardRankingRow,
@@ -149,6 +150,11 @@ function areStringArraysEqual(left: ReadonlyArray<string>, right: ReadonlyArray<
   return true;
 }
 
+// Insights are plain server data with no local overlay, so their JSON is their identity.
+function areProgressInsightsEqual(left: ProgressInsights | null, right: ProgressInsights | null): boolean {
+  return left === right || JSON.stringify(left) === JSON.stringify(right);
+}
+
 function areProgressSummaryPayloadsEqual(
   left: ProgressSummaryPayload | null,
   right: ProgressSummaryPayload | null,
@@ -164,7 +170,8 @@ function areProgressSummaryPayloadsEqual(
   return left.timeZone === right.timeZone
     && left.generatedAt === right.generatedAt
     && areProgressReviewHistoryWatermarksEqual(left.reviewHistoryWatermarks, right.reviewHistoryWatermarks)
-    && areProgressSummariesEqual(left.summary, right.summary);
+    && areProgressSummariesEqual(left.summary, right.summary)
+    && areProgressInsightsEqual(left.insights, right.insights);
 }
 
 function areProgressSummarySnapshotsEqual(

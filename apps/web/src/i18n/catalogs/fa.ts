@@ -323,9 +323,26 @@ const faCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "امتیازهای مرور",
     },
+    reviewsPace: {
+      lastSevenDays: "7 روز گذشته · {{count}} در روز",
+      vsUsual: "نسبت به روال معمولت",
+      studyTime: "زمان مطالعه · ≈ {{count}} دقیقه",
+    },
+    records: {
+      title: "رکوردها",
+      bestDay: "بهترین روز",
+      bestWeek: "بهترین هفته",
+      longestStreak: "طولانی‌ترین زنجیره",
+      totalReviews: "کل مرورها",
+      lastSevenDays: "7 روز گذشته",
+      cardsMet: "کارت‌های جدید",
+      relearned: "دوباره آموخته",
+    },
     reviewSchedule: {
       title: "برنامهٔ مرور",
       totalCards: "کل کارت‌ها: {{count}}",
+      dueToday: "موعد امروز {{count}}",
+      dueTodayWithMinutes: "موعد امروز {{count}} · ≈ {{minutes}} دقیقه",
       legendLabel: "دسته‌های برنامهٔ مرور",
       buckets: {
         new: "جدید",

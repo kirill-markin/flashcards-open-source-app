@@ -21,6 +21,7 @@ enum WidgetDeepLinkKind: String, Sendable, Equatable, CaseIterable {
     case monthCalendar = "month_calendar"
     case comingUp = "coming_up"
     case dashboard
+    case question
 }
 
 /// The tab a widget tap opens; the raw value is the URL host.

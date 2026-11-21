@@ -469,6 +469,7 @@ enum AnalyticsWidgetKind: String, Sendable, Equatable, CaseIterable {
     case monthCalendar = "month_calendar"
     case comingUp = "coming_up"
     case dashboard
+    case question
 }
 
 /// Sent only with the Lock Screen kind.

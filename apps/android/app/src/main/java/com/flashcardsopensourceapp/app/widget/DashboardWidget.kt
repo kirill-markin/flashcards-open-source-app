@@ -1,9 +1,7 @@
 package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -40,15 +38,14 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import java.time.LocalDate
 
 /** The Scaffold's horizontal padding and the body's vertical padding. */
 private val dashboardWidgetPadding = 12.dp
 /** `dashboard_widget_info.xml`'s minimum resize size; smaller launcher-reported sizes use it. */
 private val dashboardWidgetMinimumSize = DpSize(width = 250.dp, height = 250.dp)
-private val dashboardWidgetRingSize = 56.dp
-private const val DASHBOARD_WIDGET_RING_STROKE_FRACTION: Float = 0.1f
+private val dashboardWidgetRingSize = 64.dp
+private val dashboardWidgetPaceWidth = 96.dp
 private val dashboardWidgetSectionSpacing = 8.dp
 private val dashboardWidgetFooterSpacing = 4.dp
 private val dashboardWidgetDueCountTextSize = 24.sp
@@ -108,10 +105,8 @@ private fun DashboardWidgetBody(content: WidgetContent?, layoutSize: DpSize) {
             if (queue == null || progress == null) {
                 ReviewWidgetOpenApp()
             } else {
-                val todayReviewCount: Int = sumReviewCounts(progress = progress, dates = setOf(progress.todayLocalDate))
-                DashboardWidgetTopRow(queue = queue, progress = progress, todayReviewCount = todayReviewCount)
+                DashboardWidgetTopRow(queue = queue, progress = progress)
                 Spacer(modifier = GlanceModifier.height(dashboardWidgetSectionSpacing))
-                // Centered, so the room kept for a 3-line question splits above and below a shorter one.
                 Column(
                     modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
                     verticalAlignment = Alignment.CenterVertically
@@ -125,34 +120,19 @@ private fun DashboardWidgetBody(content: WidgetContent?, layoutSize: DpSize) {
     }
 }
 
-/** Today's ring with today's reviews inside, the cards due now, and the streak. */
+/** The pace ring with the last 7 days' reviews inside, the cards to review and due, and the streak. */
 @Composable
-private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetProgressContent, todayReviewCount: Int) {
+private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetProgressContent) {
     val context = LocalContext.current
-    val totalCount: Int = todayReviewCount + queue.dueCount
-    val fraction: Float = if (totalCount == 0) 0f else todayReviewCount.toFloat() / totalCount
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = GlanceModifier.size(dashboardWidgetRingSize), contentAlignment = Alignment.Center) {
-            Image(
-                provider = ImageProvider(
-                    bitmap = makeDashboardWidgetRingBitmap(
-                        context = context,
-                        fraction = fraction,
-                        accentArgb = widgetAccentColor().toArgb()
-                    )
-                ),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = GlanceModifier.fillMaxSize()
+        WidgetPaceRing(
+            pace = progress.pace,
+            bitmapSize = DpSize(width = dashboardWidgetRingSize, height = dashboardWidgetRingSize),
+            numberFontSize = 13.sp,
+            modifier = GlanceModifier.height(dashboardWidgetRingSize).width(
+                if (progress.pace.baseline == null) dashboardWidgetRingSize else dashboardWidgetPaceWidth
             )
-            if (totalCount > 0) {
-                Text(
-                    text = context.getString(R.string.today_widget_count, todayReviewCount),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
-            }
-        }
+        )
         Spacer(modifier = GlanceModifier.width(12.dp))
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
@@ -160,13 +140,18 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
                 style = TextStyle(color = GlanceTheme.colors.primary, fontSize = dashboardWidgetDueCountTextSize, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
-            Text(text = context.getString(R.string.review_widget_due_label), style = dashboardSecondaryStyle(), maxLines = 1)
+            Text(text = context.getString(R.string.review_widget_to_review_label), style = dashboardSecondaryStyle(), maxLines = 1)
+            Text(
+                text = widgetScheduledDueText(context = context, scheduledDueCount = queue.scheduledDueCount),
+                style = dashboardSecondaryStyle(),
+                maxLines = 1
+            )
         }
         Spacer(modifier = GlanceModifier.width(8.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             DashboardWidgetStreakFlame(
                 streakDays = progress.currentStreakDays,
-                reviewedToday = todayReviewCount > 0,
+                reviewedToday = progress.todayReviewCount > 0,
                 iconSize = 22.dp
             )
             Text(
@@ -178,10 +163,10 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
     }
 }
 
-/** The next question, or the Review widget's all-done state with the next due time; never the answer. */
 @Composable
 private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
+    val fontScale: Float = context.resources.configuration.fontScale
     if (queue.dueCount == 0) {
         Text(
             text = context.getString(R.string.review_widget_all_done),
@@ -203,15 +188,26 @@ private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: Re
         return
     }
     if (card != null) {
-        Text(
-            text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontSize = dashboardWidgetQuestionTextSize,
-                fontWeight = FontWeight.Medium
+        Box(
+            modifier = GlanceModifier.fillMaxWidth().height(
+                widgetTextHeight(
+                    fontSize = dashboardWidgetQuestionTextSize,
+                    lineCount = dashboardWidgetQuestionMaxLines,
+                    fontScale = fontScale
+                )
             ),
-            maxLines = dashboardWidgetQuestionMaxLines
-        )
+            contentAlignment = Alignment.TopStart
+        ) {
+            Text(
+                text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = dashboardWidgetQuestionTextSize,
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = dashboardWidgetQuestionMaxLines
+            )
+        }
     }
 }
 
@@ -268,16 +264,15 @@ private fun DashboardWidgetActivity(progress: WidgetProgressContent, layoutSize:
 }
 
 /**
- * The height the top row, a question of [dashboardWidgetQuestionMaxLines] lines, the footer, and their
- * spacing leave at [fontScale]; it never depends on the width, so the bitmap stays positive whatever
- * width a launcher reports.
+ * The height left after the top row, the reserved question lines, and the footer at [fontScale].
+ * The estimate stays positive regardless of the launcher's reported width.
  */
 private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): Dp {
     val contentHeight: Dp = maxOf(layoutSize.height, dashboardWidgetMinimumSize.height) - dashboardWidgetPadding * 2
     val topRowHeight: Dp = maxOf(
         dashboardWidgetRingSize,
         widgetTextHeight(fontSize = dashboardWidgetDueCountTextSize, lineCount = 1, fontScale = fontScale) +
-            widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 1, fontScale = fontScale)
+            widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 2, fontScale = fontScale)
     )
     val questionHeight: Dp = widgetTextHeight(
         fontSize = dashboardWidgetQuestionTextSize,
@@ -301,22 +296,6 @@ private fun DashboardWidgetStreakFlame(streakDays: Int, reviewedToday: Boolean, 
         colorFilter = ColorFilter.tint(colorProvider = tint),
         modifier = GlanceModifier.size(iconSize)
     )
-}
-
-/** Drawn at the ring's shown size. */
-private fun makeDashboardWidgetRingBitmap(context: Context, fraction: Float, accentArgb: Int): Bitmap {
-    return drawWidgetBitmap(
-        size = DpSize(width = dashboardWidgetRingSize, height = dashboardWidgetRingSize),
-        density = context.resources.displayMetrics.density
-    ) { canvas ->
-        drawWidgetProgressRing(
-            canvas = canvas,
-            fraction = fraction,
-            strokeWidthPx = canvas.width * DASHBOARD_WIDGET_RING_STROKE_FRACTION,
-            trackColor = FlashcardsDarkColorScheme.surfaceVariant.toArgb(),
-            progressColor = accentArgb
-        )
-    }
 }
 
 @Composable

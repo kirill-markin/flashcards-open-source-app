@@ -37,7 +37,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration27To28,
         migration28To29,
         migration29To30,
-        migration30To31
+        migration30To31,
+        migration31To32
     )
 }
 
@@ -1049,5 +1050,11 @@ val migration30To31: Migration = object : Migration(30, 31) {
             """.trimIndent(),
             arrayOf(timestampConflict, "$timestampConflict Reference: $uuidGlob")
         )
+    }
+}
+
+val migration31To32: Migration = object : Migration(31, 32) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE progress_summary_cache ADD COLUMN insightsJson TEXT")
     }
 }

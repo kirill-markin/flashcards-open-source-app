@@ -63,7 +63,8 @@ internal fun createLocalFallbackSummary(
         lastReviewedOn = lastReviewedOn,
         activeReviewDays = activeReviewDates.size,
         streakFreeze = streakEvaluation.streakFreeze,
-        reviewHistoryWatermarks = emptyList()
+        reviewHistoryWatermarks = emptyList(),
+        insights = null
     )
 }
 
@@ -241,7 +242,8 @@ internal fun createEmptyProgressSummary(): CloudProgressSummary {
         lastReviewedOn = null,
         activeReviewDays = 0,
         streakFreeze = createInitialProgressStreakFreeze(),
-        reviewHistoryWatermarks = emptyList()
+        reviewHistoryWatermarks = emptyList(),
+        insights = null
     )
 }
 

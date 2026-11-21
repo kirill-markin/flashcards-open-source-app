@@ -8,7 +8,7 @@ struct ReviewWidgetView: View {
     var body: some View {
         Group {
             if let size = reviewWidgetSize(family: self.family) {
-                ReviewWidgetContentView(size: size, entryDate: self.entry.date, content: self.entry.content)
+                ReviewWidgetContentView(size: size, entry: self.entry)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .widgetURL(
                         makeWidgetDeepLinkURL(
@@ -69,18 +69,20 @@ private func reviewWidgetShownCardId(size: ReviewWidgetSize, content: ReviewWidg
 
 private struct ReviewWidgetContentView: View {
     let size: ReviewWidgetSize
-    let entryDate: Date
-    let content: ReviewWidgetContent
+    let entry: ReviewWidgetEntry
 
     var body: some View {
-        switch self.content {
+        switch self.entry.content {
         case .noSnapshot:
             WidgetNoSnapshotView()
         case .due(let count, let nextCard, let streakDays):
             switch self.size {
             case .small:
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
                     ReviewWidgetDueCountView(count: count)
+                    if let scheduledDueCount = self.entry.scheduledDueCount {
+                        ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
+                    }
                     Spacer(minLength: 0)
                     if let streakDays {
                         ReviewWidgetStreakView(streakDays: streakDays)
@@ -90,10 +92,19 @@ private struct ReviewWidgetContentView: View {
                 HStack(alignment: .top, spacing: 16) {
                     ReviewWidgetDueCountView(count: count)
                         .fixedSize(horizontal: true, vertical: false)
-                    ReviewWidgetNextCardView(nextCard: nextCard, font: .headline, lineLimit: 4)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ReviewWidgetNextCardView(nextCard: nextCard, font: .headline, lineLimit: 3, reservesLines: false)
+                        Spacer(minLength: 0)
+                        if let scheduledDueCount = self.entry.scheduledDueCount {
+                            ReviewWidgetScheduledDueView(
+                                scheduledDueCount: scheduledDueCount,
+                                minutes: widgetReviewTimeEstimateMinutes(entry: self.entry)
+                            )
+                        }
+                    }
                 }
             case .large:
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
                         ReviewWidgetDueCountView(count: count)
                         Spacer(minLength: 8)
@@ -101,18 +112,60 @@ private struct ReviewWidgetContentView: View {
                             ReviewWidgetStreakView(streakDays: streakDays)
                         }
                     }
-                    ReviewWidgetNextCardView(nextCard: nextCard, font: .title3.weight(.semibold), lineLimit: 8)
+                    if let scheduledDueCount = self.entry.scheduledDueCount {
+                        reviewWidgetLargeQueueText(
+                            scheduledDueText: widgetScheduledDueText(
+                                scheduledDueCount: scheduledDueCount,
+                                minutes: widgetReviewTimeEstimateMinutes(entry: self.entry)
+                            ),
+                            newCount: self.entry.snapshot?.newCount
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    }
+                    ReviewWidgetNextCardView(
+                        nextCard: nextCard,
+                        font: .title3.weight(.semibold),
+                        lineLimit: 7,
+                        reservesLines: false
+                    )
                     Spacer(minLength: 0)
                 }
             }
         case .allDone(let nextDueAt, let streakDays):
             // Medium shows the question and count only, so it omits the streak.
             ReviewWidgetAllDoneView(
-                entryDate: self.entryDate,
+                entryDate: self.entry.date,
                 nextDueAt: nextDueAt,
                 streakDays: self.size == .medium ? nil : streakDays
             )
         }
+    }
+}
+
+/// The new cards are shown only while some are left.
+private func reviewWidgetLargeQueueText(scheduledDueText: Text, newCount: Int?) -> Text {
+    guard let newCount, newCount > 0 else {
+        return scheduledDueText
+    }
+    return scheduledDueText
+        + Text(verbatim: " · ")
+        + Text("widget.new_count \(newCount)", tableName: widgetStringsTableName)
+}
+
+/// The quiet line under the To review headline: the scheduled due cards and the minutes to clear them.
+struct ReviewWidgetScheduledDueView: View {
+    let scheduledDueCount: Int
+    let minutes: Int?
+
+    var body: some View {
+        widgetScheduledDueText(scheduledDueCount: self.scheduledDueCount, minutes: self.minutes)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 }
 
@@ -141,6 +194,8 @@ struct ReviewWidgetNextCardView: View {
     let nextCard: WidgetSnapshotCard?
     let font: Font
     let lineLimit: Int
+    /// Keeps the full line count of height for a short question, so the controls below never move.
+    let reservesLines: Bool
 
     var body: some View {
         Group {
@@ -153,7 +208,7 @@ struct ReviewWidgetNextCardView: View {
             }
         }
         .font(self.font)
-        .lineLimit(self.lineLimit)
+        .lineLimit(self.lineLimit, reservesSpace: self.reservesLines)
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

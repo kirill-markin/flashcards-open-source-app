@@ -281,6 +281,7 @@ internal fun createProgressSeriesSnapshot(
 
 private fun createProgressSummaryForTest(): CloudProgressSummary {
     return CloudProgressSummary(
+        insights = null,
         currentStreakDays = 12,
         longestStreakDays = 12,
         hasReviewedToday = true,

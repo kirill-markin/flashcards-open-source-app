@@ -20,7 +20,8 @@ enum class WidgetKind(val rawValue: String) {
     STREAKS(rawValue = "streaks"),
     MONTH_CALENDAR(rawValue = "month_calendar"),
     COMING_UP(rawValue = "coming_up"),
-    DASHBOARD(rawValue = "dashboard")
+    DASHBOARD(rawValue = "dashboard"),
+    QUESTION(rawValue = "question")
 }
 
 /**

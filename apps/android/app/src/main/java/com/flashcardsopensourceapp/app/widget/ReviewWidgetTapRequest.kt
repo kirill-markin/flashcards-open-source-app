@@ -38,6 +38,7 @@ fun analyticsWidgetKind(kind: WidgetKind): AnalyticsWidgetKind {
         WidgetKind.MONTH_CALENDAR -> AnalyticsWidgetKind.MONTH_CALENDAR
         WidgetKind.COMING_UP -> AnalyticsWidgetKind.COMING_UP
         WidgetKind.DASHBOARD -> AnalyticsWidgetKind.DASHBOARD
+        WidgetKind.QUESTION -> AnalyticsWidgetKind.QUESTION
     }
 }
 

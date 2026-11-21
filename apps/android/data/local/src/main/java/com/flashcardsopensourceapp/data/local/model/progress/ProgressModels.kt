@@ -121,6 +121,36 @@ data class ProgressReviewHistoryWatermark(
     val reviewSequenceId: Long
 )
 
+data class CloudProgressBestDay(
+    val date: String,
+    val reviewCount: Int
+)
+
+data class CloudProgressBestWeek(
+    val endDate: String,
+    val reviewCount: Int
+)
+
+data class CloudProgressStudySecondsDay(
+    val date: String,
+    val seconds: Int
+)
+
+/**
+ * Server-only Progress facts that need lifetime or per-card history. "Last 7 days" is the rolling 7
+ * local days ending today, and the bests exclude today. The timing fields are null under the
+ * server's timing sample.
+ */
+data class CloudProgressInsights(
+    val totalReviews: Int,
+    val bestDayBeforeToday: CloudProgressBestDay?,
+    val bestWeekBeforeToday: CloudProgressBestWeek?,
+    val cardsMetLast7Days: Int,
+    val relearnedLast7Days: Int,
+    val secondsPerDueCard: Double?,
+    val studySecondsByDay: List<CloudProgressStudySecondsDay>?
+)
+
 data class CloudProgressSummary(
     val currentStreakDays: Int,
     val longestStreakDays: Int,
@@ -128,7 +158,9 @@ data class CloudProgressSummary(
     val lastReviewedOn: String?,
     val activeReviewDays: Int,
     val streakFreeze: CloudProgressStreakFreeze,
-    val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
+    val reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
+    /** Only from the server; null in local fallbacks and from servers that predate it. */
+    val insights: CloudProgressInsights?
 )
 
 data class CloudProgressSeries(

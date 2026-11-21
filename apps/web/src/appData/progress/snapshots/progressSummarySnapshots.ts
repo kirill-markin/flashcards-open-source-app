@@ -29,6 +29,7 @@ export function createProgressSummarySnapshot(
     generatedAt: payload.generatedAt,
     reviewHistoryWatermarks: payload.reviewHistoryWatermarks,
     summary: payload.summary,
+    insights: payload.insights,
     source,
     isApproximate,
   };
@@ -202,6 +203,7 @@ function mergeProgressSummary(
     generatedAt: serverBase.generatedAt,
     reviewHistoryWatermarks: serverBase.reviewHistoryWatermarks,
     summary,
+    insights: serverBase.insights,
   };
 }
 

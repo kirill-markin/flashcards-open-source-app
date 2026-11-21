@@ -323,9 +323,26 @@ const zuCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Izilinganiso zokubukeza",
     },
+    reviewsPace: {
+      lastSevenDays: "Izinsuku ezi-7 ezedlule · {{count}} ngosuku",
+      vsUsual: "uma kuqhathaniswa nesilinganiso sakho",
+      studyTime: "Isikhathi sokufunda · ≈ {{count}} imiz",
+    },
+    records: {
+      title: "Amarekhodi",
+      bestDay: "Usuku oluhle kakhulu",
+      bestWeek: "Iviki elihle kakhulu",
+      longestStreak: "Uchungechunge olude kakhulu",
+      totalReviews: "Inani lokubuyekeza",
+      lastSevenDays: "Izinsuku ezi-7 ezedlule",
+      cardsMet: "Amakhadi amasha",
+      relearned: "Afundwe kabusha",
+    },
     reviewSchedule: {
       title: "Ishejuli yokubukeza",
       totalCards: "Amakhadi esewonke: {{count}}",
+      dueToday: "Okufanele namuhla {{count}}",
+      dueTodayWithMinutes: "Okufanele namuhla {{count}} · ≈ {{minutes}} imiz",
       legendLabel: "Amaqembu eshejuli yokubukeza",
       buckets: {
         new: "Okusha",

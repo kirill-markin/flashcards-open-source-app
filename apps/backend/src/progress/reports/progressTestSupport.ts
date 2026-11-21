@@ -339,7 +339,7 @@ export function createProgressExecutor(
       }
 
       if (
-        text.includes("COALESCE(MAX(review_events.review_sequence), 0) AS review_sequence_id")
+        text.includes("AS review_sequence_id")
         && text.includes("FROM unnest($1::uuid[]) AS requested_workspace_ids(workspace_id)")
       ) {
         const workspaceIdsParam = params[0];
@@ -410,6 +410,15 @@ export function createProgressExecutor(
         }
 
         return createQueryResult<ReviewScheduleCountRow>(rows) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (text.includes("WITH user_review_events AS MATERIALIZED (") && text.includes("AS lifetime_days")) {
+        if (scope.workspaceId !== params[0] || scope.userId !== params[1]) {
+          throw new Error("Progress insights query requires matching user and workspace scope");
+        }
+        return createQueryResult<QueryResultRow>([
+          { lifetime_days: [], cards_met_count: 0, relearned_count: 0, timing_days: [] },
+        ]) as unknown as pg.QueryResult<Row>;
       }
 
       throw new Error(`Unexpected progress query: ${text}`);

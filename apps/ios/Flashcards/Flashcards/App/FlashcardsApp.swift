@@ -78,6 +78,8 @@ private func analyticsWidgetKind(kind: WidgetDeepLinkKind) -> AnalyticsWidgetKin
         return .comingUp
     case .dashboard:
         return .dashboard
+    case .question:
+        return .question
     }
 }
 
