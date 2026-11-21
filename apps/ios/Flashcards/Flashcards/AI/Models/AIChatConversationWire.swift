@@ -44,6 +44,7 @@ struct AIChatConversationEnvelopeWire: Decodable, Hashable, Sendable {
     let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunWire?
+    let customInstructions: String?
 
     private enum CodingKeys: String, CodingKey {
         case sessionId
@@ -52,6 +53,7 @@ struct AIChatConversationEnvelopeWire: Decodable, Hashable, Sendable {
         case composerSuggestions
         case chatConfig
         case activeRun
+        case customInstructions
     }
 
     init(from decoder: Decoder) throws {
@@ -65,6 +67,8 @@ struct AIChatConversationEnvelopeWire: Decodable, Hashable, Sendable {
         ) ?? []
         self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
         self.activeRun = try container.decodeIfPresent(AIChatActiveRunWire.self, forKey: .activeRun)
+        // Absent on older backends, which means unset.
+        self.customInstructions = try container.decodeIfPresent(String.self, forKey: .customInstructions)
     }
 }
 
@@ -132,6 +136,7 @@ struct AIChatAcceptedConversationEnvelopeWire: Decodable, Hashable, Sendable {
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunWire?
     let deduplicated: Bool?
+    let customInstructions: String?
 
     private enum CodingKeys: String, CodingKey {
         case accepted
@@ -142,6 +147,7 @@ struct AIChatAcceptedConversationEnvelopeWire: Decodable, Hashable, Sendable {
         case chatConfig
         case activeRun
         case deduplicated
+        case customInstructions
     }
 
     init(from decoder: Decoder) throws {
@@ -157,6 +163,7 @@ struct AIChatAcceptedConversationEnvelopeWire: Decodable, Hashable, Sendable {
         self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
         self.activeRun = try container.decodeIfPresent(AIChatActiveRunWire.self, forKey: .activeRun)
         self.deduplicated = try container.decodeIfPresent(Bool.self, forKey: .deduplicated)
+        self.customInstructions = try container.decodeIfPresent(String.self, forKey: .customInstructions)
     }
 }
 

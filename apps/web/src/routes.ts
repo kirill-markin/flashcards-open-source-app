@@ -67,6 +67,7 @@ export const settingsThemeRoute: string = "/settings/theme";
 export const settingsAccentColorRoute: string = "/settings/accent-color";
 export const settingsReviewAnimationsRoute: string = "/settings/review-animations";
 export const settingsAIChatSuggestionsRoute: string = "/settings/ai-chat-suggestions";
+export const settingsChatInstructionsRoute: string = "/settings/chat-instructions";
 export const settingsSubscriptionRoute: string = "/settings/subscription";
 export const settingsOwnOpenAIKeyRoute: string = "/settings/own-openai-key";
 export const settingsAnalyticsRoute: string = "/settings/analytics";

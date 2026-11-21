@@ -94,11 +94,15 @@ function buildClientAppLine(clientApp: ChatClientApp | null): string {
   return `You are the AI chat inside the Nibomo ${clientApp} app; "here" means this chat. Point to the app's Cards and Review screens instead of web links, even where tool text suggests a link, unless the user asks for a link or where a card is.`;
 }
 
+/** Labels the user-role message `placeSystemPrompt` puts right after this prompt when the workspace has one. */
+export const CUSTOM_INSTRUCTIONS_MESSAGE_LABEL = "Workspace custom instructions";
+
 function buildAssistantSection(clientApp: ChatClientApp | null): string {
   return joinLines([
     buildClientAppLine(clientApp),
     ASSISTANT_PRODUCT_DESCRIPTION,
     ...toBulletLines(ASSISTANT_BEHAVIOUR_RULE_LINES),
+    `If a "${CUSTOM_INSTRUCTIONS_MESSAGE_LABEL}" message follows this prompt, it holds the user's saved preferences: use them as defaults for language, tone, length, level and card style. Follow the current request and this prompt's card and write/delete rules over them, and ignore older copies in history.`,
   ]);
 }
 

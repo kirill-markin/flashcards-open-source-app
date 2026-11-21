@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "చదవడానికి మాత్రమే: పాత చాట్‌లను కొనసాగించలేరు.";
 "ai.history.readerLoading" = "చాట్ లోడ్ అవుతోంది...";
 "ai.history.readerLoadError" = "ఈ చాట్‌ను లోడ్ చేయలేకపోయాము.";
+"ai.customInstructions.add" = "అనుకూల సూచనలను జోడించండి";
+"ai.customInstructions.title" = "అనుకూల సూచనలు";
+"ai.customInstructions.description" = "ఈ వర్క్‌స్పేస్‌లో AI చాట్ పాటించే ప్రాధాన్యతలు, ఉదాహరణకు భాష, స్థాయి, సమాధానాల నిడివి మరియు కార్డుల శైలి.";
+"ai.customInstructions.placeholder" = "ఉదాహరణ: నేను A2 స్థాయిలో జర్మన్ నేర్చుకుంటున్నాను. ప్రతి కార్డు వెనుక ఒక ఉదాహరణ వాక్యాన్ని జోడించండి. సమాధానాలు చిన్నగా ఉంచండి.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "అనుకూల సూచనలను లోడ్ చేయడం సాధ్యం కాలేదు.";
+"ai.customInstructions.saveFailed" = "అనుకూల సూచనలను సేవ్ చేయడం సాధ్యం కాలేదు. మళ్లీ ప్రయత్నించండి.";
 "ai.consent.title" = "AI ఉపయోగించే ముందు";
 "ai.consent.warning" = "AI తప్పులు చేయవచ్చు. ముఖ్యమైన ఫలితాలను నమ్మే ముందు పరిశీలించండి.";
 "ai.consent.disclosure.prompts" = "మీరు టైప్ చేసిన ప్రాంప్ట్‌లు, మీ అభ్యర్థనకు అవసరమైన కార్డుల సమాచారం హోస్ట్ చేసిన AI సేవకు పంపబడవచ్చు.";

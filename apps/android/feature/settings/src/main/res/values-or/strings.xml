@@ -833,4 +833,11 @@
     <string name="settings_tag_detail_open_review">ଅଭ୍ୟାସ ଖୋଲନ୍ତୁ</string>
     <string name="settings_tag_detail_remove_tag">କାର୍ଡରୁ ଟ୍ୟାଗ୍ ହଟାନ୍ତୁ</string>
     <string name="settings_tag_detail_unavailable">ବର୍ତ୍ତମାନର ୱର୍କସ୍ପେସ୍‌ରେ ଏହି ଟ୍ୟାଗ୍ ଆଉ ଉପଲବ୍ଧ ନାହିଁ।</string>
+    <string name="ai_chat_instructions_add">କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ଯୋଡନ୍ତୁ</string>
+    <string name="ai_chat_instructions_title">କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ</string>
+    <string name="ai_chat_instructions_description">ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରରେ AI ଚାଟ୍ ଅନୁସରଣ କରୁଥିବା ପସନ୍ଦ, ଯେପରି ଭାଷା, ସ୍ତର, ଉତ୍ତରର ଲମ୍ବ ଏବଂ କାର୍ଡର ଶୈଳୀ।</string>
+    <string name="ai_chat_instructions_placeholder">ଉଦାହରଣ: ମୁଁ A2 ସ୍ତରରେ ଜର୍ମାନ ଶିଖୁଛି। ପ୍ରତ୍ୟେକ କାର୍ଡର ପଛପଟେ ଏକ ଉଦାହରଣ ବାକ୍ୟ ଯୋଡନ୍ତୁ। ଉତ୍ତର ସଂକ୍ଷିପ୍ତ ରଖନ୍ତୁ।</string>
+    <string name="ai_chat_instructions_count">%1$d / %2$d</string>
+    <string name="ai_chat_instructions_load_failed">କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ଲୋଡ୍ କରିହେଲା ନାହିଁ।</string>
+    <string name="ai_chat_instructions_save_failed">କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ସେଭ୍ କରିହେଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
 </resources>

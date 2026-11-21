@@ -39,6 +39,9 @@ export async function runAiConversationResetFlow(session: LiveSmokeSession): Pro
   await runLiveSmokeStep(session, "start a new chat and confirm the conversation resets cleanly", async () => {
     await assertNewChatResetsConversation(session);
   });
+  await runLiveSmokeStep(session, "save, reopen and clear custom instructions from the new chat", async () => {
+    await assertCustomInstructionsRoundTrip(session);
+  });
 }
 
 async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Promise<void> {
@@ -230,9 +233,10 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     "start a fresh AI chat from the top bar",
     page.getByTestId("chat-new-button"),
   );
-  await diagnostics.runAction("confirm AI chat reset finishes without an empty-state banner", async () => {
+  await diagnostics.runAction("confirm AI chat reset shows only the custom instructions button in its empty state", async () => {
     await expect(page.getByTestId("chat-messages")).toBeVisible({ timeout: externalUiTimeoutMs });
     await expect(page.getByTestId("chat-messages").locator(".chat-empty")).toHaveCount(0, { timeout: externalUiTimeoutMs });
+    await expect(page.getByTestId("chat-custom-instructions-button")).toBeVisible({ timeout: externalUiTimeoutMs });
   });
   await diagnostics.runAction("confirm AI chat has no remaining messages or message-level errors", async () => {
     const allMessages = page.locator(".chat-msg");
@@ -249,6 +253,52 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     false,
     externalUiTimeoutMs,
   );
+}
+
+/** Edits go straight to the instructions endpoint, so this exercises no model call. */
+async function assertCustomInstructionsRoundTrip(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics } = session;
+  const entryButton = page.getByTestId("chat-custom-instructions-button");
+  const form = page.getByTestId("chat-instructions-form");
+  const input = page.getByTestId("chat-instructions-input");
+  const saveButton = page.getByTestId("chat-instructions-save");
+  const instructions = "Live smoke: answer in one short sentence.";
+
+  const openEditor = async (actionLabel: string): Promise<void> => {
+    await trackedClick(diagnostics, actionLabel, entryButton);
+    await trackedWaitForUrl(page, diagnostics, "wait for the custom instructions editor", /\/settings\/chat-instructions$/, externalUiTimeoutMs);
+    await diagnostics.runAction("wait for the saved custom instructions to load in place", async () => {
+      await expect(form).toHaveAttribute("data-load-state", "ready", { timeout: externalUiTimeoutMs });
+      await expect(page.getByTestId("chat-instructions-count")).toBeVisible({ timeout: localUiTimeoutMs });
+    });
+  };
+  const saveAndReturn = async (actionLabel: string): Promise<void> => {
+    await trackedClick(diagnostics, actionLabel, saveButton);
+    await trackedWaitForUrl(page, diagnostics, "wait to return to the AI chat after saving", /\/chat$/, externalUiTimeoutMs);
+  };
+
+  await diagnostics.runAction("confirm the new chat starts without custom instructions", async () => {
+    await expect(entryButton).toHaveAttribute("data-state", "unset", { timeout: externalUiTimeoutMs });
+  });
+  await openEditor("open custom instructions from the empty chat");
+  await diagnostics.runAction("confirm the editor starts empty", async () => {
+    await expect(input).toHaveValue("", { timeout: localUiTimeoutMs });
+  });
+  await trackedFill(diagnostics, "type custom instructions", input, instructions);
+  await saveAndReturn("save custom instructions");
+  await diagnostics.runAction("confirm the empty chat previews the saved custom instructions", async () => {
+    await expect(entryButton).toHaveAttribute("data-state", "set", { timeout: externalUiTimeoutMs });
+    await expect(page.getByTestId("chat-custom-instructions-preview")).toHaveText(instructions, { timeout: localUiTimeoutMs });
+  });
+  await openEditor("reopen custom instructions from the empty chat");
+  await diagnostics.runAction("confirm the editor reloads the saved custom instructions", async () => {
+    await expect(input).toHaveValue(instructions, { timeout: localUiTimeoutMs });
+  });
+  await trackedClick(diagnostics, "clear custom instructions", page.getByTestId("chat-instructions-clear"));
+  await trackedWaitForUrl(page, diagnostics, "wait to return to the AI chat after clearing instructions", /\/chat$/, externalUiTimeoutMs);
+  await diagnostics.runAction("confirm the empty chat offers to add custom instructions again", async () => {
+    await expect(entryButton).toHaveAttribute("data-state", "unset", { timeout: externalUiTimeoutMs });
+  });
 }
 
 async function waitForAiCreatePostInsertComposerState(

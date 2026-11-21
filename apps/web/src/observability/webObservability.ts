@@ -400,6 +400,8 @@ export type WebAppOperation =
   | "friend_invitation_share"
   | "ai_usage_load"
   | "chat_attachment_prepare"
+  | "chat_custom_instructions_load"
+  | "chat_custom_instructions_save"
   | "chat_dictation_start"
   | "chat_dictation_transcribe"
   | "chat_history_archive"

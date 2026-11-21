@@ -89,6 +89,7 @@ test("POST /chat/transcriptions prefers an explicit workspaceId multipart field 
         composerSuggestions: [],
         mainContentInvalidationVersion: 0,
         messages: [],
+        customInstructions: null,
       };
     },
     transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
@@ -133,6 +134,7 @@ test("POST /chat/transcriptions accepts and trims a legacy PostgreSQL workspaceI
         composerSuggestions: [],
         mainContentInvalidationVersion: 0,
         messages: [],
+        customInstructions: null,
       };
     },
     transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
@@ -228,6 +230,7 @@ test("POST /chat/transcriptions resolves the explicit sessionId exactly once", a
         composerSuggestions: [],
         mainContentInvalidationVersion: 0,
         messages: [],
+        customInstructions: null,
       };
     },
     transcribeAudioFn: async () => ({ text: "hello", usageCounters: null }),
@@ -327,6 +330,7 @@ test("POST /chat/transcriptions stops before session recovery when the selected 
         composerSuggestions: [],
         mainContentInvalidationVersion: 0,
         messages: [],
+        customInstructions: null,
       };
     },
     transcribeAudioFn: async () => {

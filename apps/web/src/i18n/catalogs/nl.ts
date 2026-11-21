@@ -1550,6 +1550,15 @@ const nlCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Vraag naar kaarten of je herhalingsgeschiedenis, of voeg notities toe...",
     currentChatRecovered: "Deze chat is vervangen door een nieuwere. Je bericht staat nog in het invoerveld — verstuur het opnieuw.",
+    customInstructions: {
+      add: "Aangepaste instructies toevoegen",
+      count: "{{count}} / {{max}}",
+      description: "Voorkeuren die de AI-chat in deze werkruimte volgt, zoals taal, niveau, lengte van antwoorden en kaartstijl.",
+      loadFailed: "Aangepaste instructies konden niet worden geladen.",
+      placeholder: "Bijvoorbeeld: ik leer Duits op A2-niveau. Voeg op de achterkant van elke kaart een voorbeeldzin toe. Antwoord kort.",
+      saveFailed: "Aangepaste instructies konden niet worden opgeslagen. Probeer het opnieuw.",
+      title: "Aangepaste instructies",
+    },
     dictation: {
       listening: "Luisteren...",
       start: "Dicteren starten",

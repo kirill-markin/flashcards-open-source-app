@@ -70,6 +70,7 @@ function createRunningSessionSnapshot(
     composerSuggestions,
     mainContentInvalidationVersion: 0,
     messages: [],
+    customInstructions: null,
   };
 }
 
@@ -85,6 +86,7 @@ function createIdleSessionSnapshot(
     composerSuggestions,
     mainContentInvalidationVersion: 0,
     messages: [],
+    customInstructions: null,
   };
 }
 
@@ -98,6 +100,7 @@ function createInterruptedSessionSnapshot() {
     composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages: [],
+    customInstructions: null,
   };
 }
 

@@ -33,7 +33,7 @@ export function parseMainContentInvalidationVersion(
 
 export function mapSessionRow(
   row: ChatSessionRow,
-): Omit<ChatSessionSnapshot, "messages"> {
+): Omit<ChatSessionSnapshot, "messages" | "customInstructions"> {
   if (
     row.active_composer_suggestion_generation_id !== null
     && row.active_generation_suggestions === null

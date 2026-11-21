@@ -115,6 +115,8 @@ export type StartOpenAILoopParams = Readonly<{
   sessionId: string;
   browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
+  /** The workspace's chat custom instructions, read when the run was claimed. */
+  customInstructions: string | null;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
@@ -242,6 +244,7 @@ function selectModelCallInputFromLatestCompaction(
   continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
   generatedImageEligible: boolean,
   clientApp: ChatClientApp | null,
+  customInstructions: string | null,
 ): ModelCallInput {
   const compactedItems = sliceReplayItemsFromLatestCompaction(continuationItems);
   if (compactedItems === null) {
@@ -249,7 +252,12 @@ function selectModelCallInputFromLatestCompaction(
   }
 
   return {
-    baseInput: placeSystemPrompt(compactedItems.map(toOpenAIResponseInputItem), generatedImageEligible, clientApp),
+    baseInput: placeSystemPrompt(
+      compactedItems.map(toOpenAIResponseInputItem),
+      generatedImageEligible,
+      clientApp,
+      customInstructions,
+    ),
     continuationItems: [],
   };
 }
@@ -295,6 +303,7 @@ async function runModelCallWithOverflowRetry(
       params.timezone,
       params.generatedImageEligible,
       resolveRunClientApp(params),
+      params.customInstructions,
       fileDerivatives,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
     );
@@ -339,6 +348,7 @@ async function runToolLimitSummaryTurn(
           continuationItems,
           params.generatedImageEligible,
           resolveRunClientApp(params),
+          params.customInstructions,
         ),
         userId: params.userId,
         sessionId: params.sessionId,
@@ -387,6 +397,7 @@ async function runLoopWithDeps(
     params.timezone,
     params.generatedImageEligible,
     resolveRunClientApp(params),
+    params.customInstructions,
     fileDerivatives,
   );
   const continuationItems: Array<StoredOpenAIReplayItem> = [];
@@ -413,6 +424,7 @@ async function runLoopWithDeps(
             continuationItems,
             params.generatedImageEligible,
             resolveRunClientApp(params),
+            params.customInstructions,
           ),
           userId: params.userId,
           sessionId: params.sessionId,

@@ -30,6 +30,10 @@
     margin: 0;
   }
 
+  .chat-layout-shell-instructions > .chat-sidebar {
+    display: none;
+  }
+
   .chat-sidebar-fullscreen {
     max-width: none;
   }

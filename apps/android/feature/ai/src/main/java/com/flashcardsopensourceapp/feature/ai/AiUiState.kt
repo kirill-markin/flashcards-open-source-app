@@ -55,6 +55,8 @@ data class AiUiState(
     /** The live chat's session, which the history marks as current; null until one is provisioned. */
     val chatSessionId: String?,
     val workspaceId: String?,
+    /** The workspace's saved custom chat instructions; null while unset or not loaded yet. */
+    val customInstructions: String?,
     val repairStatus: AiChatRepairAttemptStatus?,
     /** AI messages left this month, set only once few enough remain to warn about. */
     val remainingAiMessagesNotice: Int?,

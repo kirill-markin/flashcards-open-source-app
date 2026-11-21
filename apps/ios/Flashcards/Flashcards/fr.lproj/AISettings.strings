@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Lecture seule : les anciens chats ne peuvent pas être poursuivis.";
 "ai.history.readerLoading" = "Chargement du chat...";
 "ai.history.readerLoadError" = "Impossible de charger ce chat.";
+"ai.customInstructions.add" = "Ajouter des instructions personnalisées";
+"ai.customInstructions.title" = "Instructions personnalisées";
+"ai.customInstructions.description" = "Préférences que le chat IA suit dans cet espace de travail, comme la langue, le niveau, la longueur des réponses et le style des cartes.";
+"ai.customInstructions.placeholder" = "Par exemple : j'étudie l'allemand au niveau A2. Ajoute une phrase d'exemple au verso de chaque carte. Réponds brièvement.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Impossible de charger les instructions personnalisées.";
+"ai.customInstructions.saveFailed" = "Impossible d'enregistrer les instructions personnalisées. Réessayez.";
 "ai.consent.title" = "Avant d’utiliser l’IA";
 "ai.consent.warning" = "L’IA peut se tromper. Vérifiez les résultats importants avant de vous y fier.";
 "ai.consent.disclosure.prompts" = "Les messages saisis et le contexte issu des cartes nécessaires à votre demande peuvent être envoyés au service d’IA hébergé.";

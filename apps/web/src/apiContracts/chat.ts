@@ -14,6 +14,7 @@ import type {
   NewChatSessionResponse,
   StartChatRunResponse,
   StopChatRunResponse,
+  WorkspaceChatInstructions,
 } from "../types";
 import { appendLegacyEffortTag } from "../legacyEffort";
 import {
@@ -33,6 +34,7 @@ import {
   parseString,
   parseStringArray,
   parseStringRecord,
+  type JsonObject,
 } from "./core";
 import { parseLegacyEffortLevel } from "./studyData";
 
@@ -265,6 +267,10 @@ function parseToolCallStatus(value: unknown, endpoint: string, path: string): "s
   return parseEnum(value, endpoint, path, ["started", "completed"]);
 }
 
+function parseOptionalCustomInstructions(objectValue: JsonObject, endpoint: string): string | null {
+  return parseOptionalField(objectValue, "customInstructions", endpoint, "", parseNullableString) ?? null;
+}
+
 export function parseChatSessionSnapshotResponse(value: unknown, endpoint: string): ChatSessionSnapshot {
   const objectValue = parseObject(value, endpoint, "");
   return {
@@ -274,6 +280,7 @@ export function parseChatSessionSnapshotResponse(value: unknown, endpoint: strin
     composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
+    customInstructions: parseOptionalCustomInstructions(objectValue, endpoint),
   };
 }
 
@@ -295,6 +302,7 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
     composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
+    customInstructions: parseOptionalCustomInstructions(objectValue, endpoint),
     deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
   };
 }
@@ -329,6 +337,16 @@ export function parseNewChatSessionResponse(value: unknown, endpoint: string): N
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
     composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
+    customInstructions: parseOptionalCustomInstructions(objectValue, endpoint),
+  };
+}
+
+export function parseWorkspaceChatInstructionsResponse(value: unknown, endpoint: string): WorkspaceChatInstructions {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    customInstructions: parseRequiredField(objectValue, "customInstructions", endpoint, "", parseNullableString),
+    maxLength: parseRequiredField(objectValue, "maxLength", endpoint, "", parseNumber),
+    canEdit: parseRequiredField(objectValue, "canEdit", endpoint, "", parseBoolean),
   };
 }
 

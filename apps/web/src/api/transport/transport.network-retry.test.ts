@@ -264,7 +264,7 @@ describe("API transport network retry", () => {
       .mockResolvedValueOnce(createChatSnapshotResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal)).resolves.toMatchObject({
+    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal, null)).resolves.toMatchObject({
       sessionId: "session-1",
     });
 
@@ -377,7 +377,7 @@ describe("API transport network retry", () => {
       .mockResolvedValueOnce(createChatSnapshotResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal)).resolves.toMatchObject({
+    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal, null)).resolves.toMatchObject({
       sessionId: "session-1",
     });
 
@@ -409,12 +409,15 @@ describe("API transport network retry", () => {
       content: [{ type: "text", text: "hello" }],
       timezone: "UTC",
       uiLocale: "en",
-    })).resolves.toMatchObject({
+    }, "account-1")).resolves.toMatchObject({
       accepted: true,
       sessionId: "session-1",
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "http://localhost:8080/v1/chat?expectedAccountId=account-1",
+      "http://localhost:8080/v1/chat?expectedAccountId=account-1",
+    ]);
     expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
       endpoint: "POST /chat",
       attemptCount: 1,
@@ -461,7 +464,7 @@ describe("API transport network retry", () => {
       .catch((error: unknown): unknown => error);
     await waitForFetchCallCount(fetchMock, 2);
 
-    const retryPromise = getChatSnapshot("session-1", "workspace-1", new AbortController().signal);
+    const retryPromise = getChatSnapshot("session-1", "workspace-1", new AbortController().signal, null);
     await waitForFetchCallCount(fetchMock, 3);
     refreshResponse.resolve(new Response(null, { status: 200 }));
 
@@ -560,7 +563,7 @@ describe("API transport network retry", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockRejectedValue(new TypeError("Failed to fetch"));
     vi.stubGlobal("fetch", fetchMock);
-    const snapshotPromise = getChatSnapshot("session-1", "workspace-1", new AbortController().signal);
+    const snapshotPromise = getChatSnapshot("session-1", "workspace-1", new AbortController().signal, null);
 
     await expect(snapshotPromise).rejects.toBeInstanceOf(ApiNetworkError);
     await expect(snapshotPromise).rejects.toMatchObject({

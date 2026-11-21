@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Tik skaityti: senų pokalbių tęsti negalima.";
 "ai.history.readerLoading" = "Įkeliamas pokalbis...";
 "ai.history.readerLoadError" = "Nepavyko įkelti šio pokalbio.";
+"ai.customInstructions.add" = "Pridėti pasirinktines instrukcijas";
+"ai.customInstructions.title" = "Pasirinktinės instrukcijos";
+"ai.customInstructions.description" = "Nuostatos, kurių DI pokalbis laikosi šioje darbo srityje, pavyzdžiui, kalba, lygis, atsakymų ilgis ir kortelių stilius.";
+"ai.customInstructions.placeholder" = "Pavyzdžiui: mokausi vokiečių kalbos A2 lygiu. Kiekvienos kortelės kitoje pusėje pridėk pavyzdinį sakinį. Atsakyk trumpai.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Nepavyko įkelti pasirinktinių instrukcijų.";
+"ai.customInstructions.saveFailed" = "Nepavyko išsaugoti pasirinktinių instrukcijų. Bandykite dar kartą.";
 "ai.consent.title" = "Prieš naudodami DI";
 "ai.consent.warning" = "DI gali klysti. Prieš pasikliaudami svarbiais rezultatais, juos patikrinkite.";
 "ai.consent.disclosure.prompts" = "Įvestos užklausos ir jūsų prašymui būtinas kortelių kontekstas gali būti siunčiami į priglobtą DI paslaugą.";

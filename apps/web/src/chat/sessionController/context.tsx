@@ -27,6 +27,9 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { locale, t, formatDate, formatNumber } = useI18n();
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
+  const accountId = appData.sessionVerificationState === "verified"
+    ? appData.session?.canonicalAccountId ?? appData.session?.userId ?? null
+    : null;
   const runSync = appData.runSync;
   const setAppErrorMessage = appData.setErrorMessage;
   const guestUserId = appData.session?.browserGuestCapabilities?.isGuest === true ? appData.session.userId : null;
@@ -54,6 +57,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const controller = useChatSessionController({
     indexedDbOpenRecoveryState,
     workspaceId: activeWorkspaceId,
+    accountId,
     isRemoteReady: appData.sessionVerificationState === "verified" && isGuestRemoteReady,
     uiLocale: locale,
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,

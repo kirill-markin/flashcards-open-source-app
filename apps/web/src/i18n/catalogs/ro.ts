@@ -1561,6 +1561,15 @@ const roCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Întreabă despre fișe, istoricul recapitulărilor sau atașează notițe...",
     currentChatRecovered: "Acest chat a fost înlocuit cu unul mai nou. Mesajul tău este încă în caseta de text — trimite-l din nou.",
+    customInstructions: {
+      add: "Adaugă instrucțiuni personalizate",
+      count: "{{count}} / {{max}}",
+      description: "Preferințe pe care Chatul AI le urmează în acest spațiu de lucru, cum ar fi limba, nivelul, lungimea răspunsurilor și stilul fișelor.",
+      loadFailed: "Instrucțiunile personalizate nu au putut fi încărcate.",
+      placeholder: "De exemplu: învăț germană la nivelul A2. Adaugă o propoziție exemplu pe spatele fiecărei fișe. Răspunde pe scurt.",
+      saveFailed: "Instrucțiunile personalizate nu au putut fi salvate. Încearcă din nou.",
+      title: "Instrucțiuni personalizate",
+    },
     dictation: {
       listening: "Se ascultă...",
       start: "Începe dictarea",

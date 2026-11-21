@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Samo za čitanje: stari razgovori ne mogu se nastaviti.";
 "ai.history.readerLoading" = "Učitavanje razgovora...";
 "ai.history.readerLoadError" = "Učitavanje ovog razgovora nije uspjelo.";
+"ai.customInstructions.add" = "Dodaj prilagođene upute";
+"ai.customInstructions.title" = "Prilagođene upute";
+"ai.customInstructions.description" = "Postavke koje AI razgovor slijedi u ovom radnom prostoru, poput jezika, razine, duljine odgovora i stila kartica.";
+"ai.customInstructions.placeholder" = "Na primjer: Učim njemački na razini A2. Na poleđinu svake kartice dodaj primjer rečenice. Odgovaraj kratko.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Prilagođene upute nije moguće učitati.";
+"ai.customInstructions.saveFailed" = "Prilagođene upute nije moguće spremiti. Pokušajte ponovno.";
 "ai.consent.title" = "Prije upotrebe AI-ja";
 "ai.consent.warning" = "AI može pogriješiti. Provjerite važne rezultate prije nego što se oslonite na njih.";
 "ai.consent.disclosure.prompts" = "Upisani upiti i kontekst iz kartica potrebni za vaš zahtjev mogu se poslati hostiranoj AI usluzi.";

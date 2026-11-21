@@ -113,6 +113,7 @@ extension AIChatStore {
             )
         }
 
+        self.applyCustomInstructionsReading(response.customInstructions)
         guard self.chatSessionId == expectedSessionId else {
             return
         }

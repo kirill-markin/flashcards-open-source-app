@@ -1550,6 +1550,15 @@ const isCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur...",
     currentChatRecovered: "Þessu spjalli var skipt út fyrir nýrra spjall. Skilaboðin þín eru enn í textareitnum — sendu þau aftur.",
+    customInstructions: {
+      add: "Bæta við sérsniðnum fyrirmælum",
+      count: "{{count}} / {{max}}",
+      description: "Óskir sem gervigreindarspjallið fylgir í þessu vinnusvæði, til dæmis tungumál, stig, lengd svara og stíll spjalda.",
+      loadFailed: "Ekki tókst að hlaða sérsniðnum fyrirmælum.",
+      placeholder: "Til dæmis: Ég læri þýsku á stigi A2. Bættu dæmasetningu aftan á hvert spjald. Svaraðu stuttlega.",
+      saveFailed: "Ekki tókst að vista sérsniðin fyrirmæli. Reyndu aftur.",
+      title: "Sérsniðin fyrirmæli",
+    },
     dictation: {
       listening: "Hlusta...",
       start: "Hefja raddinnslátt",

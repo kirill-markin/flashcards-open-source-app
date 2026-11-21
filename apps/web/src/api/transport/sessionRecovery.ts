@@ -50,6 +50,7 @@ export type SessionRecovery = Readonly<{
   bindIndexedDbOpenRecoverySignal: (signal: AbortSignal) => () => void;
   createSessionHeaders: (headers: Headers, method: string) => Headers;
   getCachedSessionCsrfToken: () => string | null;
+  getCachedSessionAccountId: () => string | null;
   getOptionalSession: () => Promise<SessionInfo | null>;
   loadVerifiedBrowserGuestSession: (userId: string, workspaceId: string) => Promise<SessionInfo>;
   isBrowserGuestSessionVerified: (userId: string, workspaceId: string) => boolean;
@@ -177,6 +178,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let browserGuestVerificationGeneration = 0;
   let sessionCsrfToken: string | null = null;
   let sessionUserId: string | null = null;
+  let sessionCanonicalAccountId: string | null = null;
   let verifiedBrowserGuestOwner: Readonly<{ userId: string; workspaceId: string | null }> | null = null;
   const browserGuestVerificationListeners = new Set<() => void>();
   let sessionCsrfState: SessionCsrfState = "unknown";
@@ -299,6 +301,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   function setSessionCsrfToken(session: SessionInfo): void {
     sessionCsrfToken = session.csrfToken;
     sessionUserId = session.userId;
+    sessionCanonicalAccountId = session.canonicalAccountId ?? null;
     sessionCsrfState = session.authTransport === "session" ? "session"
       : session.browserGuestCapabilities?.isGuest === true ? "guest" : "non-session";
     if (sessionCsrfState === "session") {
@@ -313,6 +316,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   function resetSessionState(): void {
     sessionCsrfToken = null;
     sessionUserId = null;
+    sessionCanonicalAccountId = null;
     verifiedBrowserGuestOwner = null;
     sessionCsrfState = "unknown";
   }
@@ -793,6 +797,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     browserGuestVerificationGeneration = 0;
     sessionCsrfToken = null;
     sessionUserId = null;
+    sessionCanonicalAccountId = null;
     verifiedBrowserGuestOwner = null;
     sessionCsrfState = "unknown";
     sessionRecoveryPromise = null;
@@ -827,6 +832,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     },
     bindIndexedDbOpenRecoverySignal,
     createSessionHeaders,
+    getCachedSessionAccountId: (): string | null => sessionCanonicalAccountId ?? sessionUserId,
     getCachedSessionCsrfToken: (): string | null => sessionCsrfState === "session" || sessionCsrfState === "guest" ? sessionCsrfToken : null,
     getOptionalSession: async (): Promise<SessionInfo | null> => {
       try {
@@ -875,6 +881,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       && verifiedBrowserGuestOwner?.userId === userId ? browserGuestVerificationGeneration : null,
     primeGuestSession: (userId: string, csrfToken: string): void => {
       sessionUserId = userId;
+      sessionCanonicalAccountId = null;
       const saved = readBrowserGuestState();
       verifiedBrowserGuestOwner = saved?.status === "owned" && saved.owner.userId === userId
         ? { userId, workspaceId: saved.owner.workspaceId } : null;
@@ -884,6 +891,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     primeSessionCsrfToken: (csrfToken: string): void => {
       sessionCsrfToken = csrfToken;
       sessionUserId = null;
+      sessionCanonicalAccountId = null;
       sessionCsrfState = "session";
     },
     requestResponse,

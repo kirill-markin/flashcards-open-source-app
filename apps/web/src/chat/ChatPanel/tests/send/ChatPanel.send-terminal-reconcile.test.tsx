@@ -160,7 +160,7 @@ describe("ChatPanel send terminal reconcile", () => {
     await flushAsync();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith(sessionId, "workspace-1", expect.any(AbortSignal));
+    expect(getChatSnapshotMock).toHaveBeenCalledWith(sessionId, "workspace-1", expect.any(AbortSignal), "account-1");
 
     await sendMessage("second send rejected before acceptance");
     await flushAsync();

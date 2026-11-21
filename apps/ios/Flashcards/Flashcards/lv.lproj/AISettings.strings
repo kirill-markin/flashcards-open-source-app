@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Tikai lasāms: vecās sarunas nevar turpināt.";
 "ai.history.readerLoading" = "Ielādē sarunu...";
 "ai.history.readerLoadError" = "Neizdevās ielādēt šo sarunu.";
+"ai.customInstructions.add" = "Pievienot pielāgotus norādījumus";
+"ai.customInstructions.title" = "Pielāgoti norādījumi";
+"ai.customInstructions.description" = "Preferences, kurām MI saruna seko šajā darbvietā, piemēram, valoda, līmenis, atbilžu garums un kartīšu stils.";
+"ai.customInstructions.placeholder" = "Piemēram: es mācos vācu valodu A2 līmenī. Katras kartītes otrā pusē pievieno piemēra teikumu. Atbildi īsi.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Neizdevās ielādēt pielāgotos norādījumus.";
+"ai.customInstructions.saveFailed" = "Neizdevās saglabāt pielāgotos norādījumus. Mēģiniet vēlreiz.";
 "ai.consent.title" = "Pirms MI izmantošanas";
 "ai.consent.warning" = "MI var kļūdīties. Pirms paļaušanās uz svarīgiem rezultātiem pārbaudiet tos.";
 "ai.consent.disclosure.prompts" = "Ievadītie pieprasījumi un tiem nepieciešamais kartīšu konteksts var tikt nosūtīti mitinātajam MI pakalpojumam.";

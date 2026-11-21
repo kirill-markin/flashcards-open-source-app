@@ -196,6 +196,7 @@ class AiUiStateMapperTest {
             runtimeState = runtimeState,
             aiUsage = null,
             isOwnOpenAiKeyActive = false,
+            customInstructions = null,
             textProvider = testAiTextProvider()
         )
     }

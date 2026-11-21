@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogDismissed
 import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogShown
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.ai.AiChatCustomInstructionsDestination
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumResult
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
@@ -554,6 +555,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsCurrentWorkspaceDestination.route) {
         val context = LocalContext.current
+        val workspaceFlow = remember(appGraph) { appGraph.workspaceRepository.observeWorkspace() }
+        val workspace by workspaceFlow.collectAsStateWithLifecycle(initialValue = null)
         val manageSignInMessage = stringResource(
             id = com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
         )
@@ -601,6 +604,13 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onRetryLastWorkspaceAction = {
                 currentWorkspaceViewModel.retryLastWorkspaceActionAsync()
+            },
+            onOpenChatInstructions = workspace?.takeIf { uiState.isLinked }?.let {
+                {
+                    navController.navigate(route = AiChatCustomInstructionsDestination.SETTINGS.route) {
+                        launchSingleTop = true
+                    }
+                }
             },
             onBack = {
                 navController.popBackStack()

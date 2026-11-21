@@ -55,6 +55,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   controllerId: string;
   workspaceId: string | null;
+  accountId: string | null;
   isRemoteReady: boolean;
   uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
@@ -151,6 +152,7 @@ export function useChatSessionSnapshotSync(
     indexedDbOpenRecoveryState,
     controllerId,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiMessages,
     state,
@@ -822,13 +824,13 @@ export function useChatSessionSnapshotSync(
     trigger,
     resumeAttemptId,
     (requestWorkspaceId, signal) => resumeAttemptId === null
-      ? getChatSnapshot(sessionId, requestWorkspaceId, signal)
-      : getChatSnapshotWithResumeDiagnostics(sessionId, requestWorkspaceId, { resumeAttemptId }, signal),
+      ? getChatSnapshot(sessionId, requestWorkspaceId, signal, accountId)
+      : getChatSnapshotWithResumeDiagnostics(sessionId, requestWorkspaceId, { resumeAttemptId }, signal, accountId),
     (snapshot) => {
       applySnapshot(snapshot, replaceHistory, trigger);
       return true;
     },
-  ), [applySnapshot, requestAndApplySnapshot]);
+  ), [accountId, applySnapshot, requestAndApplySnapshot]);
 
   /**
    * Refreshes the shown chat by asking for the latest one and switches to it when the server answers with
@@ -844,8 +846,8 @@ export function useChatSessionSnapshotSync(
     trigger,
     resumeAttemptId,
     (requestWorkspaceId, signal) => resumeAttemptId === null
-      ? getCurrentChatSnapshot(requestWorkspaceId, signal)
-      : getCurrentChatSnapshotWithResumeDiagnostics(requestWorkspaceId, { resumeAttemptId }, signal),
+      ? getCurrentChatSnapshot(requestWorkspaceId, signal, accountId)
+      : getCurrentChatSnapshotWithResumeDiagnostics(requestWorkspaceId, { resumeAttemptId }, signal, accountId),
     (snapshot) => {
       if (snapshot.sessionId === shownSessionId) {
         applySnapshot(snapshot, true, trigger);
@@ -859,7 +861,7 @@ export function useChatSessionSnapshotSync(
       applyRecoveredSnapshot(snapshot);
       return true;
     },
-  ), [applyRecoveredSnapshot, applySnapshot, canRequestLatestSession, requestAndApplySnapshot]);
+  ), [accountId, applyRecoveredSnapshot, applySnapshot, canRequestLatestSession, requestAndApplySnapshot]);
 
   const startActiveRunLiveStream = useCallback((
     sessionId: string,

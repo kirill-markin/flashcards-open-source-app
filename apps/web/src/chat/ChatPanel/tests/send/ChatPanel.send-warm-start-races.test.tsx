@@ -57,7 +57,7 @@ describe("ChatPanel send warm-start races", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal));
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal), "account-1");
 
     await sendMessage("recover before stale snapshot resolves");
     await flushAsync();
@@ -134,7 +134,7 @@ describe("ChatPanel send warm-start races", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal));
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal), "account-1");
 
     await sendMessage("recover while provisioning waits");
     await flushAsync();
@@ -202,7 +202,7 @@ describe("ChatPanel send warm-start races", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal));
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal), "account-1");
 
     await sendMessage("recover before stale snapshot fails");
     await flushAsync();
@@ -246,7 +246,7 @@ describe("ChatPanel send warm-start races", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal));
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-stale", "workspace-1", expect.any(AbortSignal), "account-1");
 
     await sendMessage("do not recover after stale hydration applies");
     await flushAsync();

@@ -1,3 +1,4 @@
+import type { AuthTransport } from "../../auth";
 import { createBrowserGuestChatOperation, reserveNewBrowserGuestTrialOperation, resolveFundedBrowserGuestTrial } from "../../aiUsage/browserGuestTrial/admission";
 import type { Handler } from "hono";
 import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
@@ -10,6 +11,11 @@ import {
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
 import { getChatConfig } from "../config";
+import {
+  loadWorkspaceChatInstructionsForUser,
+  parseChatCustomInstructionsBody,
+  saveWorkspaceChatInstructionsForUser,
+} from "../customInstructions";
 import type {
   ChatSessionArchiveResponse,
   ChatSessionRenameResponse,
@@ -33,8 +39,9 @@ import {
 } from "../../aiUsage";
 import type { AccountKind } from "../../billing/limits";
 import { resolveAccountKindForTransport } from "../../billing/snapshot";
-import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
+import { parseOptionalWorkspaceIdParam, parseWorkspaceIdParam } from "../../server/requestContext";
 import {
+  expectRecord,
   parseJsonBody,
   parseJsonBodyWithByteLimit,
 } from "../../server/requestParsing";
@@ -55,7 +62,9 @@ import {
   parseStopChatRequestBody,
 } from "./contract";
 import {
+  loadAccountBoundChatRequestContext,
   loadSupportedRequestContext,
+  loadWorkspaceChatInstructionsRequestContext,
   type ChatRouteDependencies,
 } from "./dependencies";
 import {
@@ -81,7 +90,17 @@ type ChatNewResponse = Readonly<{
   sessionId: string;
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ReturnType<typeof getChatConfig>;
+  customInstructions: string | null;
 }>;
+
+function chatSnapshotForTransport(
+  snapshot: ChatSessionSnapshot,
+  transport: AuthTransport,
+): ChatSessionSnapshot {
+  return resolveAccountKindForTransport(transport) === "guest"
+    ? { ...snapshot, customInstructions: null }
+    : snapshot;
+}
 
 function buildChatNewResponse(
   snapshot: ChatSessionSnapshot,
@@ -95,12 +114,13 @@ function buildChatNewResponse(
       uiLocale,
     ),
     chatConfig: getChatConfig(),
+    customInstructions: snapshot.customInstructions,
   };
 }
 
 export function createGetChatHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
-    const requestContext = await loadSupportedRequestContext(
+    const requestContext = await loadAccountBoundChatRequestContext(
       context.req.raw,
       dependencies,
     );
@@ -125,7 +145,7 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
           pageQuery.beforeCursor,
         );
         return context.json(await buildPaginatedConversationEnvelopeWithActiveRun(
-          result,
+          { ...result, snapshot: chatSnapshotForTransport(result.snapshot, requestContext.transport) },
           requestContext.userId,
           workspaceId,
           requestId,
@@ -154,7 +174,7 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
         workspaceId,
       );
       return context.json(await buildConversationEnvelopeWithActiveRun(
-        session,
+        { ...session, snapshot: chatSnapshotForTransport(session.snapshot, requestContext.transport) },
         requestContext.userId,
         workspaceId,
         requestId,
@@ -197,7 +217,7 @@ async function resolveAiUsageAllowanceOutcome(
 
 export function createPostChatHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
-    const requestContext = await loadSupportedRequestContext(
+    const requestContext = await loadAccountBoundChatRequestContext(
       context.req.raw,
       dependencies,
     );
@@ -368,7 +388,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
 
       return context.json(await buildStartConversationEnvelope({
         preparedRun,
-        session,
+        session: { ...session, snapshot: chatSnapshotForTransport(session.snapshot, requestContext.transport) },
         userId: requestContext.userId,
         workspaceId,
         requestId,
@@ -404,12 +424,16 @@ export function createPostChatFileUploadHandler(dependencies: ChatRouteDependenc
 
 export function createPostChatNewHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
-    const requestContext = await loadSupportedRequestContext(
+    const requestContext = await loadAccountBoundChatRequestContext(
       context.req.raw,
       dependencies,
     );
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
     const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
+
+    const respondWithSession = (snapshot: ChatSessionSnapshot): Response => context.json(
+      buildChatNewResponse(chatSnapshotForTransport(snapshot, requestContext.transport), body.uiLocale),
+    );
 
     // Preferred modern flow: clients send an explicit client-generated
     // sessionId. First-party AI clients newer than 1.5.0 already follow that flow.
@@ -444,7 +468,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
             createdSessionId,
           );
 
-          return context.json(buildChatNewResponse(createdSnapshot, body.uiLocale) satisfies ChatNewResponse);
+          return respondWithSession(createdSnapshot);
         } catch (error) {
           return mapStoreError(error);
         }
@@ -457,7 +481,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
           existingSessionId,
         );
 
-        return context.json(buildChatNewResponse(existingSnapshot, body.uiLocale) satisfies ChatNewResponse);
+        return respondWithSession(existingSnapshot);
       } catch (error) {
         return mapStoreError(error);
       }
@@ -475,7 +499,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
     }
 
     if (snapshot.messages.length === 0 && snapshot.runState === "idle") {
-      return context.json(buildChatNewResponse(snapshot, body.uiLocale) satisfies ChatNewResponse);
+      return respondWithSession(snapshot);
     }
 
     let newSnapshot: ChatSessionSnapshot;
@@ -495,7 +519,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
       return mapStoreError(error);
     }
 
-    return context.json(buildChatNewResponse(newSnapshot, body.uiLocale) satisfies ChatNewResponse);
+    return respondWithSession(newSnapshot);
   };
 }
 
@@ -618,5 +642,28 @@ export function createPostChatSessionArchiveHandler(dependencies: ChatRouteDepen
     } catch (error) {
       return mapStoreError(error);
     }
+  };
+}
+
+export function createGetWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadWorkspaceChatInstructionsRequestContext(context.req.raw, dependencies);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    return context.json(await loadWorkspaceChatInstructionsForUser(requestContext.userId, workspaceId));
+  };
+}
+
+// Online-only, with no outbox or synced entity: the chat needs the network anyway, and a new synced
+// entity_type would break shipped clients that pull it.
+export function createPostWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadWorkspaceChatInstructionsRequestContext(context.req.raw, dependencies);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const customInstructions = parseChatCustomInstructionsBody(expectRecord(await parseJsonBody(context.req.raw)));
+    return context.json(await saveWorkspaceChatInstructionsForUser(
+      requestContext.userId,
+      workspaceId,
+      customInstructions,
+    ));
   };
 }

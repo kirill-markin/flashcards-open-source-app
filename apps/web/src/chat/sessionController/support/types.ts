@@ -36,6 +36,7 @@ export type ChatSessionControllerUiMessages = Readonly<{
 export type UseChatSessionControllerParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
+  accountId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;
   onToolRunPostSyncRequested: () => Promise<void>;

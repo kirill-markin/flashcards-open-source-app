@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Només lectura: els xats antics no es poden continuar.";
 "ai.history.readerLoading" = "S'està carregant el xat...";
 "ai.history.readerLoadError" = "No s'ha pogut carregar aquest xat.";
+"ai.customInstructions.add" = "Afegeix instruccions personalitzades";
+"ai.customInstructions.title" = "Instruccions personalitzades";
+"ai.customInstructions.description" = "Preferències que el xat d'IA segueix en aquest espai de treball, com ara l'idioma, el nivell, la llargada de les respostes i l'estil de les targetes.";
+"ai.customInstructions.placeholder" = "Per exemple: estudio alemany de nivell A2. Afegeix una frase d'exemple al dors de cada targeta. Respon breument.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "No s'han pogut carregar les instruccions personalitzades.";
+"ai.customInstructions.saveFailed" = "No s'han pogut desar les instruccions personalitzades. Torna-ho a provar.";
 "ai.consent.title" = "Abans d'utilitzar la IA";
 "ai.consent.warning" = "La IA pot estar equivocada. Reviseu els resultats importants abans de confiar-hi.";
 "ai.consent.disclosure.prompts" = "Les sol·licituds escrites i el context derivat de la targeta necessaris per a la vostra sol·licitud es poden enviar al servei IA allotjat.";

@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "للقراءة فقط: لا يمكن متابعة الدردشات القديمة.";
 "ai.history.readerLoading" = "جارٍ تحميل الدردشة...";
 "ai.history.readerLoadError" = "تعذّر تحميل هذه الدردشة.";
+"ai.customInstructions.add" = "إضافة تعليمات مخصصة";
+"ai.customInstructions.title" = "تعليمات مخصصة";
+"ai.customInstructions.description" = "تفضيلات تتبعها دردشة الذكاء الاصطناعي في مساحة العمل هذه، مثل اللغة والمستوى وطول الإجابات وأسلوب البطاقات.";
+"ai.customInstructions.placeholder" = "مثال: أدرس الألمانية بمستوى A2. أضف جملة مثال على ظهر كل بطاقة. اجعل الإجابات قصيرة.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "تعذر تحميل التعليمات المخصصة.";
+"ai.customInstructions.saveFailed" = "تعذر حفظ التعليمات المخصصة. حاول مرة أخرى.";
 "ai.consent.title" = "قبل استخدام الذكاء الاصطناعي";
 "ai.consent.warning" = "يمكن للذكاء الاصطناعي أن يرتكب الأخطاء. قم بمراجعة النتائج المهمة قبل الاعتماد عليها.";
 "ai.consent.disclosure.prompts" = "يمكن إرسال الرسائل المكتوبة والسياق المشتق من البطاقة الضروري لطلبك إلى خدمة الذكاء الاصطناعي المستضافة.";

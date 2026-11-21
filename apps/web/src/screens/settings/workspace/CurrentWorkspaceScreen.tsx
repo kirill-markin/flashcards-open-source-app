@@ -12,12 +12,15 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../../appError/AppErrorContext";
+import { getWorkspaceChatInstructionsAccountId } from "../../../chat/customInstructions/workspaceChatInstructionsStore";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { addWebBreadcrumb } from "../../../observability/webObservability";
 import { useTransientMessage } from "../../../useTransientMessage";
 import { isWorkspaceManagementLocked } from "../../../workspaceManagement";
-import { SettingsActionCard, SettingsGroup, SettingsShell } from "../SettingsShared";
+import { settingsChatInstructionsRoute, settingsCurrentWorkspaceRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
+import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 import { WorkspaceActionDialog } from "./WorkspaceActionDialog";
 
 export function CurrentWorkspaceScreen(): ReactElement {
@@ -38,6 +41,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
@@ -54,6 +58,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
+  const canOpenChatInstructions = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState) !== null;
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const workspaceManagementState = isWorkspaceLocked ? "locked" : "ready";
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
@@ -367,6 +372,20 @@ export function CurrentWorkspaceScreen(): ReactElement {
             />
           </div>
         </SettingsGroup>
+        {canOpenChatInstructions ? (
+          <SettingsGroup>
+            <div className="settings-nav-list">
+              <SettingsNavigationCard
+                title={t("chatPanel.customInstructions.title")}
+                description={t("chatPanel.customInstructions.description")}
+                value={null}
+                to={workspacePath(settingsChatInstructionsRoute)}
+                parentPath={workspacePath(settingsCurrentWorkspaceRoute)}
+                testId="workspace-chat-instructions-open"
+              />
+            </div>
+          </SettingsGroup>
+        ) : null}
       </SettingsShell>
 
       <WorkspaceActionDialog

@@ -20,4 +20,6 @@ export {
   createPostChatSessionArchiveHandler,
   createPostChatSessionRenameHandler,
   createPostChatStopHandler,
+  createGetWorkspaceChatInstructionsHandler,
+  createPostWorkspaceChatInstructionsHandler,
 } from "./handlers";
