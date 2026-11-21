@@ -3,7 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { loadBreakdownReport } from "../levelOneMetrics/breakdownQuery";
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
-import { buildNativeDeviceBreakdownSql } from "../levelOneMetrics/nativeDeviceBreakdownQuery";
+import { buildDeviceBreakdownSql } from "../levelOneMetrics/deviceBreakdownQuery";
 import { buildPeopleBreakdownSql, type PeopleBreakdownDimension } from "../levelOneMetrics/peopleBreakdownQuery";
 import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange } from "../reportValues";
@@ -52,7 +52,7 @@ export function buildAppOpenDeviceBreakdownSql(
   appVersions: ReadonlyArray<string>,
 ): string {
   const range = assertValidDateRange(dateRange, deviceReportLabel);
-  return buildNativeDeviceBreakdownSql(`${buildAppOpenActivityCtesSql()},
+  return buildDeviceBreakdownSql(`${buildAppOpenActivityCtesSql()},
 ${buildReportBucketsCteSql(period, range)},
 ${buildAppOpenRangeDevicesCteSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)},
 measured_buckets AS (

@@ -11,8 +11,8 @@ export const breakdownUnknownValue = "Unknown";
 
 const breakdownUnknownColor = "#bab0ac";
 
-// Tableau 10 without its grey, which Unknown takes.
-const breakdownValuePalette: ReadonlyArray<string> = d3.schemeTableau10.slice(0, 9);
+// Keep the Tableau colours first and reserve its grey for Unknown.
+const breakdownValuePalette: ReadonlyArray<string> = [...d3.schemeTableau10.slice(0, 9), ...d3.schemeSet2.slice(0, 3)];
 
 /** One bar: its count per value, or null when the bar is unavailable; a not final bar is drawn faded. */
 export type StackedBreakdownBar = Readonly<{

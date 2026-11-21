@@ -45,7 +45,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
       metricTitle={metricTitle}
       testIdPrefix="who-opened-the-app"
       breakdowns={appOpenBreakdowns}
-      platformCompanion={(
+      deviceSection={(
         <BreakdownSection
           config={props.config}
           dateRange={props.dateRange}
@@ -55,8 +55,8 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
           testId="who-opened-the-app-by-device-section"
           explanationId="who-opened-the-app-by-device-explanation"
           explanation={<>
-            <li>A person counts once per day, week or month on each native device category they opened the app on. The same person can count in several categories.</li>
-            <li>Unknown includes native opens with missing or unsupported device details.</li>
+            <li>A person counts once per day, week or month in each native or Web device category they used to open the app. The same person can count in several categories.</li>
+            <li>Unknown includes native opens with missing or unsupported device details. Web · Unknown device covers browser opens with missing or unsupported device class.</li>
             <li>The Platform, Device and App version filters apply to the app open itself.</li>
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. Today’s bucket is in progress. A bucket that starts before the retained history is unavailable.</li>
           </>}

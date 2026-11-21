@@ -423,7 +423,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // Offered on Level 1 metrics only. Cut from the on-screen text: with an app version picked too, Who
   // studied places a person by their last app open in the bar on a picked platform and device class.
   eventDeviceTypes:
-    "Who opened the app and Who studied count a person on a day only for an app open or answered review recorded on a device class you pick, read from the event row itself, so a tablet is an iPad or an Android tablet alike, Desktop is the Mac app and Android on Chromebooks or PCs, TV is Android in TV mode, and Unknown is an event that names none: web, the agent API and events stored before clients reported a device. New vs returning still reads their first use on any device. Who paid us and Who saw us carry no device class and are not narrowed by it.",
+    "Filters app opens and answered reviews by their recorded device class. Phone, Tablet, and Desktop can include Web activity. Unknown means no device class was recorded. New vs returning uses first activity on any device. Only Who opened the app and Who studied use this filter.",
   // Level 1 metrics' wording; Review prompts overrides it.
   appVersions:
     "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",

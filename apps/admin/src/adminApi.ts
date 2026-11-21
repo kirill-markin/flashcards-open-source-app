@@ -46,8 +46,8 @@ export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattrib
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
 
 // Every stored `analytics.product_events.device_type` (`productAnalyticsDeviceTypes` in
-// `apps/backend/src/productAnalytics/catalog.ts`), plus `unknown` for a NULL one: web, agent and rows
-// stored before the column existed. Selecting all of them means no filter, so it must stay complete.
+// `apps/backend/src/productAnalytics/catalog.ts`), plus `unknown` for a NULL one.
+// Selecting all of them means no filter, so it must stay complete.
 export const productEventDeviceTypes = ["phone", "tablet", "desktop", "tv", "watch", "unknown"] as const;
 
 export type ProductEventDeviceType = (typeof productEventDeviceTypes)[number];

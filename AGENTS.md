@@ -109,6 +109,7 @@ The sync approach and the data model changed multiple times during development. 
 ## Engineering Principles
 
 - Keep logic simple and explicit.
+- Keep Admin analytics simple with charts in reading order, flat breakdowns, and controls only where needed.
 - Prefer pure functions for domain logic.
 - Use strict typing across services.
 - Keep changes minimal and scoped.

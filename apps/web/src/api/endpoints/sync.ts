@@ -7,6 +7,7 @@ import {
   parseSyncReviewHistoryPullResultResponse,
 } from "../../apiContracts/sync";
 import { isAutomationRun } from "../../automationRun";
+import { readBrowserDeviceType } from "../../browserDevice";
 import type {
   ReviewEvent,
   SyncBootstrapEntry,
@@ -39,6 +40,7 @@ export async function pushSyncOperations(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       operations,
     }),
@@ -62,6 +64,7 @@ export async function pullSyncChanges(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       afterHotChangeId,
       limit,
@@ -88,6 +91,7 @@ export async function bootstrapPullSyncState(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       cursor,
       limit,
@@ -113,6 +117,7 @@ export async function bootstrapPushSyncState(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       entries,
       includeMediaAssets,
@@ -136,6 +141,7 @@ export async function pullReviewHistorySync(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       afterReviewSequenceId,
       limit,
@@ -158,6 +164,7 @@ export async function importReviewHistorySync(
       installationId,
       platform,
       appVersion,
+      deviceType: readBrowserDeviceType(),
       isAutomation: isAutomationRun,
       reviewEvents,
     }),

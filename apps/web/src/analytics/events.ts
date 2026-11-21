@@ -1,3 +1,5 @@
+import type { BrowserDeviceType } from "../browserDevice";
+
 /**
  * Hand-written mirror of the backend product analytics catalog
  * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event
@@ -608,6 +610,7 @@ export type AnonymousAnalyticsWireEvent = Readonly<{
 export type AnalyticsWireContext = Readonly<{
   osVersion: string | null;
   deviceModel: string | null;
+  deviceType: BrowserDeviceType | null;
   deviceLocale: string | null;
   timezone: string | null;
 }>;

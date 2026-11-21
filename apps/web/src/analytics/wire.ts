@@ -1,3 +1,4 @@
+import { readBrowserDeviceType } from "../browserDevice";
 import { normalizeSupportedLocale } from "../i18n/locales";
 import type { Locale } from "../i18n/types";
 import {
@@ -80,6 +81,7 @@ export function buildAnalyticsWireContext(): AnalyticsWireContext {
   return {
     osVersion: null,
     deviceModel: null,
+    deviceType: readBrowserDeviceType(),
     deviceLocale: toContextString(navigator.language),
     timezone: readTimezone(),
   };

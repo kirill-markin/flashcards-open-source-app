@@ -1,4 +1,4 @@
-import { useMemo, type JSX, type ReactNode } from "react";
+import { Fragment, useMemo, type JSX, type ReactNode } from "react";
 import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import { isReviewEventPlatform, platformLabels } from "../../charts/chartPrimitives";
 import type { AdminAppConfig } from "../../config";
@@ -79,7 +79,7 @@ export function PeopleBreakdownSections(props: Readonly<{
   metricTitle: string;
   testIdPrefix: string;
   breakdowns: ReadonlyArray<PeopleBreakdown>;
-  platformCompanion?: ReactNode;
+  deviceSection: ReactNode;
   /** The `<li>` saying how the App version filter narrows and places these people. */
   appVersionFilterNote: ReactNode;
 }>): JSX.Element {
@@ -99,10 +99,9 @@ export function PeopleBreakdownSections(props: Readonly<{
   })), [props.breakdowns, props.eventPlatforms, props.eventDeviceTypes, props.appVersions]);
   return (
     <>
-      {loadedBreakdowns.map(({ breakdown, loadReport }) => {
-        const section = (
+      {loadedBreakdowns.map(({ breakdown, loadReport }) => (
+        <Fragment key={breakdown.dimension}>
           <BreakdownSection
-            key={breakdown.dimension}
             config={props.config}
             dateRange={props.dateRange}
             period={props.period}
@@ -127,11 +126,9 @@ export function PeopleBreakdownSections(props: Readonly<{
             buildExtraNotes={null}
             keyLink={null}
           />
-        );
-        return breakdown.dimension === "platform" && props.platformCompanion !== undefined
-          ? <div key={breakdown.dimension}>{section}{props.platformCompanion}</div>
-          : section;
-      })}
+          {breakdown.dimension === "platform" && props.deviceSection}
+        </Fragment>
+      ))}
     </>
   );
 }
