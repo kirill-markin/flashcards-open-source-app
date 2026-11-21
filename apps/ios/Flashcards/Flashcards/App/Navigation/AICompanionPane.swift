@@ -210,8 +210,10 @@ private struct AICompanionPageHeading<Accessory: View>: View {
                     .buttonBorderShape(.circle)
                     .buttonStyle(.bordered)
                     .tint(Color.primary)
-                    .keyboardShortcut("[", modifiers: .command)
-                    .accessibilityLabel("\(aiSettingsLocalized("common.back", "Back")), \(backTitle)")
+                    // Pages kept beneath or in other sections must not take the shortcut from the one on screen.
+                    .keyboardShortcut(self.isActive ? KeyboardShortcut("[", modifiers: .command) : nil)
+                    .accessibilityLabel(Text(verbatim: aiSettingsLocalized("common.back", "Back")))
+                    .accessibilityValue(Text(verbatim: backTitle))
                     .accessibilityIdentifier(UITestIdentifier.aiCompanionBackButton)
                     .disabled(self.isActive == false)
                 }
