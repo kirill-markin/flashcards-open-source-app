@@ -29,11 +29,11 @@ import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   UserSettingsRowNotFoundError,
 } from "../../workspaces/state";
-import { loadWorkspaceChatInstructionsWithExecutor } from "../../chat/customInstructions";
 import {
   lockWorkspaceAccessLifecycleInExecutor,
   lockWorkspaceMembershipLifecyclesInExecutor,
 } from "../../workspaces/accessLocks";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../workspaces/chatInstructions";
 import { normalizeWorkspaceId } from "../../workspaces/identity";
 import { loadWorkspaceManagementRowInExecutor } from "../../workspaces/queries";
 import { cleanupGuestSessionSourceInExecutor } from "../delete/index";

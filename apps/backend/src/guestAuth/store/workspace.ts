@@ -3,9 +3,9 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
-import { loadWorkspaceChatInstructionsWithExecutor } from "../../chat/customInstructions";
 import { HttpError } from "../../shared/errors";
 import { lockWorkspaceMembershipLifecyclesInExecutor } from "../../workspaces/accessLocks";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../workspaces/chatInstructions";
 import { lockUserSettingsForWorkspaceLifecycleInExecutor } from "../../workspaces/state";
 import { toIsoString } from "../shared";
 import type { GuestUpgradeCompletion } from "../types";

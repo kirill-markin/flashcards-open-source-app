@@ -1,5 +1,5 @@
 import { transactionWithWorkspaceScope, type DatabaseExecutor, type WorkspaceDatabaseScope } from "../../database";
-import { loadWorkspaceChatInstructionsWithExecutor } from "../customInstructions";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../workspaces/chatInstructions";
 import { mapChatItemRow, mapPersistedMessagesToStoredMessages, mapSessionRow } from "./mappers";
 import {
   listChatItemRowsAfterCursorWithExecutor,

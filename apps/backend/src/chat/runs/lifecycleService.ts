@@ -10,10 +10,10 @@ import {
   addBackendBreadcrumb,
   createBackendObservationScope,
 } from "../../observability/sentry";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../workspaces/chatInstructions";
 import { ChatRunRowNotFoundError, ChatSessionNotCurrentError } from "../errors";
 import {
   isEligibleChatGuestInExecutor,
-  loadWorkspaceChatInstructionsWithExecutor,
   type ChatGuestCredential,
 } from "../customInstructions";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";

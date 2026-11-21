@@ -6,6 +6,7 @@ import {
 import { activeGuestSessionOwnerPredicateSql, guestSessionBoundToAccountSql } from "../guestAuth/shared";
 import { HttpError } from "../shared/errors";
 import { lockWorkspaceAccessLifecycleInExecutor, lockWorkspaceMembershipLifecyclesInExecutor } from "../workspaces/accessLocks";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../workspaces/chatInstructions";
 import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
 import { assertWorkspaceOwner } from "../workspaces/shared";
 
@@ -105,18 +106,6 @@ export function parseChatCustomInstructionsBody(body: Record<string, unknown>): 
   }
 
   return trimmed;
-}
-
-/** Reads under the caller's workspace scope; RLS admits every member. */
-export async function loadWorkspaceChatInstructionsWithExecutor(
-  executor: DatabaseExecutor,
-  workspaceId: string,
-): Promise<string | null> {
-  const result = await executor.query<Readonly<{ custom_instructions: string }>>(
-    "SELECT custom_instructions FROM ai.workspace_chat_instructions WHERE workspace_id = $1",
-    [workspaceId],
-  );
-  return result.rows[0]?.custom_instructions ?? null;
 }
 
 function toResponse(customInstructions: string | null, canEdit: boolean): WorkspaceChatInstructionsResponse {
