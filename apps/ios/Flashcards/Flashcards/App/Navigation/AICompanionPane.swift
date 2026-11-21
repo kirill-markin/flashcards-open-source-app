@@ -27,6 +27,9 @@ extension EnvironmentValues {
     @Entry var aiCompanionPaneSharesSectionBar: Bool = false
     /// The title of the page beneath a side-chat page that shares its section's bar, which its heading's Back returns to.
     @Entry var aiCompanionBackTitle: String? = nil
+    /// False for a side-chat page kept beneath the next. Its bars, which SwiftUI hosts apart from the page, read it to
+    /// stay out of VoiceOver too.
+    @Entry var aiCompanionPaneLayerIsShown: Bool = true
 }
 
 #if !targetEnvironment(macCatalyst)
@@ -140,6 +143,7 @@ extension View {
             .allowsHitTesting(isShown)
             .accessibilityHidden(isShown == false)
             .disabled(isShown == false)
+            .environment(\.aiCompanionPaneLayerIsShown, isShown)
     }
 }
 #endif
@@ -181,10 +185,20 @@ private struct AICompanionPageHeading<Accessory: View>: View {
     @Environment(\.aiCompanionHostTab) private var hostTab
     @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
     @Environment(\.aiCompanionBackTitle) private var backTitle
+    @Environment(\.aiCompanionPaneLayerIsShown) private var isLayerShown
     let title: String
     let accessory: Accessory
 
     var body: some View {
+        // A covered page keeps its heading's height, so its content stays put, but nothing of it can be reached.
+        if self.isLayerShown {
+            self.heading
+        } else {
+            self.heading.hidden()
+        }
+    }
+
+    private var heading: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 if let backTitle = self.backTitle {
@@ -217,6 +231,7 @@ private struct AICompanionPageHeading<Accessory: View>: View {
     /// Only the pane the person sees goes back, so a pane kept in another section or beneath a pushed page cannot.
     private var isActive: Bool {
         self.navigation.isAICompanionVisible && self.navigation.selectedTab == self.hostTab && self.isOnTopPage
+            && self.isLayerShown
     }
 
     private func goBack() {

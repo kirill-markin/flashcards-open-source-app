@@ -75,6 +75,7 @@ final class AIChatHistoryReaderModel {
 struct AIChatHistoryReaderView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
+    @Environment(\.aiCompanionPaneLayerIsShown) private var isLayerShown
     let chatStore: AIChatStore
     let summary: AIChatSessionHistorySummary
     @State private var model: AIChatHistoryReaderModel
@@ -100,6 +101,8 @@ struct AIChatHistoryReaderView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, aiChatMessageListHorizontalPadding)
                     .padding(.vertical, 12)
+                    .opacity(self.isLayerShown ? 1 : 0)
+                    .accessibilityHidden(self.isLayerShown == false)
             }
             .onAppear {
                 self.model.loadIfNeeded()
