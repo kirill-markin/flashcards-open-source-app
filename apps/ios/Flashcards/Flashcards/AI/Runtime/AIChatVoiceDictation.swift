@@ -161,14 +161,18 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
-        let recorder = try AVAudioRecorder(url: fileUrl, settings: settings)
-        recorder.isMeteringEnabled = false
-        guard recorder.record() else {
-            throw AIChatVoiceRecorderError.recordingStartFailed
-        }
-
-        self.recorder = recorder
         self.currentFileUrl = fileUrl
+        do {
+            let recorder = try AVAudioRecorder(url: fileUrl, settings: settings)
+            recorder.isMeteringEnabled = false
+            guard recorder.record() else {
+                throw AIChatVoiceRecorderError.recordingStartFailed
+            }
+            self.recorder = recorder
+        } catch {
+            self.cancelRecording()
+            throw error
+        }
     }
 
     func stopRecording() async throws -> AIChatRecordedAudio {
@@ -181,11 +185,15 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         self.currentFileUrl = nil
         self.deactivateAudioSession()
 
-        let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.path)
-        let fileSize = attributes[.size] as? NSNumber
-        if fileSize?.intValue ?? 0 <= 0 {
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.path)
+            let fileSize = attributes[.size] as? NSNumber
+            if fileSize?.intValue ?? 0 <= 0 {
+                throw AIChatVoiceRecorderError.emptyRecording
+            }
+        } catch {
             try? FileManager.default.removeItem(at: fileUrl)
-            throw AIChatVoiceRecorderError.emptyRecording
+            throw error
         }
 
         return AIChatRecordedAudio(
