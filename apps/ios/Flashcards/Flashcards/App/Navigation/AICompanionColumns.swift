@@ -142,6 +142,9 @@ struct AICompanionSectionPage<Content: View>: View {
                 .aiCompanionColumnPage()
         }
         .environment(\.aiCompanionPageIsTop, self.isTopPage(self.navigation))
+        // A centred title would straddle the two columns, or drop below a floating tab bar; the editor role leads it
+        // after the bar's controls and truncates it before the tab bar.
+        .toolbarRole(self.navigation.isAICompanionPaneOpen ? .editor : .automatic)
     }
 }
 #endif
