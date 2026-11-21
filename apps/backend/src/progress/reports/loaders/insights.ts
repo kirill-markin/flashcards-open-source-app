@@ -24,24 +24,9 @@ const minimumTimedGapSeconds = 1;
 const minimumTimedDueReviewCount = 50;
 const minimumTimedDueReviewDayCount = 3;
 
-// The same canonical review day as the Progress series.
-function reviewLocalDateSql(timeZoneParam: string): string {
-  return [
-    "COALESCE(",
-    "review_events.reviewed_local_date,",
-    `timezone(COALESCE(review_events.reviewed_time_zone, ${timeZoneParam}), review_events.reviewed_at_client)::date`,
-    ")",
-  ].join(" ");
-}
-
 type LifetimeDayRow = Readonly<{
   review_date: string;
   lifetime_review_count: string | number;
-}>;
-
-type RecentCardCountsRow = Readonly<{
-  cards_met_count: string | number;
-  relearned_count: string | number;
 }>;
 
 type TimingDayRow = Readonly<{
@@ -53,6 +38,13 @@ type TimingDayRow = Readonly<{
   due_timed_count: string | number;
   due_session_start_count: string | number;
   due_card_count: string | number;
+}>;
+
+type WorkspaceInsightsRow = Readonly<{
+  lifetime_days: ReadonlyArray<LifetimeDayRow>;
+  cards_met_count: string | number;
+  relearned_count: string | number;
+  timing_days: ReadonlyArray<TimingDayRow>;
 }>;
 
 type TimingDay = Readonly<{
@@ -94,68 +86,56 @@ function normalizeNonNegativeNumberFromQuery(value: string | number, fieldName: 
   return normalizedValue;
 }
 
-async function loadLifetimeDayRowsInExecutor(
+async function loadWorkspaceInsightsInExecutor(
   executor: DatabaseExecutor,
   request: WorkspaceInsightsRequest,
-): Promise<ReadonlyArray<LifetimeDayRow>> {
-  const queryParams: ReadonlyArray<SqlValue> = [request.workspaceId, request.userId, request.timeZone];
-  const result = await executor.query<LifetimeDayRow>(
-    [
-      "WITH lifetime_review_dates AS (",
-      `SELECT ${reviewLocalDateSql("$3")} AS review_date`,
-      "FROM content.review_events AS review_events",
-      "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_by_user_id = $2",
-      ")",
-      "SELECT",
-      "to_char(lifetime_review_dates.review_date, 'YYYY-MM-DD') AS review_date,",
-      "COUNT(*)::int AS lifetime_review_count",
-      "FROM lifetime_review_dates",
-      "GROUP BY lifetime_review_dates.review_date",
-    ].join(" "),
-    queryParams,
-  );
-
-  return result.rows;
-}
-
-// Cards met: the user's first-ever review of the card falls in the window. Relearned: a day
-// in the window with a pass whose previous review day of that card held an Again. Both read
-// only the user's own reviews, since workspace members share cards.
-async function loadRecentCardCountsInExecutor(
-  executor: DatabaseExecutor,
-  request: WorkspaceInsightsRequest,
-): Promise<RecentCardCountsRow> {
-  const windowStart = shiftLocalDate(request.today, 1 - recentWindowDayCount);
+): Promise<WorkspaceInsightsRow> {
   const queryParams: ReadonlyArray<SqlValue> = [
     request.workspaceId,
     request.userId,
     request.timeZone,
-    windowStart,
+    shiftLocalDate(request.today, 1 - recentWindowDayCount),
     request.today,
+    shiftLocalDate(request.today, 1 - timingWindowDayCount),
+    sessionBreakGapSeconds,
+    maximumTimedGapSeconds,
+    minimumTimedGapSeconds,
   ];
-  // Three days covers the full IANA offset spread when row and request time zones differ.
-  const result = await executor.query<RecentCardCountsRow>(
+  const result = await executor.query<WorkspaceInsightsRow>(
     [
-      "WITH recent_cards AS (",
-      "SELECT DISTINCT review_events.card_id",
+      // Share one scoped scan of the learner's history across the insight aggregates.
+      "WITH user_review_events AS MATERIALIZED (",
+      "SELECT review_events.card_id, review_events.review_event_id, review_events.replica_id,",
+      "review_events.reviewed_at_client, review_events.rating,",
+      "COALESCE(review_events.reviewed_local_date,",
+      "timezone(COALESCE(review_events.reviewed_time_zone, $3), review_events.reviewed_at_client)::date",
+      ") AS review_date",
       "FROM content.review_events AS review_events",
       "WHERE review_events.workspace_id = $1",
       "AND review_events.reviewed_by_user_id = $2",
-      "AND review_events.reviewed_at_client >= (($4::date - 3)::timestamp AT TIME ZONE $3)",
-      "AND review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)",
-      `AND ${reviewLocalDateSql("$3")} BETWEEN $4::date AND $5::date`,
+      "), lifetime_days AS (",
+      "SELECT to_char(user_review_events.review_date, 'YYYY-MM-DD') AS review_date,",
+      "COUNT(*)::int AS lifetime_review_count",
+      "FROM user_review_events",
+      "GROUP BY user_review_events.review_date",
+      // Cards met count first-ever reviews in the window. Relearned counts passing cards
+      // in the window whose previous review day contained an Again.
+      "), recent_cards AS (",
+      "SELECT DISTINCT user_review_events.card_id",
+      "FROM user_review_events",
+      // Three days covers the full IANA offset spread when row and request time zones differ.
+      "WHERE user_review_events.reviewed_at_client >= (($4::date - 3)::timestamp AT TIME ZONE $3)",
+      "AND user_review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)",
+      "AND user_review_events.review_date BETWEEN $4::date AND $5::date",
       "), recent_card_days AS (",
       "SELECT",
-      "review_events.card_id,",
-      `${reviewLocalDateSql("$3")} AS review_date,`,
-      "BOOL_OR(review_events.rating = 0) AS had_again,",
-      "BOOL_OR(review_events.rating > 0) AS had_pass",
-      "FROM content.review_events AS review_events",
-      "INNER JOIN recent_cards ON recent_cards.card_id = review_events.card_id",
-      "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_by_user_id = $2",
-      "GROUP BY review_events.card_id, review_date",
+      "user_review_events.card_id,",
+      "user_review_events.review_date,",
+      "BOOL_OR(user_review_events.rating = 0) AS had_again,",
+      "BOOL_OR(user_review_events.rating > 0) AS had_pass",
+      "FROM user_review_events",
+      "INNER JOIN recent_cards ON recent_cards.card_id = user_review_events.card_id",
+      "GROUP BY user_review_events.card_id, user_review_events.review_date",
       "), sequenced_card_days AS (",
       "SELECT",
       "recent_card_days.card_id,",
@@ -164,7 +144,7 @@ async function loadRecentCardCountsInExecutor(
       "LAG(recent_card_days.had_again) OVER (PARTITION BY recent_card_days.card_id ORDER BY recent_card_days.review_date) AS previous_day_had_again,",
       "MIN(recent_card_days.review_date) OVER (PARTITION BY recent_card_days.card_id) AS first_review_date",
       "FROM recent_card_days",
-      ")",
+      "), recent_card_counts AS (",
       "SELECT",
       "COUNT(DISTINCT sequenced_card_days.card_id) FILTER (",
       "WHERE sequenced_card_days.first_review_date >= $4::date",
@@ -175,55 +155,22 @@ async function loadRecentCardCountsInExecutor(
       "AND sequenced_card_days.previous_day_had_again",
       ")::int AS relearned_count",
       "FROM sequenced_card_days",
-    ].join(" "),
-    queryParams,
-  );
-
-  const row = result.rows[0];
-  if (row === undefined) {
-    throw new Error(`Progress insights recent card counts returned no row for workspaceId=${request.workspaceId}`);
-  }
-
-  return row;
-}
-
-// A due review is any review but the card's first-ever one. Repeats of one card on one
-// day count as one due card. Gaps are per installation within this workspace; time
-// spent in another workspace between two ratings stays inside the 60 s cap or a break.
-async function loadTimingDayRowsInExecutor(
-  executor: DatabaseExecutor,
-  request: WorkspaceInsightsRequest,
-): Promise<ReadonlyArray<TimingDayRow>> {
-  const windowStart = shiftLocalDate(request.today, 1 - timingWindowDayCount);
-  const queryParams: ReadonlyArray<SqlValue> = [
-    request.workspaceId,
-    request.userId,
-    request.timeZone,
-    windowStart,
-    request.today,
-    sessionBreakGapSeconds,
-    maximumTimedGapSeconds,
-    minimumTimedGapSeconds,
-  ];
-  // One extra slack day before the window gives the window's first review its gap.
-  const result = await executor.query<TimingDayRow>(
-    [
-      "WITH timing_events AS (",
+      // Gaps are per installation within this workspace. Repeats on a day count as one due card.
+      "), timing_events AS (",
       "SELECT",
-      "review_events.review_event_id,",
-      "review_events.card_id,",
-      "review_events.reviewed_at_client,",
+      "user_review_events.review_event_id,",
+      "user_review_events.card_id,",
+      "user_review_events.reviewed_at_client,",
       "workspace_replicas.installation_id,",
-      `${reviewLocalDateSql("$3")} AS review_date`,
-      "FROM content.review_events AS review_events",
+      "user_review_events.review_date",
+      "FROM user_review_events",
       "INNER JOIN sync.workspace_replicas AS workspace_replicas",
-      "ON workspace_replicas.workspace_id = review_events.workspace_id",
-      "AND workspace_replicas.replica_id = review_events.replica_id",
-      "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_by_user_id = $2",
-      "AND workspace_replicas.actor_kind = 'client_installation'",
-      "AND review_events.reviewed_at_client >= (($4::date - 4)::timestamp AT TIME ZONE $3)",
-      "AND review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)",
+      "ON workspace_replicas.workspace_id = $1",
+      "AND workspace_replicas.replica_id = user_review_events.replica_id",
+      "WHERE workspace_replicas.actor_kind = 'client_installation'",
+      // One extra slack day gives the window's first review its gap.
+      "AND user_review_events.reviewed_at_client >= (($6::date - 4)::timestamp AT TIME ZONE $3)",
+      "AND user_review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)",
       "), gapped_events AS (",
       "SELECT",
       "timing_events.card_id,",
@@ -234,27 +181,35 @@ async function loadTimingDayRowsInExecutor(
       "ORDER BY timing_events.reviewed_at_client, timing_events.review_event_id",
       "))::float8 AS gap_seconds",
       "FROM timing_events",
-      // Materialized so the per-row EXISTS runs once rather than once per aggregate below.
+      "), first_user_reviews AS (",
+      "SELECT user_review_events.card_id, MIN(user_review_events.reviewed_at_client) AS first_reviewed_at_client",
+      "FROM user_review_events",
+      "GROUP BY user_review_events.card_id",
+      // Materialize so the earlier-review lookup runs at most once per candidate.
       "), classified_events AS MATERIALIZED (",
       "SELECT",
       "gapped_events.card_id,",
       "gapped_events.review_date,",
       "CASE",
-      "WHEN gapped_events.gap_seconds IS NULL OR gapped_events.gap_seconds > $6 THEN 'session_start'",
-      "WHEN gapped_events.gap_seconds < $8 THEN 'dropped'",
+      "WHEN gapped_events.gap_seconds IS NULL OR gapped_events.gap_seconds > $7 THEN 'session_start'",
+      "WHEN gapped_events.gap_seconds < $9 THEN 'dropped'",
       "ELSE 'timed'",
       "END AS gap_kind,",
-      "LEAST(gapped_events.gap_seconds, $7) AS capped_seconds,",
-      "EXISTS (",
+      "LEAST(gapped_events.gap_seconds, $8) AS capped_seconds,",
+      // An earlier review by any workspace member makes the card due. Check other history
+      // only at the learner's first timestamp, where their own history cannot answer this.
+      "CASE WHEN gapped_events.reviewed_at_client > first_user_reviews.first_reviewed_at_client THEN TRUE",
+      "ELSE EXISTS (",
       "SELECT 1",
       "FROM content.review_events AS earlier_events",
       "WHERE earlier_events.workspace_id = $1",
       "AND earlier_events.card_id = gapped_events.card_id",
       "AND earlier_events.reviewed_at_client < gapped_events.reviewed_at_client",
-      ") AS is_due_review",
+      ") END AS is_due_review",
       "FROM gapped_events",
-      "WHERE gapped_events.review_date BETWEEN $4::date AND $5::date",
-      ")",
+      "INNER JOIN first_user_reviews ON first_user_reviews.card_id = gapped_events.card_id",
+      "WHERE gapped_events.review_date BETWEEN $6::date AND $5::date",
+      "), timing_days AS (",
       "SELECT",
       "to_char(classified_events.review_date, 'YYYY-MM-DD') AS review_date,",
       "COALESCE(SUM(classified_events.capped_seconds) FILTER (WHERE classified_events.gap_kind = 'timed'), 0)::float8 AS timed_seconds,",
@@ -272,11 +227,22 @@ async function loadTimingDayRowsInExecutor(
       ")::int AS due_card_count",
       "FROM classified_events",
       "GROUP BY classified_events.review_date",
+      ")",
+      "SELECT",
+      "COALESCE((SELECT json_agg(lifetime_days) FROM lifetime_days), '[]') AS lifetime_days,",
+      "recent_card_counts.cards_met_count, recent_card_counts.relearned_count,",
+      "COALESCE((SELECT json_agg(timing_days ORDER BY timing_days.review_date) FROM timing_days), '[]') AS timing_days",
+      "FROM recent_card_counts",
     ].join(" "),
     queryParams,
   );
 
-  return result.rows;
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(`Progress insights returned no row for workspaceId=${request.workspaceId}`);
+  }
+
+  return row;
 }
 
 function mapTimingDayRow(row: TimingDayRow): TimingDay {
@@ -322,12 +288,10 @@ export async function accumulateWorkspaceProgressInsightsInExecutor(
   accumulator: ProgressInsightsAccumulator,
   request: WorkspaceInsightsRequest,
 ): Promise<ProgressInsightsAccumulator> {
-  const lifetimeDayRows = await loadLifetimeDayRowsInExecutor(executor, request);
-  const recentCardCounts = await loadRecentCardCountsInExecutor(executor, request);
-  const timingDayRows = await loadTimingDayRowsInExecutor(executor, request);
+  const workspaceInsights = await loadWorkspaceInsightsInExecutor(executor, request);
 
   const reviewCountsByDate = new Map(accumulator.reviewCountsByDate);
-  for (const row of lifetimeDayRows) {
+  for (const row of workspaceInsights.lifetime_days) {
     const reviewCount = normalizeNonNegativeIntegerFromQuery(
       row.lifetime_review_count,
       `${row.review_date}.lifetime_review_count`,
@@ -336,7 +300,7 @@ export async function accumulateWorkspaceProgressInsightsInExecutor(
   }
 
   const timingDaysByDate = new Map(accumulator.timingDaysByDate);
-  for (const row of timingDayRows) {
+  for (const row of workspaceInsights.timing_days) {
     const timingDay = mapTimingDayRow(row);
     const existingTimingDay = timingDaysByDate.get(row.review_date);
     timingDaysByDate.set(
@@ -348,9 +312,9 @@ export async function accumulateWorkspaceProgressInsightsInExecutor(
   return {
     reviewCountsByDate,
     cardsMetLast7Days: accumulator.cardsMetLast7Days
-      + normalizeNonNegativeIntegerFromQuery(recentCardCounts.cards_met_count, "cards_met_count"),
+      + normalizeNonNegativeIntegerFromQuery(workspaceInsights.cards_met_count, "cards_met_count"),
     relearnedLast7Days: accumulator.relearnedLast7Days
-      + normalizeNonNegativeIntegerFromQuery(recentCardCounts.relearned_count, "relearned_count"),
+      + normalizeNonNegativeIntegerFromQuery(workspaceInsights.relearned_count, "relearned_count"),
     timingDaysByDate,
   };
 }
