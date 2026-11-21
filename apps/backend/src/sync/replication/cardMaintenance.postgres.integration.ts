@@ -130,8 +130,8 @@ test("two replicas preserve maintenance through snapshot sync and append-only re
   const owner = new pg.Pool({ connectionString: process.env.TEST_DATABASE_ADMIN_URL });
   const userId = "local";
   const { workspaceId } = await createWorkspaceForUser(userId, "Maintenance sync integration");
-  const replicaA = { installationId: randomUUID(), platform: "web" };
-  const replicaB = { installationId: randomUUID(), platform: "web" };
+  const replicaA = { installationId: randomUUID(), platform: "web", isAutomation: true };
+  const replicaB = { installationId: randomUUID(), platform: "web", isAutomation: true };
   const createdAt = new Date(Date.now() - 60_000).toISOString();
   const newCard = makeNewCard(createdAt, [" CAFE\u0301 ", "Café", "Keep"]);
   const { cardId } = newCard;
@@ -318,8 +318,8 @@ test("nonzero scoped resets fence late first reviews without publishing changes 
       await t.test(scope, async () => {
         const { workspaceId } = await createWorkspaceForUser(userId, "First review reset integration");
         try {
-          const replicaA = { installationId: randomUUID(), platform: "web" };
-          const replicaB = { installationId: randomUUID(), platform: "web" };
+          const replicaA = { installationId: randomUUID(), platform: "web", isAutomation: true };
+          const replicaB = { installationId: randomUUID(), platform: "web", isAutomation: true };
           const createdAt = new Date(Date.now() - 60_000).toISOString();
           const reviewedAt = new Date(Date.now() - 30_000).toISOString();
           const newCard = makeNewCard(createdAt, [" İSTANBUL "]);

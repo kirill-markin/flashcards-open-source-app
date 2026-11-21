@@ -249,12 +249,12 @@ export async function buildHotChangesFromRows(
   const mediaAssetIds = rows.filter((row) => row.entity_type === "media_asset").map((row) => row.entity_id);
   const workspaceSettingsNeeded = rows.some((row) => row.entity_type === "workspace_scheduler_settings");
 
-  const [cardsById, decksById, mediaAssetsById, workspaceSchedulerSettings] = await Promise.all([
-    loadCardsByIdsInExecutor(executor, workspaceId, cardIds),
-    loadDecksByIdsInExecutor(executor, workspaceId, deckIds),
-    loadMediaAssetsByIdsInExecutor(executor, workspaceId, mediaAssetIds),
-    workspaceSettingsNeeded ? loadWorkspaceSchedulerSettingsInExecutor(executor, workspaceId) : Promise.resolve(null),
-  ]);
+  const cardsById = await loadCardsByIdsInExecutor(executor, workspaceId, cardIds);
+  const decksById = await loadDecksByIdsInExecutor(executor, workspaceId, deckIds);
+  const mediaAssetsById = await loadMediaAssetsByIdsInExecutor(executor, workspaceId, mediaAssetIds);
+  const workspaceSchedulerSettings = workspaceSettingsNeeded
+    ? await loadWorkspaceSchedulerSettingsInExecutor(executor, workspaceId)
+    : null;
 
   return rows.map((row) => {
     const changeId = toNumber(row.change_id);
