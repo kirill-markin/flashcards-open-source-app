@@ -10,6 +10,7 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import type { DailyActivitySource } from "../dailyNewReturning/query";
+import { buildNativeDeviceSql } from "../levelOneMetrics/nativeDeviceBreakdownQuery";
 import { buildReportBucketSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 
 const appOpenRowsFromSql = `FROM analytics.product_events_resolved AS events
@@ -66,6 +67,22 @@ export function buildAppOpenFirstUsePlatformCteSql(range: AnalyticsDateRange): s
 )`;
 }
 
+function buildAppOpenRangeRowsFromSql(
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+  appVersions: ReadonlyArray<string>,
+): string {
+  const filters = [
+    buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms),
+    buildEventDeviceTypesNarrowingSql("events.device_type", eventDeviceTypes),
+    buildAppVersionsNarrowingSql("events.app_version", appVersions),
+  ].filter((filter) => filter !== "");
+  return `${appOpenRowsFromSql}
+      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'${filters.map((filter) => `\n      ${filter}`).join("")}`;
+}
+
 /**
  * The `app_open_last_opens` CTE, composed after `buildAppOpenActivityCtesSql`: one row per bucket of
  * the range and person `app_open_activity` counts in it on `eventPlatforms`, `eventDeviceTypes` and
@@ -79,11 +96,6 @@ export function buildAppOpenLastOpensCteSql(
   eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
 ): string {
-  const deviceTypesNarrowingSql = buildEventDeviceTypesNarrowingSql("events.device_type", eventDeviceTypes);
-  const deviceTypesNarrowingLineSql = deviceTypesNarrowingSql === "" ? "" : `\n      ${deviceTypesNarrowingSql}`;
-  const appVersionsNarrowingSql = appVersions.length === 0
-    ? ""
-    : `\n      ${buildAppVersionsNarrowingSql("events.app_version", appVersions)}`;
   return `app_open_last_opens AS (
   SELECT DISTINCT ON (range_opens.bucket_date, range_opens.actor_id) range_opens.*
   FROM (
@@ -91,13 +103,31 @@ export function buildAppOpenLastOpensCteSql(
       (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
       ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
       events.occurred_at, events.event_id, events.platform, events.ui_locale, events.trust_level, events.app_version
-    ${appOpenRowsFromSql}
-      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
-      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
-      ${buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms)}${deviceTypesNarrowingLineSql}${appVersionsNarrowingSql}
+    ${buildAppOpenRangeRowsFromSql(range, eventPlatforms, eventDeviceTypes, appVersions)}
   ) AS range_opens
   JOIN app_open_activity USING (actor_id, activity_date)
   ORDER BY range_opens.bucket_date, range_opens.actor_id, range_opens.occurred_at DESC, range_opens.event_id DESC
+)`;
+}
+
+export function buildAppOpenRangeDevicesCteSql(
+  period: ReportPeriod,
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+  appVersions: ReadonlyArray<string>,
+): string {
+  return `app_open_range_devices AS (
+  SELECT range_opens.bucket_date, range_opens.actor_id, range_opens.device
+  FROM (
+    SELECT events.actor_id::text AS actor_id,
+      (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
+      ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
+      ${buildNativeDeviceSql("events", "events.device_model")} AS device
+    ${buildAppOpenRangeRowsFromSql(range, eventPlatforms, eventDeviceTypes, appVersions)}
+  ) AS range_opens
+  JOIN app_open_activity USING (actor_id, activity_date)
+  WHERE range_opens.device IS NOT NULL
 )`;
 }
 
