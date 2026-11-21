@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sinchronizavimas užblokuotas: %@";
 "settings.sync.failed" = "Sinchronizavimas nepavyko: %@";
 "settings.sync.failed.generic" = "Sinchronizavimas nepavyko";
+"settings.sync.storageFull" = "Atlaisvinkite vietos šiame įrenginyje, kad būtų galima tęsti sinchronizavimą.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Šiame įrenginyje trūksta saugių prisijungimo duomenų. Vietiniai duomenys išsaugoti. Prisijunkite dar kartą, kad atkurtumėte sinchronizavimą.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Pasikeitė debesijos prieiga prie susietos darbo srities. Vietiniai duomenys išsaugoti. Prisijunkite dar kartą, kai bus atkurta pradinė paskyra ir prieiga prie darbo srities.";
 "settings.sync.recovery.guestSessionMissing" = "Šiame įrenginyje trūksta svečio prisijungimo duomenų. Vietiniai duomenys išsaugoti, bet senos svečio debesijos paskyros be jos prieigos rakto atkurti negalima.";

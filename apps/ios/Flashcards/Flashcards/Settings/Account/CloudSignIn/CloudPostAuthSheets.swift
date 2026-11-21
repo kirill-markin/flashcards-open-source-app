@@ -125,11 +125,7 @@ struct CloudPostAuthFailureSheet: View {
             return true
         }
 
-        guard self.state.kind == .standard else {
-            return false
-        }
-
-        return isCloudSignInSyncInFlight(status: self.store.syncStatus)
+        return self.state.isRetryBlocked(syncStatus: self.store.syncStatus)
     }
 
     var body: some View {
@@ -142,7 +138,7 @@ struct CloudPostAuthFailureSheet: View {
                     Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
                         Text(self.state.title)
                             .font(.headline)
-                        Text(self.failureDescription)
+                        Text(self.state.message)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                             .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
@@ -207,15 +203,6 @@ struct CloudPostAuthFailureSheet: View {
             return aiSettingsLocalized("settings.account.cloudSignIn.chooseWorkspace", "Choose workspace")
         case .prepareLink, .completeLink, .completeGuestLink, .syncOnly:
             return aiSettingsLocalized("common.retry", "Retry")
-        }
-    }
-
-    private var failureDescription: String {
-        switch self.state.kind {
-        case .standard:
-            return self.state.message
-        case .guestLocalRecovery:
-            return self.state.message
         }
     }
 

@@ -69,6 +69,13 @@ func nativeGuestUpgradeOutcome(_ error: Error) -> AnalyticsAuthGuestUpgradeOutco
     if let error = error as? CloudSyncError, error.statusCode == 409 { return .conflict }
     if case GuestCloudAuthError.invalidResponse(_, 409) = error { return .conflict }
     if error is CloudCredentialStoreError || error is GuestCloudCredentialStoreError { return .storageError }
-    if let error = error as? LocalStoreError, case .database = error { return .storageError }
+    if let storeError = error as? LocalStoreError {
+        switch storeError {
+        case .database, .storageFull:
+            return .storageError
+        case .validation, .notFound, .uninitialized:
+            break
+        }
+    }
     return .serverError
 }

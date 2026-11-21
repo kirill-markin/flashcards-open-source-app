@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Penyegerakan disekat: %@";
 "settings.sync.failed" = "Penyegerakan gagal: %@";
 "settings.sync.failed.generic" = "Penyegerakan gagal";
+"settings.sync.storageFull" = "Kosongkan sedikit ruang storan pada peranti ini untuk menyambung semula penyegerakan.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Maklumat pengesahan untuk log masuk selamat tiada pada peranti ini. Data setempat dikekalkan. Log masuk semula untuk memulihkan penyegerakan.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Akses awan kepada ruang kerja yang dipautkan telah berubah. Data setempat dikekalkan. Log masuk semula selepas akses kepada akaun dan ruang kerja asal dipulihkan.";
 "settings.sync.recovery.guestSessionMissing" = "Maklumat pengesahan tetamu tiada pada peranti ini. Data setempat dikekalkan, tetapi akaun awan tetamu yang lama tidak dapat dipulihkan tanpa tokennya.";

@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "동기화 차단됨: %@";
 "settings.sync.failed" = "동기화 실패: %@";
 "settings.sync.failed.generic" = "동기화 실패";
+"settings.sync.storageFull" = "동기화를 다시 시작하려면 이 기기의 저장 공간을 확보하세요.";
 "settings.sync.recovery.linkedCredentialsMissing" = "이 기기에 보안 로그인 자격 증명이 없습니다. 로컬 데이터는 보존되어 있습니다. 동기화를 다시 연결하려면 다시 로그인하세요.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "연결된 작업 공간의 클라우드 접근 권한이 변경되었습니다. 로컬 데이터는 보존되어 있습니다. 원래 계정과 작업 공간 접근이 복구된 후 다시 로그인하세요.";
 "settings.sync.recovery.guestSessionMissing" = "이 기기에 게스트 자격 증명이 없습니다. 로컬 데이터는 보존되어 있지만 이전 게스트 클라우드 계정은 토큰 없이는 복구할 수 없습니다.";

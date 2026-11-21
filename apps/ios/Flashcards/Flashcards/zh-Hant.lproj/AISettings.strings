@@ -297,6 +297,7 @@
 "settings.sync.blocked" = "同步已暫停：%@";
 "settings.sync.failed" = "同步失敗：%@";
 "settings.sync.failed.generic" = "同步失敗";
+"settings.sync.storageFull" = "請釋放此裝置上的儲存空間以繼續同步。";
 "settings.sync.recovery.linkedCredentialsMissing" = "這部裝置缺少安全登入憑證。本機資料已保留。請重新登入以恢復同步。";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "已連結工作區的雲端存取權已變更。本機資料已保留。請在恢復原本的帳號及工作區存取權後重新登入。";
 "settings.sync.recovery.guestSessionMissing" = "這部裝置缺少訪客憑證。本機資料已保留，但缺少權杖，無法恢復舊的雲端訪客帳號。";

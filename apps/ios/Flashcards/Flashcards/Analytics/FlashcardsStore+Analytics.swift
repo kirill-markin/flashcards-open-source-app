@@ -104,6 +104,10 @@ func analyticsMediaUploadFailureReason(error: Error) -> AnalyticsMediaUploadFail
  * bucket means on all three clients.
  */
 func analyticsSyncFailureReason(error: Error) -> AnalyticsSyncFailureReason {
+    if CloudSyncFailurePolicy.isLocalStorageFull(error: error) {
+        return .storageFull
+    }
+
     if isRetryableNetworkTransportFailure(error: error) {
         return flashcardsURLErrorCode(error: error, remainingDepth: 4) == .timedOut ? .timeout : .offline
     }

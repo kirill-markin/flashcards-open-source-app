@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Đồng bộ bị chặn: %@";
 "settings.sync.failed" = "Đồng bộ thất bại: %@";
 "settings.sync.failed.generic" = "Đồng bộ thất bại";
+"settings.sync.storageFull" = "Giải phóng dung lượng trên thiết bị này để tiếp tục đồng bộ hóa.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Thiết bị này thiếu thông tin đăng nhập bảo mật. Dữ liệu trên thiết bị được giữ lại. Đăng nhập lại để kết nối lại đồng bộ.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Quyền truy cập đám mây vào không gian làm việc đã liên kết đã thay đổi. Dữ liệu trên thiết bị được giữ lại. Đăng nhập lại sau khi khôi phục tài khoản gốc và quyền truy cập không gian làm việc.";
 "settings.sync.recovery.guestSessionMissing" = "Thiết bị này thiếu thông tin xác thực khách. Dữ liệu trên thiết bị được giữ lại, nhưng không thể khôi phục tài khoản khách đám mây cũ nếu không có mã thông báo của tài khoản đó.";

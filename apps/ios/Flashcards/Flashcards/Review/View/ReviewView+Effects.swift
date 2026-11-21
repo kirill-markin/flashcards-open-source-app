@@ -240,7 +240,7 @@ private func reviewSubmissionInlineErrorMessage(error: Error) -> String? {
         switch localStoreError {
         case .validation:
             return Flashcards.errorMessage(error: error)
-        case .database, .notFound, .uninitialized:
+        case .database, .storageFull, .notFound, .uninitialized:
             return nil
         }
     }

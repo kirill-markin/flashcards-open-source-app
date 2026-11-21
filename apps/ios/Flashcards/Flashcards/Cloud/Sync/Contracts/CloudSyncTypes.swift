@@ -18,6 +18,7 @@ enum SyncStatus: Hashable {
     case syncing
     case blocked(message: String)
     case failed(message: String)
+    case localStorageFull(message: String)
 }
 
 enum CloudSyncTriggerSource: Hashable, Sendable {
