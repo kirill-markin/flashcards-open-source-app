@@ -362,6 +362,7 @@ async function resolveGuestUpgradeTargetInExecutor(
   guestUserId: string,
   targetUserId: string,
   selection: GuestUpgradeSelection,
+  admission: GuestUpgradeAdmission,
 ): Promise<GuestUpgradeResolution> {
   const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestUserId);
   if (selection.type === "existing" && selection.workspaceId === guestWorkspaceId) {
@@ -385,7 +386,21 @@ async function resolveGuestUpgradeTargetInExecutor(
     const targetWorkspaceId = selection.workspaceId;
     await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: targetUserId, workspaceId: targetWorkspaceId });
     await lockWorkspaceAccessLifecycleInExecutor(executor, targetUserId, targetWorkspaceId);
-    const target = await loadWorkspaceManagementRowInExecutor(executor, targetUserId, targetWorkspaceId);
+    const target = await loadWorkspaceManagementRowInExecutor(executor, targetUserId, targetWorkspaceId)
+      .catch((error: unknown) => {
+        if (
+          admission === "native"
+          && error instanceof HttpError
+          && error.statusCode === 404
+          && error.code === "WORKSPACE_NOT_FOUND"
+        ) {
+          throw new HttpError(error.statusCode, error.message, error.code, {
+            ...error.details,
+            guestUpgradeDestinationUnavailable: true,
+          }, error);
+        }
+        throw error;
+      });
     if (target.workspace_id !== targetWorkspaceId) {
       throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
     }
@@ -741,6 +756,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
     guestSession.userId,
     targetUserId,
     selection,
+    admission,
   );
 
   // Move the guest community identity onto the target before the merge below. The
