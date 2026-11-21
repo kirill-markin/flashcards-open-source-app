@@ -24,6 +24,7 @@ import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
+import { getWorkspaceChatInstructionsAccountId } from "./chat/customInstructions/workspaceChatInstructionsStore";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
@@ -69,6 +70,7 @@ import {
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
   settingsAIChatSuggestionsRoute,
+  settingsChatInstructionsRoute,
   settingsAnalyticsRoute,
   settingsOwnOpenAIKeyRoute,
   settingsSubscriptionRoute,
@@ -192,6 +194,9 @@ const LanguageSettingsScreen = lazy(async () => import("./screens/settings/Langu
 })));
 const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screens/settings/LeaderboardParticipationSettingsScreen").then((module) => ({
   default: module.LeaderboardParticipationSettingsScreen,
+})));
+const ChatInstructionsScreen = lazy(async () => import("./screens/settings/workspace/ChatInstructionsScreen").then((module) => ({
+  default: module.ChatInstructionsScreen,
 })));
 const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
   default: module.AIChatSuggestionsSettingsScreen,
@@ -1086,12 +1091,21 @@ function buildChatMainContentClassName(isFullscreenChat: boolean, isOpen: boolea
 }
 
 export function RoutedShell(): ReactElement {
-  const isGuest = useAppData().session?.browserGuestCapabilities?.isGuest === true;
+  const { session, sessionVerificationState } = useAppData();
+  const isGuest = session?.browserGuestCapabilities?.isGuest === true;
+  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState);
+  const chatInstructionsScreen = isGuest
+    ? <AccountStatusScreen />
+    : instructionsAccountId === null
+      ? <RouteContentFallback messageKey="loading.restoringSession" />
+      : <ChatInstructionsScreen accountId={instructionsAccountId} />;
   const location = useLocation();
   const { isOpen } = useChatLayout();
-  const isFullscreenChat = normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath) === chatRoute;
+  const appPath = normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath);
+  const isFullscreenChat = appPath === chatRoute;
+  const instructionsClassName = appPath === settingsChatInstructionsRoute ? " chat-layout-shell-instructions" : "";
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const shellClassName = buildChatLayoutShellClassName(isFullscreenChat, isOpen);
+  const shellClassName = `${buildChatLayoutShellClassName(isFullscreenChat, isOpen)}${instructionsClassName}`;
   const contentClassName = buildChatMainContentClassName(isFullscreenChat, isOpen);
 
   useEffect(() => {
@@ -1159,6 +1173,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsAccentColorRoute}`} element={renderDeferredRoute(<AccentColorSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsChatInstructionsRoute}`} element={renderDeferredRoute(chatInstructionsScreen, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSubscriptionRoute}`} element={renderDeferredRoute(isGuest ? <AccountStatusScreen /> : <SubscriptionSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />

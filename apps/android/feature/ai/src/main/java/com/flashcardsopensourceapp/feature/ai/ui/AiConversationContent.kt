@@ -6,13 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,23 +42,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateCustomInstructionsButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
+import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import kotlinx.coroutines.delay
 
 private val aiEmptyStateMaxWidth = 420.dp
+private val aiCustomInstructionsButtonMaxWidth = 280.dp
 
 @Composable
 internal fun AiConversation(
     conversationScrollStateKey: String,
     messages: List<AiChatMessage>,
     currentWorkspaceName: String,
+    customInstructions: String?,
+    onOpenCustomInstructions: (() -> Unit)?,
     isStreaming: Boolean,
     onOpenAccountStatus: () -> Unit,
     onDismissComposerFocus: () -> Unit,
@@ -61,6 +75,8 @@ internal fun AiConversation(
         AiConversationStatefulContent(
             messages = messages,
             currentWorkspaceName = currentWorkspaceName,
+            customInstructions = customInstructions,
+            onOpenCustomInstructions = onOpenCustomInstructions,
             isStreaming = isStreaming,
             onOpenAccountStatus = onOpenAccountStatus,
             onDismissComposerFocus = onDismissComposerFocus,
@@ -74,6 +90,8 @@ internal fun AiConversation(
 private fun AiConversationStatefulContent(
     messages: List<AiChatMessage>,
     currentWorkspaceName: String,
+    customInstructions: String?,
+    onOpenCustomInstructions: (() -> Unit)?,
     isStreaming: Boolean,
     onOpenAccountStatus: () -> Unit,
     onDismissComposerFocus: () -> Unit,
@@ -178,6 +196,8 @@ private fun AiConversationStatefulContent(
             ) {
                 AiConversationEmptyState(
                     currentWorkspaceName = currentWorkspaceName,
+                    customInstructions = customInstructions,
+                    onOpenCustomInstructions = onOpenCustomInstructions,
                     modifier = Modifier
                 )
             }
@@ -206,6 +226,8 @@ private fun AiConversationStatefulContent(
 @Composable
 private fun AiConversationEmptyState(
     currentWorkspaceName: String,
+    customInstructions: String?,
+    onOpenCustomInstructions: (() -> Unit)?,
     modifier: Modifier
 ) {
     val context = LocalContext.current
@@ -235,6 +257,49 @@ private fun AiConversationEmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+        if (onOpenCustomInstructions != null) {
+            AiCustomInstructionsButton(
+                customInstructions = customInstructions,
+                onClick = onOpenCustomInstructions,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+    }
+}
+
+/** Kept secondary, because composer suggestions also show on a new chat. */
+@Composable
+private fun AiCustomInstructionsButton(
+    customInstructions: String?,
+    onClick: () -> Unit,
+    modifier: Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+            .widthIn(max = aiCustomInstructionsButtonMaxWidth)
+            .testTag(aiEmptyStateCustomInstructionsButtonTag)
+    ) {
+        if (customInstructions == null) {
+            Icon(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+            Text(stringResource(id = SettingsR.string.ai_chat_instructions_add))
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(id = SettingsR.string.ai_chat_instructions_title))
+                Text(
+                    text = customInstructions.lines().joinToString(separator = " "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 

@@ -50,6 +50,7 @@ export type ChatConversationEnvelope = Readonly<{
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
   activeRun: ChatActiveRun | null;
+  customInstructions: string | null;
 }>;
 
 export type ChatAcceptedConversationEnvelope = ChatConversationEnvelope & Readonly<{
@@ -334,6 +335,7 @@ export function buildConversationEnvelope(
     hasOlder?: boolean;
     oldestCursor?: string | null;
     chatConfig?: ChatConfig;
+    customInstructions: string | null;
   }>,
 ): ChatConversationEnvelope {
   return {
@@ -349,6 +351,7 @@ export function buildConversationEnvelope(
     composerSuggestions: params.composerSuggestions,
     chatConfig: params.chatConfig ?? getChatConfig(),
     activeRun: params.activeRun,
+    customInstructions: params.customInstructions,
   };
 }
 
@@ -363,6 +366,7 @@ export function buildConversationEnvelopeFromSnapshot(
     messages: snapshot.messages.map((message) => toConversationMessage(message)),
     composerSuggestions: snapshot.composerSuggestions,
     activeRun,
+    customInstructions: snapshot.customInstructions,
   });
 }
 
@@ -378,6 +382,7 @@ export function buildConversationEnvelopeFromPaginatedSession(
     messages: page.messages.map((message) => toConversationMessageFromPersisted(message)),
     composerSuggestions: snapshot.composerSuggestions,
     activeRun,
+    customInstructions: snapshot.customInstructions,
     hasOlder: page.hasOlder,
     oldestCursor: page.oldestCursor,
   });

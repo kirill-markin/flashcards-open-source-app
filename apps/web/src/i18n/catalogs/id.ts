@@ -1550,6 +1550,15 @@ const idCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Tanyakan tentang kartu, riwayat tinjauan, atau lampirkan catatan...",
     currentChatRecovered: "Obrolan ini telah diganti dengan yang lebih baru. Pesan Anda masih ada di kotak teks — kirim lagi.",
+    customInstructions: {
+      add: "Tambahkan instruksi khusus",
+      count: "{{count}} / {{max}}",
+      description: "Preferensi yang diikuti Obrolan AI di ruang kerja ini, seperti bahasa, tingkat, panjang jawaban, dan gaya kartu.",
+      loadFailed: "Tidak dapat memuat instruksi khusus.",
+      placeholder: "Contoh: Saya belajar bahasa Jerman di level A2. Tambahkan contoh kalimat di sisi belakang setiap kartu. Jawab dengan singkat.",
+      saveFailed: "Tidak dapat menyimpan instruksi khusus. Coba lagi.",
+      title: "Instruksi khusus",
+    },
     dictation: {
       listening: "Mendengarkan...",
       start: "Mulai dikte",

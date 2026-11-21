@@ -4,7 +4,12 @@
  */
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../../types";
-import { buildCurrentDatetimeLine, buildSystemInstructions, type ChatClientApp } from "../../shared";
+import {
+  buildCurrentDatetimeLine,
+  buildSystemInstructions,
+  CUSTOM_INSTRUCTIONS_MESSAGE_LABEL,
+  type ChatClientApp,
+} from "../../shared";
 import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
 import { isTextLikeChatFileMediaType } from "../../attachmentPolicy";
@@ -201,24 +206,33 @@ function sliceHistoryFromLatestCompaction(
 /**
  * Puts the current system prompt first, or right after the compaction item that replayed items start at: OpenAI
  * ignores every input item before the latest compaction item, and a system message right after it overrides the
- * system prompt that compaction carries from the call that made it.
+ * system prompt that compaction carries from the call that made it. The workspace's custom instructions follow it
+ * as a labeled user message, so the system prompt stays a stable prompt-cache prefix.
  */
 export function placeSystemPrompt(
   replayedItems: ReadonlyArray<OpenAIInputItem>,
   generatedImageEligible: boolean,
   clientApp: ChatClientApp | null,
+  customInstructions: string | null,
 ): Array<OpenAIInputItem> {
-  const systemPrompt: OpenAIInputItem = {
+  const promptItems: Array<OpenAIInputItem> = [{
     role: "system",
     type: "message",
     content: buildSystemInstructions(generatedImageEligible, clientApp),
-  };
+  }];
+  if (customInstructions !== null) {
+    promptItems.push({
+      role: "user",
+      type: "message",
+      content: `${CUSTOM_INSTRUCTIONS_MESSAGE_LABEL}:\n${customInstructions}`,
+    });
+  }
   const [firstItem, ...laterItems] = replayedItems;
   if (firstItem !== undefined && firstItem.type === "compaction") {
-    return [firstItem, systemPrompt, ...laterItems];
+    return [firstItem, ...promptItems, ...laterItems];
   }
 
-  return [systemPrompt, ...replayedItems];
+  return [...promptItems, ...replayedItems];
 }
 
 /** Tells the model that a reply ended in an error and why; the error has no OpenAI output to replay. */
@@ -399,6 +413,7 @@ export async function buildChatCompletionInputWithBudget(
   timezone: string,
   generatedImageEligible: boolean,
   clientApp: ChatClientApp | null,
+  customInstructions: string | null,
   fileDerivatives: ChatFileDerivativeIndex,
   budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
@@ -427,7 +442,7 @@ export async function buildChatCompletionInputWithBudget(
     historyItems.push(await buildUserInputMessage(sessionId, fileDerivatives, message.content));
   }
 
-  const input = placeSystemPrompt(historyItems, generatedImageEligible, clientApp);
+  const input = placeSystemPrompt(historyItems, generatedImageEligible, clientApp, customInstructions);
   input.push({
     role: "system",
     type: "message",
@@ -448,6 +463,7 @@ export async function buildChatCompletionInput(
   timezone: string,
   generatedImageEligible: boolean,
   clientApp: ChatClientApp | null,
+  customInstructions: string | null,
   fileDerivatives: ChatFileDerivativeIndex,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   return buildChatCompletionInputWithBudget(
@@ -457,6 +473,7 @@ export async function buildChatCompletionInput(
     timezone,
     generatedImageEligible,
     clientApp,
+    customInstructions,
     fileDerivatives,
     CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   );

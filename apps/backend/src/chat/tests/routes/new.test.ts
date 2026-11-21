@@ -55,6 +55,7 @@ test("POST /chat/new returns the current session when history is empty", async (
     sessionId: SESSION_ONE,
     composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -91,6 +92,7 @@ test("POST /chat/new localizes initial suggestions from uiLocale", async () => {
     sessionId: SESSION_ONE,
     composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -185,6 +187,7 @@ test("POST /chat/new returns the existing explicit session unchanged when histor
     sessionId: SESSION_ONE,
     composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -232,6 +235,7 @@ test("POST /chat/new returns the existing explicit session unchanged when run st
     sessionId: SESSION_ONE,
     composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -283,6 +287,7 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
     sessionId: SESSION_TWO,
     composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -336,6 +341,7 @@ test("POST /chat/new persists localized initial suggestions for a created explic
     sessionId: SESSION_TWO,
     composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 
   const readResponse = await app.request(`http://localhost/chat?sessionId=${SESSION_TWO}`);
@@ -351,6 +357,7 @@ test("POST /chat/new persists localized initial suggestions for a created explic
     },
     composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
     activeRun: null,
   });
 });
@@ -441,6 +448,7 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
     sessionId: SESSION_TWO,
     composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 });
 
@@ -512,6 +520,7 @@ test("POST /chat/new persists localized initial suggestions for rollover-created
     sessionId: SESSION_TWO,
     composerSuggestions: buildInitialChatComposerSuggestions("de"),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
   });
 
   const readResponse = await app.request(`http://localhost/chat?sessionId=${SESSION_TWO}`);
@@ -527,6 +536,7 @@ test("POST /chat/new persists localized initial suggestions for rollover-created
     },
     composerSuggestions: buildInitialChatComposerSuggestions("de"),
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
     activeRun: null,
   });
 });

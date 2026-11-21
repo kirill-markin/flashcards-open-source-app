@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactElement } from "react";
+import { Link, useLocation } from "react-router";
 import { GuestSignIn } from "../../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../../appData";
 import {
@@ -46,6 +47,12 @@ import { useChatComposerKeyboard } from "../composer/useChatComposerKeyboard";
 import { useChatComposerSend } from "../composer/useChatComposerSend";
 import { useChatDictationCapture } from "../composer/dictation/useChatDictationCapture";
 import { useChatSidebarResize } from "../layout/useChatSidebarResize";
+import {
+  getWorkspaceChatInstructionsAccountId,
+  useWorkspaceChatInstructions,
+} from "../customInstructions/workspaceChatInstructionsStore";
+import { settingsChatInstructionsRoute } from "../../routes";
+import { useWorkspacePath } from "../../useWorkspacePath";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
@@ -175,7 +182,7 @@ export function ChatPanel(props: Props): ReactElement {
       showChatTechnicalError(error, "chat_send_prepare");
     }
   }, [messages, isBrowserGuest, isHistoryLoaded, isAssistantRunActive, aiUsage, guestCapabilities, refreshAiUsage]);
-  const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null;
+  const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null && appData.isSessionVerified;
 
   const { handleMessagesScroll } = useChatAutoScroll({
     // The History panel unmounts the messages scroller; closing it must rebind and re-restore the new one.
@@ -187,6 +194,14 @@ export function ChatPanel(props: Props): ReactElement {
     scrollKey: currentSessionId,
   });
   const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
+  const location = useLocation();
+  const workspacePath = useWorkspacePath();
+  const accountId = appData.sessionVerificationState === "verified"
+    ? appData.session?.canonicalAccountId ?? appData.session?.userId ?? null
+    : null;
+  const instructionsAccountId = getWorkspaceChatInstructionsAccountId(appData.session, appData.sessionVerificationState);
+  const savedChatInstructions = useWorkspaceChatInstructions(instructionsAccountId, activeWorkspaceId) ?? null;
+  const isNewChatEmpty = isHistoryLoaded && messages.length === 0 && !isAssistantRunActive && activeWorkspaceId !== null;
   const attachmentLimitMessages = formatChatAttachmentLimitMessages({ t, formatNumber });
   const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
   const technicalErrorMessage = t("appError.technicalError.message");
@@ -241,6 +256,7 @@ export function ChatPanel(props: Props): ReactElement {
     setPendingAttachmentsState,
     startNewConversationComposerReset,
   } = useChatComposerSend({
+    accountId,
     activeWorkspaceId,
     attachmentLimitMessages,
     clearDraftForSession,
@@ -265,7 +281,9 @@ export function ChatPanel(props: Props): ReactElement {
     runSync: appData.runSync,
     sendChatMessage: async (params) => {
       const result = await sendChatMessage(params);
-      if (!result.accepted && result.guestAiRefusal !== undefined) showGuestAiRefusal(result.guestAiRefusal);
+      if (!result.accepted && result.guestAiRefusal !== undefined && params.isDraftTargetCurrent()) {
+        showGuestAiRefusal(result.guestAiRefusal);
+      }
       return result;
     },
     sendPhase,
@@ -346,10 +364,11 @@ export function ChatPanel(props: Props): ReactElement {
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   });
-  const { handleKeyDown } = useChatComposerKeyboard({
+  const { handleKeyDown, isMobileChatLayout } = useChatComposerKeyboard({
     composerAction,
     sendPendingMessage,
   });
+  const isMobileSidebar = mode === "sidebar" && isMobileChatLayout;
   const hasDraftContent = hasChatDraftContent(inputText, pendingAttachments);
   const composerState = getChatComposerState({
     composerAction,
@@ -555,8 +574,9 @@ export function ChatPanel(props: Props): ReactElement {
 
       {isHistoryPanelVisible ? (
         <ChatHistoryPanel
-          key={activeWorkspaceId}
+          key={`${accountId ?? ""}:${activeWorkspaceId}`}
           workspaceId={activeWorkspaceId}
+          accountId={accountId}
           currentSessionId={currentSessionId}
           isCurrentChatArchiveDisabled={isAssistantRunActive || isStopping || isSendButtonBusy || isChatActionLocked}
           onCurrentChatArchived={() => {
@@ -580,6 +600,34 @@ export function ChatPanel(props: Props): ReactElement {
                 <span className="chat-loading-line" />
                 <span className="chat-loading-line chat-loading-line-short" />
               </div>
+            </div>
+          ) : null}
+
+          {isNewChatEmpty && instructionsAccountId !== null ? (
+            <div className="chat-custom-instructions-entry">
+              <Link
+                className="chat-custom-instructions-button"
+                to={workspacePath(settingsChatInstructionsRoute)}
+                state={{ parentPath: `${location.pathname}${location.search}` }}
+                onClick={() => {
+                  if (isMobileSidebar) {
+                    discardDictation();
+                  }
+                }}
+                data-testid="chat-custom-instructions-button"
+                data-state={savedChatInstructions === null ? "unset" : "set"}
+              >
+                <span className="chat-custom-instructions-label">
+                  {savedChatInstructions === null
+                    ? t("chatPanel.customInstructions.add")
+                    : t("chatPanel.customInstructions.title")}
+                </span>
+                {savedChatInstructions === null ? null : (
+                  <span className="chat-custom-instructions-preview" data-testid="chat-custom-instructions-preview">
+                    {savedChatInstructions}
+                  </span>
+                )}
+              </Link>
             </div>
           ) : null}
 

@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "읽기 전용: 이전 채팅은 이어서 할 수 없습니다.";
 "ai.history.readerLoading" = "채팅을 불러오는 중...";
 "ai.history.readerLoadError" = "이 채팅을 불러오지 못했습니다.";
+"ai.customInstructions.add" = "맞춤 지침 추가";
+"ai.customInstructions.title" = "맞춤 지침";
+"ai.customInstructions.description" = "이 워크스페이스에서 AI 채팅이 따르는 선호 설정입니다. 언어, 수준, 답변 길이, 카드 스타일 등을 정할 수 있습니다.";
+"ai.customInstructions.placeholder" = "예: A2 수준으로 독일어를 공부하고 있어요. 각 카드 뒷면에 예문을 추가해 주세요. 답변은 짧게 해 주세요.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "맞춤 지침을 불러올 수 없습니다.";
+"ai.customInstructions.saveFailed" = "맞춤 지침을 저장할 수 없습니다. 다시 시도하세요.";
 "ai.consent.title" = "AI를 사용하기 전에";
 "ai.consent.warning" = "AI는 틀릴 수 있습니다. 중요한 결과는 믿고 사용하기 전에 확인하세요.";
 "ai.consent.disclosure.prompts" = "요청에 필요한 입력 프롬프트와 카드에서 얻은 맥락이 호스팅된 AI 서비스로 전송될 수 있습니다.";

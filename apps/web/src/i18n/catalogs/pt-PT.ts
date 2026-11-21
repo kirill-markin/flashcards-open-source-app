@@ -1558,6 +1558,15 @@ const ptPtCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Faça perguntas sobre os cartões ou o histórico de revisões, ou anexe apontamentos...",
     currentChatRecovered: "Este chat foi substituído por um mais recente. A sua mensagem continua na caixa de texto. Volte a enviá-la.",
+    customInstructions: {
+      add: "Adicionar instruções personalizadas",
+      count: "{{count}} / {{max}}",
+      description: "Preferências que o chat com IA segue neste espaço de trabalho, como idioma, nível, tamanho das respostas e estilo dos cartões.",
+      loadFailed: "Não foi possível carregar as instruções personalizadas.",
+      placeholder: "Por exemplo: estudo alemão no nível A2. Adiciona uma frase de exemplo no verso de cada cartão. Responde de forma breve.",
+      saveFailed: "Não foi possível guardar as instruções personalizadas. Tente novamente.",
+      title: "Instruções personalizadas",
+    },
     dictation: {
       listening: "A ouvir...",
       start: "Iniciar ditado",

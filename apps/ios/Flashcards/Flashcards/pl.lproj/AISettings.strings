@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Tylko do odczytu: starych czatów nie można kontynuować.";
 "ai.history.readerLoading" = "Wczytywanie czatu...";
 "ai.history.readerLoadError" = "Nie udało się wczytać tego czatu.";
+"ai.customInstructions.add" = "Dodaj własne instrukcje";
+"ai.customInstructions.title" = "Własne instrukcje";
+"ai.customInstructions.description" = "Preferencje, których Czat AI przestrzega w tej przestrzeni roboczej, np. język, poziom, długość odpowiedzi i styl kart.";
+"ai.customInstructions.placeholder" = "Na przykład: uczę się niemieckiego na poziomie A2. Dodawaj przykładowe zdanie na odwrocie każdej fiszki. Odpowiadaj krótko.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Nie udało się wczytać własnych instrukcji.";
+"ai.customInstructions.saveFailed" = "Nie udało się zapisać własnych instrukcji. Spróbuj ponownie.";
 "ai.consent.title" = "Zanim użyjesz AI";
 "ai.consent.warning" = "AI może się mylić. Sprawdź ważne wyniki, zanim na nich polegniesz.";
 "ai.consent.disclosure.prompts" = "Wpisane polecenia i kontekst z fiszek potrzebny do realizacji żądania mogą być wysyłane do hostowanej usługi AI.";

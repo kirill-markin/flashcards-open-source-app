@@ -27,6 +27,7 @@ type HistoryView =
 
 export type ChatHistoryPanelProps = Readonly<{
   workspaceId: string;
+  accountId: string | null;
   currentSessionId: string | null;
   isCurrentChatArchiveDisabled: boolean;
   onCurrentChatArchived: () => void;
@@ -65,6 +66,7 @@ function withoutEntry<Value>(
 export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Element {
   const {
     workspaceId,
+    accountId,
     currentSessionId,
     isCurrentChatArchiveDisabled,
     onCurrentChatArchived,
@@ -266,6 +268,7 @@ export function ChatHistoryPanel(props: ChatHistoryPanelProps): React.JSX.Elemen
       {view.kind === "reading" ? (
         <ChatHistoryReader
           workspaceId={workspaceId}
+          accountId={accountId}
           summary={view.summary}
           reportHistoryError={reportHistoryError}
           onMessageTechnicalError={onMessageTechnicalError}

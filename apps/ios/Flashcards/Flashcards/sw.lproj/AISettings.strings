@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Kusoma tu: magumzo ya zamani hayawezi kuendelezwa.";
 "ai.history.readerLoading" = "Inapakia gumzo...";
 "ai.history.readerLoadError" = "Imeshindwa kupakia gumzo hili.";
+"ai.customInstructions.add" = "Ongeza maagizo maalum";
+"ai.customInstructions.title" = "Maagizo maalum";
+"ai.customInstructions.description" = "Mapendeleo ambayo Gumzo la AI hufuata katika nafasi hii ya kazi, kama lugha, kiwango, urefu wa majibu na mtindo wa kadi.";
+"ai.customInstructions.placeholder" = "Kwa mfano: Ninasoma Kijerumani kiwango cha A2. Ongeza sentensi ya mfano nyuma ya kila kadi. Jibu kwa ufupi.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Imeshindwa kupakia maagizo maalum.";
+"ai.customInstructions.saveFailed" = "Imeshindwa kuhifadhi maagizo maalum. Jaribu tena.";
 "ai.consent.title" = "Kabla ya kutumia AI";
 "ai.consent.warning" = "AI inaweza kukosea. Kagua matokeo muhimu kabla ya kuyategemea.";
 "ai.consent.disclosure.prompts" = "Maagizo uliyoandika na muktadha wa kadi unaohitajika kwa ombi lako vinaweza kutumwa kwa huduma ya AI inayohudumiwa.";

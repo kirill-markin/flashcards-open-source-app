@@ -5,6 +5,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.ai.AiChatCustomInstructionsDestination
+import com.flashcardsopensourceapp.app.navigation.ai.registerAiChatCustomInstructionsDestination
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
@@ -49,6 +51,11 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             appGraph = appGraph,
             navController = navController,
             coroutineScope = coroutineScope
+        )
+        registerAiChatCustomInstructionsDestination(
+            appGraph = appGraph,
+            navController = navController,
+            destination = AiChatCustomInstructionsDestination.SETTINGS
         )
         registerSettingsAccountNavGraph(
             appGraph = appGraph,

@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "فقط‌خواندنی: گفت‌وگوهای قدیمی را نمی‌توان ادامه داد.";
 "ai.history.readerLoading" = "در حال بارگیری گفت‌وگو...";
 "ai.history.readerLoadError" = "بارگیری این گفت‌وگو ناموفق بود.";
+"ai.customInstructions.add" = "افزودن دستورالعمل‌های سفارشی";
+"ai.customInstructions.title" = "دستورالعمل‌های سفارشی";
+"ai.customInstructions.description" = "ترجیحاتی که گفت‌وگوی هوش مصنوعی در این فضای کاری دنبال می‌کند، مانند زبان، سطح، طول پاسخ‌ها و سبک کارت‌ها.";
+"ai.customInstructions.placeholder" = "برای مثال: آلمانی را در سطح A2 می‌خوانم. پشت هر کارت یک جملهٔ نمونه اضافه کن. کوتاه پاسخ بده.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "بارگیری دستورالعمل‌های سفارشی ممکن نشد.";
+"ai.customInstructions.saveFailed" = "ذخیرهٔ دستورالعمل‌های سفارشی ممکن نشد. دوباره تلاش کنید.";
 "ai.consent.title" = "پیش از استفاده از هوش مصنوعی";
 "ai.consent.warning" = "هوش مصنوعی ممکن است اشتباه کند. پیش از اتکا به نتایج مهم، آن‌ها را بررسی کنید.";
 "ai.consent.disclosure.prompts" = "درخواست‌های تایپ‌شده و زمینهٔ برگرفته از کارت‌ها که برای درخواست شما لازم است، ممکن است به سرویس میزبانی‌شدهٔ هوش مصنوعی فرستاده شوند.";

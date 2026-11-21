@@ -112,6 +112,7 @@ function createRunningSnapshot(): ChatSessionSnapshot {
     composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages: [],
+    customInstructions: null,
   };
 }
 
@@ -437,6 +438,58 @@ test("parseChatRequestBody rejects unsupported attachment file extensions with a
       && error.code === chatAttachmentUnsupportedTypeCode
       && error.message === chatAttachmentUnsupportedTypeMessage,
   );
+});
+
+test("workspace instructions and chat routes require the matching canonical account when supplied", async () => {
+  const account = createRequestContext();
+  const originalClientUserId = "original-user-1";
+  const app = createRoutesWithHttpErrorJson();
+  app.route("/", createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: {
+        ...account,
+        clientAccountIdentity: {
+          originalClientUserId,
+          canonicalAccountId: account.userId,
+          linkedAccountIds: [originalClientUserId, account.userId],
+        },
+      },
+    }),
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: { ...createRunningSnapshot(), runState: "idle", activeRunId: null, customInstructions: "Use examples." },
+      latestMessagesPage: {
+        messages: [],
+        oldestCursor: null,
+        newestCursor: null,
+        hasOlder: false,
+      },
+    }),
+  }));
+
+  const settingsPath = `/workspaces/${LEGACY_POSTGRES_WORKSPACE_ID}/chat-instructions`;
+  const boundRoutes = [
+    ["GET", "/chat"],
+    ["POST", "/chat"],
+    ["POST", "/chat/new"],
+    ["GET", settingsPath],
+    ["POST", settingsPath],
+  ] as const;
+  for (const [method, path] of boundRoutes) {
+    const response = await app.request(`${path}?expectedAccountId=${originalClientUserId}`, { method });
+    assert.equal(response.status, 409, `${method} ${path}`);
+    assert.deepEqual(await response.json(), {
+      error: "The signed-in account changed. Reload the page.",
+      requestId: null,
+      code: "ACCOUNT_SCOPE_CHANGED",
+    });
+  }
+
+  const response = await app.request(`/chat?expectedAccountId=${account.userId}`);
+  assert.equal(response.status, 200);
+  const result = await response.json() as { customInstructions: string | null };
+  assert.equal(result.customInstructions, "Use examples.");
 });
 
 test("GET /chat fails with a stable contract code when running snapshot has no in-progress assistant item", async () => {

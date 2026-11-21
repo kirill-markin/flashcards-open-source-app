@@ -4,9 +4,9 @@ import {
   createNewChatSessionResponse,
   createSessionResponse,
 } from "../ApiTestSupport";
-import { stopChatRun } from "../endpoints/chat";
+import { createNewChatSession, getCurrentChatSnapshot, stopChatRun } from "../endpoints/chat";
 import { ApiNetworkError } from "./errors";
-import { primeSessionCsrfToken } from "./transport";
+import { getSession, primeSessionCsrfToken } from "./transport";
 import {
   createFailingJsonResponse,
   createTransportBackedChatSession,
@@ -61,6 +61,37 @@ describe("unsafe request session transport", () => {
     const retriedRequestInit = fetchMock.mock.calls[3]?.[1] as RequestInit | undefined;
     expect(new Headers(staleRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-1");
     expect(new Headers(retriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-2");
+  });
+
+  it("keeps using the chat account after CSRF recovery loads a different session", async () => {
+    const accountChanged = (): Response => Response.json({
+      error: "The signed-in account changed. Reload the page.",
+      code: "ACCOUNT_SCOPE_CHANGED",
+    }, { status: 409 });
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse({ userId: "user-1" }))
+      .mockResolvedValueOnce(Response.json({
+        error: "Invalid X-CSRF-Token header",
+        code: "SESSION_CSRF_TOKEN_INVALID",
+      }, { status: 403 }))
+      .mockResolvedValueOnce(createSessionResponse({ userId: "user-2", csrfToken: "csrf-token-2" }))
+      .mockImplementationOnce(async () => accountChanged())
+      .mockImplementationOnce(async () => accountChanged());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { userId: accountId } = await getSession();
+    await expect(createNewChatSession("session-1", "workspace-1", "en", accountId))
+      .rejects.toMatchObject({ code: "ACCOUNT_SCOPE_CHANGED" });
+    await expect(getCurrentChatSnapshot("workspace-1", new AbortController().signal, accountId))
+      .rejects.toMatchObject({ code: "ACCOUNT_SCOPE_CHANGED" });
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/chat/new?expectedAccountId=user-1",
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/chat/new?expectedAccountId=user-1",
+      "http://localhost:8080/v1/chat?workspaceId=workspace-1&expectedAccountId=user-1",
+    ]);
   });
 
   it("retries a failed stale-CSRF response body read with the shared network budget", async () => {

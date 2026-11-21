@@ -186,7 +186,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             ),
             composerSuggestions = emptyList(),
             chatConfig = defaultAiChatServerConfig,
-            activeRun = null
+            activeRun = null,
+            customInstructions = null
         )
     }
 

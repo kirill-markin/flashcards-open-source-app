@@ -89,6 +89,18 @@ export function resetApiClientStateForTests(): void {
   resetLastApiResponseForTests();
 }
 
+export function getCachedSessionAccountId(): string | null {
+  return sessionRecovery.getCachedSessionAccountId();
+}
+
+function withExpectedAccountId(path: string, accountId: string | null): string {
+  if (accountId === null) {
+    return path;
+  }
+  const query = new URLSearchParams({ expectedAccountId: accountId });
+  return `${path}${path.includes("?") ? "&" : "?"}${query.toString()}`;
+}
+
 export function getCachedSessionCsrfToken(): string | null {
   return sessionRecovery.getCachedSessionCsrfToken();
 }
@@ -348,10 +360,12 @@ async function requestResponse(
 }
 
 export async function requestJson(
-  pathname: string,
+  path: string,
   init: RequestInit,
   options: RequestOptions,
+  expectedAccountId?: string | null,
 ): Promise<ParsedResponsePayload> {
+  const pathname = withExpectedAccountId(path, expectedAccountId ?? null);
   const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
   try {
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);

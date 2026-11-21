@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from "react";
 import { isCapturedSyncFailure } from "../../appData/sync/observation/syncErrorObservation";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -25,6 +25,7 @@ import type {
 import type { ChatComposerAction } from "../sessionController/state/runState";
 
 type UseChatComposerSendParams = Readonly<{
+  accountId: string | null;
   activeWorkspaceId: string | null;
   attachmentLimitMessages: ChatAttachmentLimitMessages;
   clearDraftForSession: (sessionId: string | null) => void;
@@ -68,6 +69,7 @@ export type ChatComposerSend = Readonly<{
 
 export function useChatComposerSend(params: UseChatComposerSendParams): ChatComposerSend {
   const {
+    accountId,
     activeWorkspaceId,
     attachmentLimitMessages,
     clearDraftForSession,
@@ -101,6 +103,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
   const [isDraftOptimisticallyClearedForSend, setIsDraftOptimisticallyClearedForSend] = useState<boolean>(false);
   const sendLifecycleRequestSequenceRef = useRef<number>(0);
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
+  const accountScopeRef = useRef({ accountId });
   const isComposerMountedRef = useRef<boolean>(true);
   const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
   const draftPendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>(draftPendingAttachments);
@@ -119,20 +122,24 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const accountChanged = accountScopeRef.current.accountId !== accountId;
     if (
       indexedDbOpenRecoveryState.hasFailed()
-      || activeWorkspaceIdRef.current === activeWorkspaceId
+      || (activeWorkspaceIdRef.current === activeWorkspaceId && accountChanged === false)
     ) {
       return;
     }
 
+    if (accountChanged) {
+      accountScopeRef.current = { accountId };
+    }
     activeWorkspaceIdRef.current = activeWorkspaceId;
     invalidateSendLifecycleRequests();
     setIsDraftOptimisticallyClearedForSend(false);
     pendingAttachmentsRef.current = draftPendingAttachments;
     setSendPhase("idle");
-  }, [activeWorkspaceId, draftPendingAttachments, indexedDbOpenRecoveryState, setSendPhase]);
+  }, [accountId, activeWorkspaceId, draftPendingAttachments, indexedDbOpenRecoveryState, setSendPhase]);
 
   function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): boolean {
     if (!replacePendingAttachments(nextAttachments)) {
@@ -279,6 +286,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     }
 
     const requestSequence = sendLifecycleRequestSequenceRef.current;
+    const accountScope = accountScopeRef.current;
     clearComposerForPendingSend();
     setSendPhase("preparingSend");
 
@@ -387,6 +395,11 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         onSessionDraftTargetReady: handleSessionDraftTargetReady,
       });
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (accountScopeRef.current !== accountScope) {
+        return;
+      }
+
+      // Accepted sends clear their stored draft even after navigation within the account.
       if (result.accepted && isDraftSessionBound) {
         clearSessionBoundDraftIfUnchanged(sourceSessionId, sourceDraftUpdatedAt);
       } else if (result.accepted) {

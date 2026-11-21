@@ -30,6 +30,7 @@ export function createParams(
     workspaceId: "workspace-1",
     sessionId: "session-1",
     generatedImageEligible: false,
+    customInstructions: null,
     generatedImageOperationDeadlineMs: Date.now() + 600_000,
     clientPlatform: null,
     clientOsName: null,

@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createSessionResponse } from "../../../../api/ApiTestSupport";
+import { resetApiClientStateForTests, resumeVerifiedBrowserSession } from "../../../../api/transport/transport";
+import { parseSessionInfoResponse } from "../../../../apiContracts/account";
 import { loadTranslationCatalog } from "../../../../i18n";
 import { persistLocalePreference } from "../../../../i18n/runtime";
 import {
@@ -39,7 +42,25 @@ const {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe("ChatPanel new chat", () => {
-  it("clears the conversation after a successful new-session response", async () => {
+  afterEach(resetApiClientStateForTests);
+
+  it.each(["signed-in", "guest"] as const)("clears the conversation for a %s session", async (kind) => {
+    if (kind === "guest") {
+      const baseSession = parseSessionInfoResponse(await createSessionResponse(null).json(), "GET /session");
+      const session = resumeVerifiedBrowserSession({
+        ...baseSession,
+        userId: "guest-user-1",
+        canonicalAccountId: "guest-account-1",
+        authTransport: "guest",
+        browserGuestCapabilities: {
+          isGuest: true,
+          platformFundedAi: true,
+          ownKeyAi: true,
+          requiresAccountLinking: true,
+        },
+      });
+      useAppDataMock.mockReturnValue({ ...useAppDataMock(), session });
+    }
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
       conversation: {
@@ -60,6 +81,8 @@ describe("ChatPanel new chat", () => {
     await flushAsync();
 
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
+    expect(createNewChatSessionMock.mock.lastCall?.[3]).toBe(kind === "guest" ? "guest-account-1" : "account-1");
+    expect(getContainer().querySelectorAll('[data-testid="chat-custom-instructions-button"]')).toHaveLength(kind === "guest" ? 0 : 1);
     expect(getContainer().querySelectorAll(".chat-msg").length).toBe(0);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().querySelector(".chat-empty")).toBeNull();
@@ -385,7 +408,7 @@ describe("ChatPanel new chat", () => {
 
     expect(startChatRunMock).toHaveBeenCalledWith(expect.objectContaining({
       sessionId: createdSessionId,
-    }));
+    }), "account-1");
   });
 
   it("sends the current app locale when provisioning a fresh chat session", async () => {
@@ -401,6 +424,7 @@ describe("ChatPanel new chat", () => {
       expect.any(String),
       "workspace-1",
       "es-MX",
+      "account-1",
     );
   });
 

@@ -112,6 +112,7 @@ internal fun AiRouteContent(
     onCancelStreaming: () -> Unit,
     onNewChat: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenCustomInstructions: (() -> Unit)?,
     onOpenAccountStatus: () -> Unit,
     onViewPremium: (() -> Unit)?,
     onDismissErrorMessage: () -> Unit,
@@ -538,6 +539,15 @@ internal fun AiRouteContent(
                         conversationScrollStateKey = uiState.conversationScrollStateKey,
                         messages = uiState.messages,
                         currentWorkspaceName = uiState.currentWorkspaceName,
+                        customInstructions = uiState.customInstructions,
+                        onOpenCustomInstructions = onOpenCustomInstructions
+                            ?.takeIf { uiState.workspaceId != null }
+                            ?.let { openInstructions ->
+                                {
+                                    dismissComposerFocus()
+                                    openInstructions()
+                                }
+                            },
                         isStreaming = uiState.isStreaming,
                         onOpenAccountStatus = onOpenAccountStatus,
                         onDismissComposerFocus = dismissComposerFocus,

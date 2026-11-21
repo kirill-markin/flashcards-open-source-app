@@ -151,6 +151,8 @@ final class AIChatStore {
     /// The reader's expanded or collapsed work, tool and reasoning blocks per message, shared by every chat view so a
     /// section switch shows the same transcript; a missing choice follows the block's automatic state.
     var transcriptDisclosures: [String: [String: Bool]] = [:]
+    /// Online-only and kept in memory, per account and workspace.
+    var customInstructionsReadings: [AIChatCustomInstructionsScope: AIChatCustomInstructionsReading] = [:]
     var activeAlert: AIChatAlert?
     var repairStatus: AIChatRepairAttemptStatus?
 

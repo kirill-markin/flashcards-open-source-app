@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatArchivedSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatCustomInstructions
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatFileUpload
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatGuestSession
 import com.flashcardsopensourceapp.data.local.ai.wire.decodeAiChatNewSession
@@ -39,6 +40,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySumma
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructions
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFileUpload
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
@@ -745,6 +747,48 @@ class AiChatRemoteService private constructor(
         return@withContext decodeAiChatTranscription(responseBody)
     }
 
+    suspend fun loadCustomInstructions(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String
+    ): AiChatCustomInstructions = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildCustomInstructionsPath(workspaceId = workspaceId),
+                method = "GET",
+                authorizationHeader = authorizationHeader,
+                requestBody = null,
+                extraHeaders = emptyMap()
+            ),
+            expectedStatusCodes = emptySet()
+        )
+        return@withContext decodeAiChatCustomInstructions(payload = responseBody)
+    }
+
+    suspend fun saveCustomInstructions(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        customInstructions: String?
+    ): AiChatCustomInstructions = withContext(dispatchers.io) {
+        val responseBody = readResponseBody(
+            request = buildRequest(
+                apiBaseUrl = apiBaseUrl,
+                path = buildCustomInstructionsPath(workspaceId = workspaceId),
+                method = "POST",
+                authorizationHeader = authorizationHeader,
+                requestBody = JSONObject()
+                    .put("customInstructions", customInstructions ?: JSONObject.NULL)
+                    .toString()
+                    .toRequestBody(aiJsonMediaType),
+                extraHeaders = emptyMap()
+            ),
+            expectedStatusCodes = emptySet()
+        )
+        return@withContext decodeAiChatCustomInstructions(payload = responseBody)
+    }
+
     suspend fun loadAiUsage(
         apiBaseUrl: String,
         authorizationHeader: String
@@ -1055,6 +1099,10 @@ class AiChatRemoteService private constructor(
     ): String {
         return "/chat/sessions/${encodeQueryValue(value = sessionId)}/$action" +
             "?workspaceId=${encodeQueryValue(value = workspaceId)}"
+    }
+
+    private fun buildCustomInstructionsPath(workspaceId: String): String {
+        return "/workspaces/${encodeQueryValue(value = workspaceId)}/chat-instructions"
     }
 
     private fun buildChatPath(queryParameters: List<String>): String {

@@ -6,11 +6,13 @@ import {
   parseWorkspaceResetProgressPreviewResponse,
   parseWorkspacesEnvelopeResponse,
 } from "../../apiContracts/account";
+import { parseWorkspaceChatInstructionsResponse } from "../../apiContracts/chat";
 import type {
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
   WorkspaceDeletePreview,
   WorkspaceResetProgressPreview,
+  WorkspaceChatInstructions,
   WorkspaceSummary,
 } from "../../types";
 import { parseContractResponse } from "../transport/response";
@@ -71,6 +73,31 @@ export async function renameWorkspace(workspaceId: string, name: string): Promis
     body: JSON.stringify({ name }),
   }, allowAuthRecovery), `POST /workspaces/${workspaceId}/rename`, parseWorkspaceEnvelopeResponse);
   return payload.workspace;
+}
+
+export async function loadWorkspaceChatInstructions(
+  expectedUserId: string,
+  expectedAccountId: string,
+  workspaceId: string,
+  signal: AbortSignal,
+): Promise<WorkspaceChatInstructions> {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/chat-instructions`, {
+    method: "GET",
+    signal,
+  }, { ...allowAuthRecoveryWithTransientNetworkRetry, expectedUserId }, expectedAccountId), `GET /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
+}
+
+/** Null or blank text clears the instructions. */
+export async function saveWorkspaceChatInstructions(
+  expectedUserId: string,
+  expectedAccountId: string,
+  workspaceId: string,
+  customInstructions: string | null,
+): Promise<WorkspaceChatInstructions> {
+  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/chat-instructions`, {
+    method: "POST",
+    body: JSON.stringify({ customInstructions }),
+  }, { ...allowAuthRecovery, expectedUserId }, expectedAccountId), `POST /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
 }
 
 export async function loadWorkspaceDeletePreview(workspaceId: string): Promise<WorkspaceDeletePreview> {

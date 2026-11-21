@@ -1561,6 +1561,15 @@ const csCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Zeptejte se na kartičky či historii opakování nebo přiložte poznámky...",
     currentChatRecovered: "Tento chat byl nahrazen novějším. Vaše zpráva je stále v textovém poli – odešlete ji znovu.",
+    customInstructions: {
+      add: "Přidat vlastní pokyny",
+      count: "{{count}} / {{max}}",
+      description: "Preference, kterými se chat s AI v tomto pracovním prostoru řídí, například jazyk, úroveň, délka odpovědí a styl kartiček.",
+      loadFailed: "Vlastní pokyny se nepodařilo načíst.",
+      placeholder: "Například: Učím se němčinu na úrovni A2. Na zadní stranu každé karty přidej ukázkovou větu. Odpovídej stručně.",
+      saveFailed: "Vlastní pokyny se nepodařilo uložit. Zkuste to znovu.",
+      title: "Vlastní pokyny",
+    },
     dictation: {
       listening: "Poslouchání...",
       start: "Zahájit diktování",

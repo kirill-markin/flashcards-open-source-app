@@ -1550,6 +1550,15 @@ const fiCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Kysy korteista tai kertaushistoriasta tai liitä muistiinpanoja...",
     currentChatRecovered: "Tämä keskustelu korvattiin uudemmalla. Viestisi on yhä tekstikentässä – lähetä se uudelleen.",
+    customInstructions: {
+      add: "Lisää mukautetut ohjeet",
+      count: "{{count}} / {{max}}",
+      description: "Asetukset, joita tekoälykeskustelu noudattaa tässä työtilassa, kuten kieli, taso, vastausten pituus ja korttien tyyli.",
+      loadFailed: "Mukautettuja ohjeita ei voitu ladata.",
+      placeholder: "Esimerkiksi: Opiskelen saksaa A2-tasolla. Lisää jokaisen kortin taakse esimerkkilause. Vastaa lyhyesti.",
+      saveFailed: "Mukautettuja ohjeita ei voitu tallentaa. Yritä uudelleen.",
+      title: "Mukautetut ohjeet",
+    },
     dictation: {
       listening: "Kuunnellaan...",
       start: "Aloita sanelu",

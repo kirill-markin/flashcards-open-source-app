@@ -364,6 +364,7 @@ export async function runPersistedChatSessionWithDeps(
           sessionId: params.sessionId,
           browserGuestTrial: params.browserGuestTrial,
           generatedImageEligible: params.generatedImageEligible,
+          customInstructions: params.customInstructions,
           generatedImageOperationDeadlineMs,
           clientPlatform: params.clientPlatform,
           clientOsName: params.clientOsName,

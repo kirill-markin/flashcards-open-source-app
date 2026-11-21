@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "Skrivskyddad: gamla chattar kan inte fortsättas.";
 "ai.history.readerLoading" = "Läser in chatten...";
 "ai.history.readerLoadError" = "Det gick inte att läsa in chatten.";
+"ai.customInstructions.add" = "Lägg till anpassade instruktioner";
+"ai.customInstructions.title" = "Anpassade instruktioner";
+"ai.customInstructions.description" = "Inställningar som AI-chatten följer i den här arbetsytan, till exempel språk, nivå, svarslängd och kortstil.";
+"ai.customInstructions.placeholder" = "Till exempel: Jag läser tyska på A2-nivå. Lägg till en exempelmening på baksidan av varje kort. Svara kortfattat.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Det gick inte att läsa in anpassade instruktioner.";
+"ai.customInstructions.saveFailed" = "Det gick inte att spara anpassade instruktioner. Försök igen.";
 "ai.consent.title" = "Innan du använder AI";
 "ai.consent.warning" = "AI kan ha fel. Granska viktiga resultat innan du förlitar dig på dem.";
 "ai.consent.disclosure.prompts" = "Skrivna instruktioner och kortbaserad kontext som behövs för din begäran kan skickas till den driftade AI-tjänsten.";

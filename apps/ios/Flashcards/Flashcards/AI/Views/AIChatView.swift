@@ -636,8 +636,39 @@ struct AIChatView: View {
             )
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
+        } actions: {
+            if self.chatStore.currentCustomInstructionsScope != nil {
+                self.customInstructionsButton
+            }
         }
         .padding(.horizontal, self.chatContentHorizontalPadding)
+    }
+
+    var customInstructionsButton: some View {
+        Button(action: self.openCustomInstructions) {
+            if let text = self.chatStore.currentCustomInstructionsReading?.text {
+                VStack(spacing: 2) {
+                    Text(aiChatCustomInstructionsTitle())
+                    Text(text.split(whereSeparator: \.isNewline).joined(separator: " "))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: 280)
+            } else {
+                Label(aiSettingsLocalized("ai.customInstructions.add", "Add custom instructions"), systemImage: "plus")
+            }
+        }
+        .buttonStyle(.bordered)
+        // Neutral instead of the accent, so it stays secondary to the composer and its preview stays readable.
+        .tint(.primary)
+    }
+
+    private func openCustomInstructions() {
+        guard self.chatStore.currentCustomInstructionsScope != nil else { return }
+        self.dismissComposerFocus()
+        if self.isCompanion { self.navigation.selectTab(.ai) }
+        self.navigation.aiPath.append(AIChatCustomInstructionsRoute())
     }
 
     func acceptExternalAIConsent() {

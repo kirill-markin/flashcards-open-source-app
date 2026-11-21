@@ -20,6 +20,13 @@
 "ai.history.readOnlyNotice" = "କେବଳ ପଢ଼ିପାରିବେ। ପୁରୁଣା ଚାଟ୍‌ରେ ଆଉ କଥା ଆଗେଇ ନେଇପାରିବେ ନାହିଁ।";
 "ai.history.readerLoading" = "ଚାଟ୍ ଲୋଡ୍ ହେଉଛି...";
 "ai.history.readerLoadError" = "ଏହି ଚାଟ୍ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।";
+"ai.customInstructions.add" = "କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ଯୋଡନ୍ତୁ";
+"ai.customInstructions.title" = "କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ";
+"ai.customInstructions.description" = "ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରରେ AI ଚାଟ୍ ଅନୁସରଣ କରୁଥିବା ପସନ୍ଦ, ଯେପରି ଭାଷା, ସ୍ତର, ଉତ୍ତରର ଲମ୍ବ ଏବଂ କାର୍ଡର ଶୈଳୀ।";
+"ai.customInstructions.placeholder" = "ଉଦାହରଣ: ମୁଁ A2 ସ୍ତରରେ ଜର୍ମାନ ଶିଖୁଛି। ପ୍ରତ୍ୟେକ କାର୍ଡର ପଛପଟେ ଏକ ଉଦାହରଣ ବାକ୍ୟ ଯୋଡନ୍ତୁ। ଉତ୍ତର ସଂକ୍ଷିପ୍ତ ରଖନ୍ତୁ।";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ଲୋଡ୍ କରିହେଲା ନାହିଁ।";
+"ai.customInstructions.saveFailed" = "କଷ୍ଟମ୍ ନିର୍ଦ୍ଦେଶ ସେଭ୍ କରିହେଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।";
 "ai.consent.title" = "AI ବ୍ୟବହାର କରିବା ପୂର୍ବରୁ";
 "ai.consent.warning" = "AI ଭୁଲ କରିପାରେ। ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ ଫଳାଫଳ ଉପରେ ଭରସା କରିବା ପୂର୍ବରୁ ତାହା ଯାଞ୍ଚ କରନ୍ତୁ।";
 "ai.consent.disclosure.prompts" = "ଆପଣ ଲେଖିଥିବା ବାର୍ତ୍ତା ଓ ଅନୁରୋଧ ପାଇଁ ଆବଶ୍ୟକ କାର୍ଡ ତଥ୍ୟ ସର୍ଭରରେ ଚାଲୁଥିବା AI ସେବାକୁ ପଠାଯାଇପାରେ।";

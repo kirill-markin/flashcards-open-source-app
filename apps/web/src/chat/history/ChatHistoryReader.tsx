@@ -18,6 +18,7 @@ type ReaderState =
 
 export function ChatHistoryReader(props: {
   workspaceId: string;
+  accountId: string | null;
   summary: ChatSessionHistorySummary;
   reportHistoryError: ReportHistoryError;
   onMessageTechnicalError: (error: unknown) => boolean;
@@ -27,6 +28,7 @@ export function ChatHistoryReader(props: {
 }): React.JSX.Element {
   const {
     workspaceId,
+    accountId,
     summary,
     reportHistoryError,
     onMessageTechnicalError,
@@ -50,7 +52,7 @@ export function ChatHistoryReader(props: {
     setReaderState({ status: "loading" });
     void (async (): Promise<void> => {
       try {
-        const snapshot = await getChatSnapshot(summary.sessionId, workspaceId, abortController.signal);
+        const snapshot = await getChatSnapshot(summary.sessionId, workspaceId, abortController.signal, accountId);
         if (abortController.signal.aborted) {
           return;
         }
@@ -69,7 +71,7 @@ export function ChatHistoryReader(props: {
       }
     })();
     return () => abortController.abort();
-  }, [reloadVersion, reportHistoryError, summary.sessionId, workspaceId]);
+  }, [accountId, reloadVersion, reportHistoryError, summary.sessionId, workspaceId]);
 
   return (
     <div className="chat-history-panel" data-testid="chat-history-reader">

@@ -59,6 +59,7 @@ internal fun mapToAiUiState(
     runtimeState: AiChatRuntimeState,
     aiUsage: AiUsageStatus?,
     isOwnOpenAiKeyActive: Boolean,
+    customInstructions: String?,
     textProvider: AiTextProvider
 ): AiUiState {
     val isLinked = cloudState == CloudAccountState.LINKED
@@ -159,6 +160,7 @@ internal fun mapToAiUiState(
             && canEditConversation,
         chatSessionId = runtimeState.persistedState.chatSessionId.trim().ifEmpty { null },
         workspaceId = runtimeState.workspaceId,
+        customInstructions = customInstructions,
         repairStatus = runtimeState.repairStatus,
         // The monthly limit does not apply to requests on the person's own key.
         remainingAiMessagesNotice = aiUsage?.remainingMessages?.takeIf { remainingMessages ->
@@ -204,6 +206,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         canOpenChatHistory = false,
         chatSessionId = null,
         workspaceId = null,
+        customInstructions = null,
         repairStatus = null,
         remainingAiMessagesNotice = null,
         activeAlert = null,

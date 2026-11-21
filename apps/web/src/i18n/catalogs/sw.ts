@@ -1550,6 +1550,15 @@ const swCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Uliza kuhusu kadi, historia ya marudio, au ambatisha madokezo...",
     currentChatRecovered: "Gumzo hili limebadilishwa na jipya zaidi. Ujumbe wako bado uko kwenye kisanduku cha maandishi — utume tena.",
+    customInstructions: {
+      add: "Ongeza maagizo maalum",
+      count: "{{count}} / {{max}}",
+      description: "Mapendeleo ambayo Gumzo la AI hufuata katika nafasi hii ya kazi, kama lugha, kiwango, urefu wa majibu na mtindo wa kadi.",
+      loadFailed: "Imeshindwa kupakia maagizo maalum.",
+      placeholder: "Kwa mfano: Ninasoma Kijerumani kiwango cha A2. Ongeza sentensi ya mfano nyuma ya kila kadi. Jibu kwa ufupi.",
+      saveFailed: "Imeshindwa kuhifadhi maagizo maalum. Jaribu tena.",
+      title: "Maagizo maalum",
+    },
     dictation: {
       listening: "Inasikiliza...",
       start: "Anza kuandika kwa sauti",

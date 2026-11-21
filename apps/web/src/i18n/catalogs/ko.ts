@@ -1550,6 +1550,15 @@ const koCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "카드나 복습 기록에 대해 묻거나 메모를 첨부하세요...",
     currentChatRecovered: "이 채팅은 더 최근 채팅으로 대체되었습니다. 메시지는 입력창에 그대로 있으니 다시 보내세요.",
+    customInstructions: {
+      add: "맞춤 지침 추가",
+      count: "{{count}} / {{max}}",
+      description: "이 워크스페이스에서 AI 채팅이 따르는 선호 설정입니다. 언어, 수준, 답변 길이, 카드 스타일 등을 정할 수 있습니다.",
+      loadFailed: "맞춤 지침을 불러올 수 없습니다.",
+      placeholder: "예: A2 수준으로 독일어를 공부하고 있어요. 각 카드 뒷면에 예문을 추가해 주세요. 답변은 짧게 해 주세요.",
+      saveFailed: "맞춤 지침을 저장할 수 없습니다. 다시 시도하세요.",
+      title: "맞춤 지침",
+    },
     dictation: {
       listening: "듣는 중...",
       start: "받아쓰기 시작",

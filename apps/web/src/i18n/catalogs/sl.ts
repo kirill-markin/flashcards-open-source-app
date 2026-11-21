@@ -1572,6 +1572,15 @@ const slCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Vprašajte o karticah, zgodovini ponavljanja ali priložite zapiske ...",
     currentChatRecovered: "Ta klepet je bil nadomeščen z novejšim. Vaše sporočilo je še vedno v polju za vnos — pošljite ga znova.",
+    customInstructions: {
+      add: "Dodaj navodila po meri",
+      count: "{{count}} / {{max}}",
+      description: "Nastavitve, ki jim Klepet z UI v tem delovnem prostoru sledi, na primer jezik, raven, dolžina odgovorov in slog kartic.",
+      loadFailed: "Navodil po meri ni bilo mogoče naložiti.",
+      placeholder: "Na primer: učim se nemščine na ravni A2. Na hrbtno stran vsake kartice dodaj primer stavka. Odgovarjaj na kratko.",
+      saveFailed: "Navodil po meri ni bilo mogoče shraniti. Poskusite znova.",
+      title: "Navodila po meri",
+    },
     dictation: {
       listening: "Poslušanje ...",
       start: "Začni narekovanje",

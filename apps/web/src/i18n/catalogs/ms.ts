@@ -1558,6 +1558,15 @@ const msCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Tanya tentang kad atau sejarah ulang kaji, atau lampirkan nota...",
     currentChatRecovered: "Sembang ini telah digantikan dengan sembang yang lebih baharu. Mesej anda masih dalam kotak mesej. Hantar sekali lagi.",
+    customInstructions: {
+      add: "Tambah arahan tersuai",
+      count: "{{count}} / {{max}}",
+      description: "Keutamaan yang diikuti Sembang AI dalam ruang kerja ini, seperti bahasa, tahap, panjang jawapan dan gaya kad.",
+      loadFailed: "Tidak dapat memuatkan arahan tersuai.",
+      placeholder: "Contohnya: Saya belajar bahasa Jerman pada tahap A2. Tambahkan contoh ayat di belakang setiap kad. Jawab dengan ringkas.",
+      saveFailed: "Tidak dapat menyimpan arahan tersuai. Cuba lagi.",
+      title: "Arahan tersuai",
+    },
     dictation: {
       listening: "Mendengar...",
       start: "Mulakan imlak",

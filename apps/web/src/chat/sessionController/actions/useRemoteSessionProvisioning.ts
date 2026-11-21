@@ -14,6 +14,7 @@ type RemoteSessionProvisioningMessages = Readonly<Pick<
 type UseRemoteSessionProvisioningParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
+  accountId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;
   uiMessages: RemoteSessionProvisioningMessages;
@@ -21,6 +22,7 @@ type UseRemoteSessionProvisioningParams = Readonly<{
 
 type RemoteSessionProvisioningState = Readonly<{
   workspaceId: string;
+  accountId: string | null;
   sessionId: string;
   uiLocale: Locale;
   promise: Promise<NewChatSessionResponse>;
@@ -60,6 +62,7 @@ export function useRemoteSessionProvisioning(
   const {
     indexedDbOpenRecoveryState,
     workspaceId,
+    accountId,
     isRemoteReady,
     uiLocale,
     uiMessages,
@@ -71,6 +74,7 @@ export function useRemoteSessionProvisioning(
     if (
       provisioningState === null
       || provisioningState.workspaceId !== workspaceId
+      || provisioningState.accountId !== accountId
       || provisioningState.uiLocale !== uiLocale
     ) {
       return null;
@@ -80,7 +84,7 @@ export function useRemoteSessionProvisioning(
       sessionId: provisioningState.sessionId,
       promise: provisioningState.promise,
     };
-  }, [uiLocale, workspaceId]);
+  }, [accountId, uiLocale, workspaceId]);
 
   const provisionRequestedSession = useCallback(async (
     sessionId: string,
@@ -104,9 +108,10 @@ export function useRemoteSessionProvisioning(
       }
     }
 
-    const nextPromise = createNewChatSession(sessionId, workspaceId, uiLocale);
+    const nextPromise = createNewChatSession(sessionId, workspaceId, uiLocale, accountId);
     provisioningRef.current = {
       workspaceId,
+      accountId,
       sessionId,
       uiLocale,
       promise: nextPromise,
@@ -122,17 +127,11 @@ export function useRemoteSessionProvisioning(
       indexedDbOpenRecoveryState.throwIfFailed();
       throw error;
     } finally {
-      const currentProvisioning = provisioningRef.current;
-      if (
-        currentProvisioning !== null
-        && currentProvisioning.workspaceId === workspaceId
-        && currentProvisioning.sessionId === sessionId
-        && currentProvisioning.uiLocale === uiLocale
-      ) {
+      if (provisioningRef.current?.promise === nextPromise) {
         provisioningRef.current = null;
       }
     }
-  }, [getActiveProvisioning, indexedDbOpenRecoveryState, uiLocale, uiMessages, workspaceId]);
+  }, [accountId, getActiveProvisioning, indexedDbOpenRecoveryState, uiLocale, uiMessages, workspaceId]);
 
   const resolveCurrentOrNewSession = useCallback(async (
     currentSessionId: string | null,
