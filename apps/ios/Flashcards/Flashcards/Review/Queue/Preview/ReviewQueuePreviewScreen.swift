@@ -267,7 +267,7 @@ private struct ReviewQueuePreviewCardRow: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(.tint.opacity(0.14))
+                                .fill(.dimAccent)
                         )
                 }
             }

@@ -200,17 +200,18 @@ extension AIChatView {
                                     self.chatStore.applyComposerSuggestion(suggestion)
                                     self.isComposerFocused = true
                                 } label: {
+                                    #if targetEnvironment(macCatalyst)
                                     MathContentText(text: suggestion.text, textStyle: .footnote)
-                                        .padding(.horizontal, aiChatComposerSuggestionHorizontalPadding)
-                                        .padding(.vertical, aiChatComposerSuggestionVerticalPadding)
+                                    #else
+                                    MathContentText(text: suggestion.text, textStyle: .subheadline)
+                                    #endif
                                 }
-                                #if targetEnvironment(macCatalyst)
                                 .buttonStyle(.bordered)
                                 .buttonBorderShape(.capsule)
-                                #else
-                                .buttonStyle(.plain)
-                                .background(.thinMaterial, in: Capsule())
-                                .overlay { Capsule().strokeBorder(.tint.opacity(0.18), lineWidth: 1) }
+                                #if !targetEnvironment(macCatalyst)
+                                .controlSize(.small)
+                                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                                .contentShape(Rectangle())
                                 #endif
                                 .accessibilityIdentifier("\(UITestIdentifier.aiComposerSuggestionPrefix)\(index)")
                             }

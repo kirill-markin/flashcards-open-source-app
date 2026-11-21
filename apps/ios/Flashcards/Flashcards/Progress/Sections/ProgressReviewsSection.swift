@@ -2,6 +2,7 @@ import Charts
 import SwiftUI
 
 private let progressChartHeight: CGFloat = 220
+private let progressReviewPlotCornerRadius: CGFloat = 12
 private let progressReviewsLegendMarkerSize: CGFloat = 10
 
 private enum ProgressReviewsSelection: Hashable {
@@ -32,6 +33,8 @@ private struct ProgressReviewRatingLegendEntry: Identifiable {
 }
 
 struct ProgressReviewsSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     let chartDays: [ProgressChartDay]
     /// The rolling last 7 days against the usual, whatever week the chart pages to.
     let pace: ProgressPace
@@ -41,6 +44,15 @@ struct ProgressReviewsSection: View {
     let selectionResetKey: String
     @Binding var pageSelection: ProgressReviewChartPageSelection?
     @State private var selection: ProgressReviewsSelection? = nil
+
+    private var gridLineColor: Color {
+        if self.colorSchemeContrast == .increased {
+            return .primary
+        }
+
+        // An opaque stroke keeps at least 3:1 contrast across the plot and accent fills.
+        return Color(.sRGB, white: self.colorScheme == .dark ? 0.70 : 0.40, opacity: 1)
+    }
 
     private var pageSelectionResetToken: ProgressReviewChartSelectionResetToken {
         ProgressReviewChartSelectionResetToken(
@@ -280,17 +292,6 @@ struct ProgressReviewsSection: View {
 
             if let visiblePage = self.visiblePage {
                 Chart {
-                    ForEach(visiblePage.days) { day in
-                        if day.isToday && day.reviewCount == 0 {
-                            RectangleMark(
-                                x: .value("Day", day.localDate),
-                                yStart: .value("Floor", 0),
-                                yEnd: .value("Ceiling", self.visiblePageUpperBound)
-                            )
-                            .foregroundStyle(.tint.opacity(0.12))
-                            .cornerRadius(8)
-                        }
-                    }
                     ForEach(self.visibleChartSegments) { segment in
                         if segment.count > 0 {
                             BarMark(
@@ -342,18 +343,20 @@ struct ProgressReviewsSection: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(position: .leading) { value in
+                    AxisMarks(position: .leading) {
                         AxisGridLine()
-                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                            .foregroundStyle(self.gridLineColor)
                         AxisTick()
                             .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
                         AxisValueLabel()
                     }
                 }
                 .chartPlotStyle { plotArea in
-                    plotArea
-                        .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    plotArea.clipShape(RoundedRectangle(cornerRadius: progressReviewPlotCornerRadius))
+                }
+                .chartBackground { chart in
+                    // The opaque Today highlight sits behind the chart's grid lines.
+                    self.reviewPlotBackground(page: visiblePage, chart: chart)
                 }
                 .frame(height: progressChartHeight)
 
@@ -376,6 +379,32 @@ struct ProgressReviewsSection: View {
             self.pageSelection = nil
             self.selection = nil
         }
+    }
+
+    private func reviewPlotBackground(page: ProgressReviewChartPage, chart: ChartProxy) -> some View {
+        let emptyToday = page.days.first { $0.isToday && $0.reviewCount == 0 }
+
+        return GeometryReader { geometry in
+            if let plotFrame = chart.plotFrame {
+                let plot = geometry[plotFrame]
+
+                Color(uiColor: .secondarySystemGroupedBackground)
+                    .opacity(0.45)
+                    .overlay {
+                        if let emptyToday, let band = chart.positionRange(forX: emptyToday.localDate) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(.dimAccent)
+                                .frame(width: band.upperBound - band.lowerBound, height: plot.height)
+                                .position(x: (band.lowerBound + band.upperBound) / 2, y: plot.height / 2)
+                        }
+                    }
+                    .frame(width: plot.width, height: plot.height)
+                    .clipShape(RoundedRectangle(cornerRadius: progressReviewPlotCornerRadius))
+                    .position(x: plot.midX, y: plot.midY)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func showPreviousPage() {
@@ -557,7 +586,7 @@ private struct ProgressReviewsRatingLegendRow: View {
             #endif
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
+                    .fill(.dimAccent.opacity(self.isSelected ? 1 : 0))
                     .padding(.horizontal, -8)
                     .padding(.vertical, -4)
             )

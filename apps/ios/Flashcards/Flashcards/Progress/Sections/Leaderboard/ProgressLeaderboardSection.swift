@@ -475,7 +475,7 @@ private struct ProgressLeaderboardParticipantRowView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.tint.opacity(self.isViewer ? 0.12 : 0))
+                .fill(.dimAccent.opacity(self.isViewer ? 1 : 0))
                 .padding(.horizontal, -8)
                 .padding(.vertical, -4)
         )

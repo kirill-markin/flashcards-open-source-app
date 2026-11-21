@@ -141,7 +141,7 @@ struct WorkspaceImportView: View {
                     isTargeted: self.$isDropTargeted,
                     perform: self.handleDrop
                 )
-                .listRowBackground(self.isDropTargeted && !self.isBusy ? Color.accentColor.opacity(0.14) : nil)
+                .listRowBackground(self.isDropTargeted && !self.isBusy ? Rectangle().fill(.dimAccent) : nil)
 
                 self.advancedOptions
 
