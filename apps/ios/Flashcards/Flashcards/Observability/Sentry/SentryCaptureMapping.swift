@@ -613,12 +613,12 @@ extension SentryObservabilityAdapter {
                 )
             )
         case .cloudSyncFailed(let error, let scope, let details):
-            let context: [String: Any] = [
+            let context: [String: Any] = self.contextWithStorageFullDiagnostics([
                 "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
                 "backend_code": details.backendCode ?? "",
                 "request_id": details.requestId ?? "",
                 "message_summary": details.messageSummary ?? ""
-            ]
+            ], diagnostics: details.storageFullDiagnostics)
             return ExceptionPayload(
                 error: error,
                 observation: ObservationPayload(
@@ -739,7 +739,7 @@ extension SentryObservabilityAdapter {
                 )
             )
         case .silentFailure(let error, let scope, let details):
-            let context: [String: Any] = self.contextWithTransportDiagnostics(
+            let transportContext: [String: Any] = self.contextWithTransportDiagnostics(
                 context: [
                     "stage": details.stage ?? "",
                     "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
@@ -748,6 +748,10 @@ extension SentryObservabilityAdapter {
                     "message_summary": details.messageSummary ?? ""
                 ],
                 transportDiagnostics: details.transportDiagnostics
+            )
+            let context: [String: Any] = self.contextWithStorageFullDiagnostics(
+                transportContext,
+                diagnostics: details.storageFullDiagnostics
             )
             return ExceptionPayload(
                 error: error,
@@ -1080,6 +1084,21 @@ extension SentryObservabilityAdapter {
             "continuation_attempt": diagnostics.continuationAttempt.map { continuationAttempt in String(continuationAttempt) } ?? "",
             "continuation_tool_call_count": String(diagnostics.continuationToolCallIds.count)
         ]
+    }
+
+    private static func contextWithStorageFullDiagnostics(
+        _ context: [String: Any],
+        diagnostics: StorageFullFailureDiagnostics?
+    ) -> [String: Any] {
+        guard let diagnostics else {
+            return context
+        }
+        var context = context
+        context["storage_full_source"] = diagnostics.source.rawValue
+        context["sqlite_result_code"] = Int(diagnostics.sqliteResultCode)
+        context["installation_id"] = diagnostics.installationId
+        context["pending_outbox_operation_count"] = diagnostics.pendingOutboxOperationCount
+        return context
     }
 
     private static func contextWithTransportDiagnostics(

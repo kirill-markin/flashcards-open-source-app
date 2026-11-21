@@ -101,6 +101,13 @@ private struct SyncStateRow {
 struct OutboxStore {
     let core: DatabaseCore
 
+    func pendingOperationCount(workspaceId: String) throws -> Int {
+        try self.core.scalarInt(
+            sql: "SELECT COUNT(*) FROM outbox WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+    }
+
     func loadOutboxEntries(workspaceId: String, limit: Int) throws -> [PersistedOutboxEntry] {
         try self.core.query(
             sql: """

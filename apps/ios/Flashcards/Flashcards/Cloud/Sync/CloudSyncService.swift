@@ -139,11 +139,17 @@ final class CloudSyncService: @unchecked Sendable {
     private let database: LocalDatabase
     private let transport: CloudSyncTransport
     private let packageTransport: CloudWorkspacePackageTransport
+    private let successfulSyncObserver: CloudSyncRunner.SuccessfulSyncObserver?
 
-    init(database: LocalDatabase, session: URLSession = .shared) {
+    init(
+        database: LocalDatabase,
+        session: URLSession = .shared,
+        successfulSyncObserver: CloudSyncRunner.SuccessfulSyncObserver? = nil
+    ) {
         self.database = database
         self.transport = CloudSyncTransport(session: session)
         self.packageTransport = CloudWorkspacePackageTransport(session: session)
+        self.successfulSyncObserver = successfulSyncObserver
     }
 
     func fetchCloudAccountContext(
@@ -830,14 +836,18 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
-        try await CloudSyncRunner(database: self.database, transport: self.transport).runLinkedSync(
-            linkedSession: linkedSession
-        )
+        try await CloudSyncRunner(
+            database: self.database,
+            transport: self.transport,
+            successfulSyncObserver: self.successfulSyncObserver
+        ).runLinkedSync(linkedSession: linkedSession)
     }
 
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
-        try await CloudSyncRunner(database: self.database, transport: self.transport).runGuestLocalRecoveryLinkedSync(
-            linkedSession: linkedSession
-        )
+        try await CloudSyncRunner(
+            database: self.database,
+            transport: self.transport,
+            successfulSyncObserver: self.successfulSyncObserver
+        ).runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
     }
 }

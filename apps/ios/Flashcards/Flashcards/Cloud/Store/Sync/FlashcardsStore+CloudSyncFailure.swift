@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 /**
  * Admits a repeated technical sync failure from a trigger that captures nothing today.
@@ -90,6 +91,18 @@ extension FlashcardsStore {
         captureContext: TechnicalErrorCaptureContext?
     ) {
         let diagnostics = CloudSyncFailurePolicy.diagnostics(error: error)
+        let storageFullDiagnostics: StorageFullFailureDiagnostics?
+        if CloudSyncFailurePolicy.isLocalStorageFull(error: error) {
+            let installation = self.storageFullEpisode.observe()
+            storageFullDiagnostics = StorageFullFailureDiagnostics(
+                source: .localSync,
+                sqliteResultCode: SQLITE_FULL,
+                installationId: installation?.id,
+                pendingOutboxOperationCount: installation.flatMap { self.pendingStorageOutboxCount(installation: $0) }
+            )
+        } else {
+            storageFullDiagnostics = nil
+        }
         let scope = IOSObservationScope(
             feature: .cloudSync,
             userId: linkedSession.userId,
@@ -111,7 +124,8 @@ extension FlashcardsStore {
                     statusCode: diagnostics.statusCode,
                     backendCode: diagnostics.backendCode,
                     requestId: diagnostics.requestId,
-                    messageSummary: Flashcards.errorMessage(error: error)
+                    messageSummary: Flashcards.errorMessage(error: error),
+                    storageFullDiagnostics: storageFullDiagnostics
                 )
             )
         )
@@ -172,6 +186,9 @@ extension FlashcardsStore {
             linkedSession: linkedSession
         ) {
         case .skip:
+            if CloudSyncFailurePolicy.isLocalStorageFull(error: error) {
+                self.storageFullEpisode.observe()
+            }
             return false
         case .triggerOwnedCapture:
             self.captureCloudSyncFailure(

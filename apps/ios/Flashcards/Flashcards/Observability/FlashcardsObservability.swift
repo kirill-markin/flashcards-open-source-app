@@ -26,6 +26,13 @@ enum FlashcardsObservability {
     }
 
     #if !os(watchOS)
+    static func logStorageFullRecovery(installationId: String, pendingOutboxOperationCount: Int?) {
+        SentryObservabilityAdapter.logStorageFullRecovery(
+            installationId: installationId,
+            pendingOutboxOperationCount: pendingOutboxOperationCount
+        )
+    }
+
     @MainActor
     static func startReviewNextCardVisibleSpan(ratedCardId: String, reactionPlayed: Bool) {
         SentryObservabilityAdapter.startReviewNextCardVisibleSpan(ratedCardId: ratedCardId, reactionPlayed: reactionPlayed)
@@ -113,7 +120,8 @@ enum FlashcardsObservability {
             statusCode: statusCode,
             backendCode: backendCode,
             requestId: requestId,
-            transportDiagnostics: nil
+            transportDiagnostics: nil,
+            storageFullDiagnostics: nil
         )
     }
 
@@ -135,11 +143,12 @@ enum FlashcardsObservability {
             statusCode: statusCode,
             backendCode: backendCode,
             requestId: requestId,
-            transportDiagnostics: .some(transportDiagnostics)
+            transportDiagnostics: transportDiagnostics,
+            storageFullDiagnostics: nil
         )
     }
 
-    private static func captureSilentFailure(
+    static func captureSilentFailure(
         error: Error,
         scope: IOSObservationScope,
         action: String,
@@ -147,7 +156,8 @@ enum FlashcardsObservability {
         statusCode: Int?,
         backendCode: String?,
         requestId: String?,
-        transportDiagnostics: IOSNetworkTransportDiagnostics?
+        transportDiagnostics: IOSNetworkTransportDiagnostics?,
+        storageFullDiagnostics: StorageFullFailureDiagnostics?
     ) {
         self.captureException(
             .silentFailure(
@@ -160,7 +170,8 @@ enum FlashcardsObservability {
                     backendCode: backendCode,
                     requestId: requestId,
                     messageSummary: Flashcards.errorMessage(error: error),
-                    transportDiagnostics: transportDiagnostics
+                    transportDiagnostics: transportDiagnostics,
+                    storageFullDiagnostics: storageFullDiagnostics
                 )
             )
         )
