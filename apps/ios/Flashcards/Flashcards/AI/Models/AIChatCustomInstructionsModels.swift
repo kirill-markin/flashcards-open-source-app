@@ -5,19 +5,33 @@ struct AIChatCustomInstructionsRoute: Hashable {}
 struct AIChatCustomInstructionsScope: Hashable, Sendable {
     let userId: String
     let workspaceId: String
+    let isGuest: Bool
+    let syncGeneration: UUID
 }
 
-/// One server answer about a workspace's custom instructions, for the account and workspace it was asked for.
+extension AIChatCustomInstructionsScope {
+    init?(session: CloudLinkedSession) {
+        guard let generation = session.aiRequestSyncGeneration else { return nil }
+        self.init(
+            userId: session.userId,
+            workspaceId: session.workspaceId,
+            isGuest: session.authorization.isGuest,
+            syncGeneration: generation
+        )
+    }
+}
+
 struct AIChatCustomInstructionsReading: Hashable, Sendable {
     let scope: AIChatCustomInstructionsScope
     let text: String?
     /// A read counts from when it was sent, a save from when it completed, so a newer one always wins.
     let observedAt: ContinuousClock.Instant
+}
 
-    init(session: CloudLinkedSession, text: String?, observedAt: ContinuousClock.Instant) {
-        self.scope = AIChatCustomInstructionsScope(userId: session.userId, workspaceId: session.workspaceId)
-        self.text = text
-        self.observedAt = observedAt
+extension AIChatCustomInstructionsReading {
+    init?(session: CloudLinkedSession, text: String?, observedAt: ContinuousClock.Instant) {
+        guard let scope = AIChatCustomInstructionsScope(session: session) else { return nil }
+        self.init(scope: scope, text: text, observedAt: observedAt)
     }
 }
 

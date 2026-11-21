@@ -124,11 +124,23 @@ extension FlashcardsStore {
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
-        if self.cloudSettings?.cloudState == .linked {
-            return try await self.prepareAuthenticatedCloudSessionForAI()
+        let initialState = self.cloudSettings?.cloudState
+        let initialGeneration = self.cloudRuntime.syncGeneration
+        var session: CloudLinkedSession
+        if initialState == .linked {
+            session = try await self.prepareAuthenticatedCloudSessionForAI()
+        } else {
+            session = try await self.prepareGuestCloudSessionForAI()
         }
-
-        return try await self.prepareGuestCloudSessionForAI()
+        let generation = self.cloudRuntime.syncGeneration
+        let wasAlreadyLinked = initialState == .linked || initialState == .guest
+        if (wasAlreadyLinked == false || initialGeneration == generation),
+           self.cloudRuntime.isCurrentSyncGeneration(generation),
+           let activeSession = self.cloudRuntime.activeCloudSession(),
+           cloudLinkedSessionsMatchStableContext(activeSession, session) {
+            session.aiRequestSyncGeneration = generation
+        }
+        return session
     }
 
     func warmUpAuthenticatedCloudSessionForAI() async {

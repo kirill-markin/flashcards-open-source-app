@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 @MainActor
 struct CloudSyncOperationState {
@@ -28,14 +29,15 @@ struct CloudSessionRuntimeState {
 }
 
 @MainActor
+@Observable
 final class CloudSessionRuntime {
     private let cloudAuthService: any CloudAuthServing
     private let cloudSyncService: (any CloudSyncServing)?
     private let credentialStore: any CredentialStoring
-    private(set) var state: CloudSessionRuntimeState
+    @ObservationIgnored private(set) var state: CloudSessionRuntimeState
     private(set) var syncGeneration = UUID()
     private var workspaceSyncTransition: UUID?
-    private(set) var workspaceIdPendingDeletion: String? = nil
+    @ObservationIgnored private(set) var workspaceIdPendingDeletion: String? = nil
 
     init(
         cloudAuthService: any CloudAuthServing,

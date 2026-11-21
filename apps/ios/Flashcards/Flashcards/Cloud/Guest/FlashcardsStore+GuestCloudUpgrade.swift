@@ -2,6 +2,16 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    var isGuestUpgradeBlockingLocalOutboxMutations: Bool {
+        self.access(keyPath: \.isGuestUpgradeBlockingLocalOutboxMutations)
+        do {
+            try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
+            return false
+        } catch {
+            return true
+        }
+    }
+
     func assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade() throws {
         try Flashcards.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade(
             isGuestUpgradeLocalOutboxMutationBlocked: self.isGuestUpgradeLocalOutboxMutationBlocked,
@@ -148,7 +158,9 @@ extension FlashcardsStore {
     }
 
     func clearPendingGuestUpgradeStateAndUnblockMutations() {
-        clearPendingGuestUpgradeState(userDefaults: self.userDefaults)
+        self.withMutation(keyPath: \.isGuestUpgradeBlockingLocalOutboxMutations) {
+            clearPendingGuestUpgradeState(userDefaults: self.userDefaults)
+        }
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.reviewSubmissionOutboxMutationGate.unblockReviewSubmissions()
     }
@@ -755,7 +767,9 @@ extension FlashcardsStore {
 
     private func savePendingGuestUpgradeState(state: PendingGuestUpgradeState) throws {
         let data = try self.encoder.encode(state)
-        self.userDefaults.set(data, forKey: pendingGuestUpgradeUserDefaultsKey)
+        self.withMutation(keyPath: \.isGuestUpgradeBlockingLocalOutboxMutations) {
+            self.userDefaults.set(data, forKey: pendingGuestUpgradeUserDefaultsKey)
+        }
     }
 
     func loadPendingGuestUpgradeState() throws -> PendingGuestUpgradeState? {
