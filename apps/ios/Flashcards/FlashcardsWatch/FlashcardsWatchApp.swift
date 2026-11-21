@@ -21,7 +21,8 @@ struct FlashcardsWatchApp: App {
                 // The watch is signed in only through the iPhone and never creates a guest identity.
                 guestCredentialMinter: {
                     .skipped
-                }
+                },
+                storageDiagnostics: nil
             )
             Analytics.track(.appOpened(launchType: .cold))
         }

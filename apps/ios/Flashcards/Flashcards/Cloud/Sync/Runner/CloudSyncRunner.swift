@@ -10,12 +10,20 @@ import Foundation
  */
 
 struct CloudSyncRunner {
+    typealias SuccessfulSyncObserver = @Sendable (_ installationId: String, _ workspaceId: String) -> Void
+
     let database: LocalDatabase
     let transport: CloudSyncTransport
+    private let successfulSyncObserver: SuccessfulSyncObserver?
 
-    init(database: LocalDatabase, transport: CloudSyncTransport) {
+    init(
+        database: LocalDatabase,
+        transport: CloudSyncTransport,
+        successfulSyncObserver: SuccessfulSyncObserver? = nil
+    ) {
         self.database = database
         self.transport = transport
+        self.successfulSyncObserver = successfulSyncObserver
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
@@ -42,6 +50,7 @@ struct CloudSyncRunner {
                     installationId: cloudSettings.installationId,
                     syncBasePath: syncBasePath
                 )
+                self.successfulSyncObserver?(cloudSettings.installationId, workspaceId)
 
                 guard publicWorkspaceForkRepairEntityTypes.isEmpty == false else {
                     return syncResult

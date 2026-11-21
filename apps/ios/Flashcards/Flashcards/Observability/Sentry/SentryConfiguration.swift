@@ -2,6 +2,16 @@ import Foundation
 import Sentry
 
 extension SentryObservabilityAdapter {
+    #if !os(watchOS)
+    private static let storageFullRecoveryLogName = "local_sync_storage_full_recovered"
+
+    static func logStorageFullRecovery(installationId: String, pendingOutboxOperationCount: Int?) {
+        var attributes: [String: Any] = ["installation_id": installationId]
+        attributes["pending_outbox_operation_count"] = pendingOutboxOperationCount
+        SentrySDK.logger.info(self.storageFullRecoveryLogName, attributes: attributes)
+    }
+    #endif
+
     static func configure(bundle: Bundle, processInfo: ProcessInfo) {
         let configuration: SentryRuntimeConfiguration = loadSentryRuntimeConfiguration(
             bundle: bundle,
@@ -55,7 +65,14 @@ extension SentryObservabilityAdapter {
             options.reportAccessibilityIdentifier = false
             #endif
             options.enableAutoBreadcrumbTracking = false
+            #if os(watchOS)
             options.enableLogs = false
+            #else
+            options.enableLogs = true
+            options.beforeSendLog = { log in
+                log.body == self.storageFullRecoveryLogName && log.level == .info ? log : nil
+            }
+            #endif
             options.enableNetworkBreadcrumbs = true
             options.enableNetworkTracking = true
             options.enableCaptureFailedRequests = false

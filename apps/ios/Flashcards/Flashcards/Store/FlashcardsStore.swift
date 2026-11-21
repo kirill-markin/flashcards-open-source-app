@@ -59,7 +59,12 @@ final class FlashcardsStore {
     var workspace: Workspace?
     var userSettings: UserSettings?
     var schedulerSettings: WorkspaceSchedulerSettings?
-    var cloudSettings: CloudSettings?
+    var cloudSettings: CloudSettings? {
+        didSet {
+            self.storageFullEpisode.updateInstallation(self.cloudSettings)
+        }
+    }
+    @ObservationIgnored let storageFullEpisode: StorageFullEpisode
     var preservedGuestWorkspaceLink: PreservedGuestWorkspaceLink? = nil
     var firstReviewOnboardingCompleted: Bool? = nil
     var accountPreferences: AccountPreferences
@@ -426,8 +431,19 @@ final class FlashcardsStore {
         reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
         initialGlobalErrorMessage: String
     ) {
+        let storageFullEpisode = StorageFullEpisode()
         let cloudSyncService = database.map { initializedDatabase in
-            CloudSyncService(database: initializedDatabase)
+            let databaseURL = initializedDatabase.databaseURL
+            return CloudSyncService(
+                database: initializedDatabase,
+                successfulSyncObserver: { installationId, workspaceId in
+                    storageFullEpisode.logRecoveryIfNeeded(
+                        installationId: installationId,
+                        workspaceId: workspaceId,
+                        databaseURL: databaseURL
+                    )
+                }
+            )
         }
 
         self.init(
@@ -437,6 +453,7 @@ final class FlashcardsStore {
             database: database,
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
+            storageFullEpisode: storageFullEpisode,
             credentialStore: credentialStore,
             guestCloudAuthService: guestCloudAuthService,
             guestCredentialStore: guestCredentialStore,
@@ -458,6 +475,7 @@ final class FlashcardsStore {
         database: LocalDatabase?,
         cloudAuthService: any CloudAuthServing,
         cloudSyncService: (any CloudSyncServing)?,
+        storageFullEpisode: StorageFullEpisode = StorageFullEpisode(),
         credentialStore: CloudCredentialStore,
         guestCloudAuthService: GuestCloudAuthService,
         guestCredentialStore: GuestCloudCredentialStore,
@@ -519,6 +537,7 @@ final class FlashcardsStore {
         self.workspace = nil
         self.userSettings = nil
         self.schedulerSettings = nil
+        self.storageFullEpisode = storageFullEpisode
         self.cloudSettings = nil
         self.accountPreferences = makeDefaultAccountPreferences()
         self.isProductAnalyticsEnabled = ProductAnalyticsPreference.effectiveIsEnabled(
