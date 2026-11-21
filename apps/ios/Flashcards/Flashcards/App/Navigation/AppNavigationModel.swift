@@ -183,19 +183,15 @@ final class AppNavigationModel {
         self.canPresentAICompanion && self.isAICompanionPresented
     }
 
-    /// The side chat and the section are two halves of the window, on iPad and on Duo's inner display, so a child
-    /// screen of either half pushes inside that half's own stack instead of covering the window as a sheet. The Mac
-    /// keeps its sheets.
-    var presentsChildScreensInHalves: Bool {
-        #if targetEnvironment(macCatalyst)
-        false
-        #else
-        self.isAICompanionPaneOpen
-        #endif
-    }
-
     var isAIChatVisible: Bool {
         self.selectedTab == .ai || self.isAICompanionVisible
+    }
+
+    var isLiveAIChatVisible: Bool {
+        if self.selectedTab == .ai {
+            return self.aiPath.isEmpty
+        }
+        return self.isAICompanionVisible && self.aiCompanionPath.isEmpty
     }
 
     init() {

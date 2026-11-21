@@ -33,7 +33,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 #if !targetEnvironment(macCatalyst)
-        try self.assertCompanionSharesTabBarRowAfterBackground()
+        try self.assertCompanionControlsAreReachableAfterBackground()
 #endif
         #if targetEnvironment(macCatalyst)
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
@@ -102,23 +102,18 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
     }
 
 #if !targetEnvironment(macCatalyst)
-    /// UIKit keeps the floating tab bar in a tab's own bar only while the tab holds one navigation controller, and
-    /// returning from the background lays the row out again; the pane's toggle and Review's bar must still share it.
     @MainActor
-    private func assertCompanionSharesTabBarRowAfterBackground() throws {
+    private func assertCompanionControlsAreReachableAfterBackground() throws {
         XCUIDevice.shared.press(.home)
         self.app.activate()
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].firstMatch
         let filter = self.app.buttons[LiveSmokeIdentifier.reviewFilterMenu].firstMatch
-        let tab = self.app.buttons[LiveSmokeIdentifier.rootTabReviewItem].firstMatch
-        XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "The pane's toggle must be shown.")
-        XCTAssertTrue(filter.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "Review's filter must be shown.")
-        XCTAssertEqual(toggle.frame.midY, filter.frame.midY, accuracy: 4, "The pane's row and Review's bar must share one row.")
-        // The tabs leave the bar's row when they show as a sidebar, so only a floating tab bar shares it.
-        if tab.waitForExistence(timeout: 2), tab.frame.minY < toggle.frame.maxY {
-            XCTAssertEqual(toggle.frame.midY, tab.frame.midY, accuracy: 8, "The pane's row must be the floating tab bar's row.")
-        }
+        let history = self.app.buttons[LiveSmokeIdentifier.aiHistoryButton].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        XCTAssertTrue(filter.isHittable)
+        XCTAssertTrue(toggle.isHittable)
+        XCTAssertTrue(history.isHittable)
     }
 
     @MainActor

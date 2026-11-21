@@ -64,9 +64,7 @@ struct RootTabView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if !targetEnvironment(macCatalyst)
-    @State private var isLargeWindow: Bool = false
     @State private var companionComposerHost = AICompanionComposerHost()
     #endif
     @Environment(\.scenePhase) private var scenePhase
@@ -250,9 +248,8 @@ struct RootTabView: View {
         )
     }
 
-    /// A composer pushed beside the side chat covers no window, so it does not hold back the paywall.
     private var canShowPremiumPresentation: Bool {
-        (store.feedbackPresentation?.isPushed ?? true)
+        store.feedbackPresentation == nil
             && store.presentedTechnicalError == nil
             && store.activeCloudSignInSheetCount == 0
             && self.isGuestSignInCloudSignInPresented == false
@@ -278,11 +275,10 @@ struct RootTabView: View {
         self.store.aiChatStore.quotaRefusal = nil
     }
 
-    /// Settings pushes its own composer beside the side chat; every other showing is this sheet.
     private var feedbackPresentation: Binding<FeedbackPresentation?> {
         Binding<FeedbackPresentation?>(
             get: {
-                store.feedbackPresentation.flatMap { $0.isPushed ? nil : $0 }
+                store.feedbackPresentation
             },
             set: { presentation in
                 if presentation == nil {
@@ -433,12 +429,13 @@ struct RootTabView: View {
                 AICompanionComposerParking(host: self.companionComposerHost)
                     .frame(width: 0, height: 0)
             }
-            .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
-                if isVisible == false { self.companionComposerHost.releaseKeyboard() }
-            }
-            .onChange(of: self.navigation.selectedTab) { _, tab in
-                // A page pushed over the AI tab's chat leaves no field to take the side chat's keyboard.
-                if tab == .ai && self.navigation.aiPath.isEmpty == false { self.companionComposerHost.releaseKeyboard() }
+            .onChange(of: self.navigation.isLiveAIChatVisible) { _, isVisible in
+                if isVisible == false {
+                    if let sceneIdentifier = self.companionComposerHost.sceneIdentifier {
+                        self.store.aiChatStore.focusedComposerHosts[sceneIdentifier] = nil
+                    }
+                    self.companionComposerHost.releaseKeyboard()
+                }
             }
             #endif
     }
@@ -798,26 +795,20 @@ struct RootTabView: View {
             self.tabRootPresentation
         }
         #if !targetEnvironment(macCatalyst)
-        // Regular width only: an iPad window in Slide Over or a narrow split has a bottom tab bar and keeps its titles.
-        // A Plus or Max iPhone is regular in landscape too, but only Duo's inner display among phones is this large.
-        .environment(
-            \.usesRegularToolbarLayout,
-            self.horizontalSizeClass == .regular && (UIDevice.current.userInterfaceIdiom == .pad || self.isLargeWindow)
-        )
         .background {
-            AICompanionAvailabilityObserver(
-                onChange: { isAvailable in
-                    self.navigation.updateAICompanionAvailability(isAvailable)
-                },
-                onLargeWindowChange: { isLargeWindow in
-                    self.isLargeWindow = isLargeWindow
-                }
-            )
+            AICompanionAvailabilityObserver { isAvailable in
+                self.navigation.updateAICompanionAvailability(isAvailable)
+            }
             .ignoresSafeArea()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
         #endif
+        .onChange(of: self.navigation.isLiveAIChatVisible) { _, isVisible in
+            if isVisible == false {
+                self.store.aiChatStore.cancelDictation()
+            }
+        }
         .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
             // Both AI presentations share one chat session and composer draft.
             self.store.aiChatStore.updateSurface(activity: AIChatSurfaceActivity(

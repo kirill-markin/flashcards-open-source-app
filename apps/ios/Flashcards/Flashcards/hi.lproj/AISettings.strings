@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "एक अनुलग्नक अपलोड नहीं हो सका। अपना कनेक्शन जाँचें, फिर दोबारा कोशिश करें।";
 "ai.drop.overlay" = "अटैच करने के लिए फ़ाइलें छोड़ें";
 "ai.composer.dictation.start" = "श्रुतलेखन प्रारंभ करें";
-"ai.composer.dictation.cancel" = "श्रुतलेख रद्द करें";
-"ai.composer.dictation.finish" = "श्रुतलेख पूरा करें";
-"ai.composer.dictation.preparing" = "तैयार हो रहा है";
-"ai.composer.dictation.recording" = "रिकॉर्ड हो रहा है %@";
+"ai.composer.dictation.stop" = "श्रुतलेख बंद करो";
+"ai.composer.dictation.waiting" = "माइक्रोफ़ोन तक पहुंच की प्रतीक्षा की जा रही है...";
+"ai.composer.dictation.listening" = "सुन रहा हूँ...";
 "ai.composer.dictation.transcribing" = "प्रतिलेखन...";
-"ai.composer.dictation.dismissError" = "श्रुतलेख त्रुटि बंद करें";
-"ai.composer.dictation.announcement.started" = "रिकॉर्डिंग शुरू हुई";
-"ai.composer.dictation.announcement.inserted" = "प्रतिलेख जोड़ा गया";
 "ai.error.title" = "त्रुटि";
 "ai.error.requestTooLarge.title" = "संदेश बहुत बड़ा है";
 "ai.error.requestTooLarge.message" = "AI चैट एक बार में इतनी सामग्री नहीं भेज सकती। एक या अधिक अनुलग्नक हटाएं, छोटी फ़ाइल या फ़ोटो चुनें, या अनुरोध को बांटकर फिर से प्रयास करें।";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "रिकॉर्ड किया गया ऑडियो तैयार नहीं किया जा सका.";
 "ai.dictation.error.recordingStartFailed" = "माइक्रोफ़ोन रिकॉर्डिंग प्रारंभ नहीं की जा सकी.";
 "ai.dictation.error.emptyRecording" = "कोई आवाज़ रिकॉर्ड नहीं की गई.";
-"ai.dictation.error.interrupted" = "रिकॉर्डिंग बाधित हुई";
 "ai.dictation.error.network" = "नेटवर्क की समस्या है. कृपया इसे ठीक करें और पुनः प्रयास करें।";
 "ai.dictation.error.invalidAudio" = "हम उस रिकॉर्डिंग को संसाधित नहीं कर सके. कृपया पुनः प्रयास करें.";
 "ai.message.unsupportedContent" = "असमर्थित सामग्री";

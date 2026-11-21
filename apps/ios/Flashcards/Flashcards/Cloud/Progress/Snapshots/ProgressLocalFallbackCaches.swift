@@ -1,24 +1,5 @@
 import Foundation
 
-struct ProgressRenderedSummaryAndSeriesCacheKey: Equatable, Sendable {
-    let scopeKey: ProgressScopeKey
-    let reviewedAtClientKey: ProgressReviewedAtClientCacheKey
-    let summaryServerBase: PersistedProgressSummaryServerBase?
-    let seriesServerBase: PersistedProgressSeriesServerBase?
-}
-
-struct ProgressRenderedPresentationCache: Sendable {
-    let storeCalendar: Calendar
-    let snapshot: ProgressSnapshot
-}
-
-struct ProgressRenderedSummaryAndSeriesCacheEntry: Sendable {
-    let key: ProgressRenderedSummaryAndSeriesCacheKey
-    let renderedSummary: ProgressRenderedSummary
-    let renderedSeries: ProgressRenderedSeries
-    var presentation: ProgressRenderedPresentationCache? = nil
-}
-
 struct ProgressReviewedAtClientCacheKey: Hashable, Sendable {
     let workspaceMembershipKey: String
     let installationId: String?

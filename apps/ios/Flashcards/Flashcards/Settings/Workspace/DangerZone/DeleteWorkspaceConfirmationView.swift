@@ -51,16 +51,7 @@ struct DeleteWorkspaceConfirmationView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
                         .keyboardType(.asciiCapable)
-                        #if targetEnvironment(macCatalyst)
                         .textFieldStyle(.roundedBorder)
-                        #else
-                        .textFieldStyle(.plain)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(minHeight: appMinimumTouchTarget)
-                        .nativeTextInputFocusTarget(isFocused: self.$isConfirmationFieldFocused)
-                        .nativeTextInputBackground(cornerRadius: 12)
-                        #endif
                         .submitLabel(.done)
                         .focused(self.$isConfirmationFieldFocused)
                         .onSubmit {
@@ -91,7 +82,7 @@ struct DeleteWorkspaceConfirmationView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
             }
-            .pageNavigationTitle(aiSettingsLocalized("settings.workspace.deleteConfirmation.title", "Delete workspace"))
+            .navigationTitle(aiSettingsLocalized("settings.workspace.deleteConfirmation.title", "Delete workspace"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

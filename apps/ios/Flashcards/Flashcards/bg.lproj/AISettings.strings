@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Прикаченият файл не можа да бъде качен. Проверете връзката си, след което опитайте отново.";
 "ai.drop.overlay" = "Пуснете файлове, за да ги прикачите";
 "ai.composer.dictation.start" = "Започнете диктовка";
-"ai.composer.dictation.cancel" = "Отказ от диктовката";
-"ai.composer.dictation.finish" = "Завършете диктовката";
-"ai.composer.dictation.preparing" = "Подготвя се";
-"ai.composer.dictation.recording" = "Записва се %@";
+"ai.composer.dictation.stop" = "Спрете диктовката";
+"ai.composer.dictation.waiting" = "Изчаква се достъп до микрофона...";
+"ai.composer.dictation.listening" = "Слушам...";
 "ai.composer.dictation.transcribing" = "Транскрибира се...";
-"ai.composer.dictation.dismissError" = "Затворете грешката при диктовка";
-"ai.composer.dictation.announcement.started" = "Записът започна";
-"ai.composer.dictation.announcement.inserted" = "Текстът е добавен";
 "ai.error.title" = "Грешка";
 "ai.error.requestTooLarge.title" = "Съобщението е твърде голямо";
 "ai.error.requestTooLarge.message" = "ИИ чатът не може да изпрати толкова много съдържание наведнъж. Премахнете един или повече прикачени файлове, изберете по-малък файл или снимка или разделете заявката и опитайте отново.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Неуспешна подготовка на записания звук.";
 "ai.dictation.error.recordingStartFailed" = "Стартирането на запис от микрофона не бе успешно.";
 "ai.dictation.error.emptyRecording" = "Не е записана реч.";
-"ai.dictation.error.interrupted" = "Записът е прекъснат";
 "ai.dictation.error.network" = "Има проблем с мрежата. Поправете го и опитайте отново.";
 "ai.dictation.error.invalidAudio" = "Не можахме да обработим този запис. Моля, опитайте отново.";
 "ai.message.unsupportedContent" = "Неподдържано съдържание";

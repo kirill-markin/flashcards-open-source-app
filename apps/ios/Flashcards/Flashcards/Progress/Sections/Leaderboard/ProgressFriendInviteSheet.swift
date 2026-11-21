@@ -3,7 +3,6 @@ import SwiftUI
 struct ProgressFriendInviteSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     @State private var displayName: String = ""
     @State private var invitation: FriendInvitationCreateResponse?
@@ -40,161 +39,142 @@ struct ProgressFriendInviteSheet: View {
     }
 
     var body: some View {
-        // Pushed beside the side chat, the form sits in its section's stack and Back closes it.
-        if self.presentationStyle == .push {
-            self.form
-                .sectionChildBackGuard(
-                    isLocked: self.isCreating,
-                    hasUnsavedChanges: self.invitation == nil
-                        && self.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
-                    onDiscard: { self.dismiss() }
-                )
-        } else {
-            NavigationStack {
-                self.form
-            }
-            .technicalErrorSheet(store: self.store)
-            .interactiveDismissDisabled(self.isCreating)
-        }
-    }
-
-    private var form: some View {
-        Form {
-            if self.errorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: self.errorMessage)
-                        .accessibilityIdentifier(UITestIdentifier.progressFriendInviteErrorMessage)
+        NavigationStack {
+            Form {
+                if self.errorMessage.isEmpty == false {
+                    Section {
+                        CopyableErrorMessageView(message: self.errorMessage)
+                            .accessibilityIdentifier(UITestIdentifier.progressFriendInviteErrorMessage)
+                    }
                 }
-            }
 
-            if self.invitation == nil {
+                if self.invitation == nil {
+                    Section {
+                        Text(
+                            String(
+                                localized: "progress.friend_invite.description",
+                                defaultValue: "Create a private friend link for the leaderboard.",
+                                table: "Foundation",
+                                comment: "Body text explaining friend invite creation before the display name field"
+                            )
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section {
+                    TextField(
+                        String(
+                            localized: "progress.friend_invite.display_name.label",
+                            defaultValue: "Friend name on your leaderboard",
+                            table: "Foundation",
+                            comment: "Text field label for the private friend invite display name"
+                        ),
+                        text: self.$displayName,
+                        prompt: Text(
+                            String(
+                                localized: "progress.friend_invite.display_name.prompt",
+                                defaultValue: "Your friend's name",
+                                table: "Foundation",
+                                comment: "Prompt for an empty friend invite display name field"
+                            )
+                        )
+                    )
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .focused(self.$isDisplayNameFocused)
+                    .disabled(self.invitation != nil || self.isCreating)
+                    .accessibilityIdentifier(UITestIdentifier.progressFriendInviteDisplayNameField)
+
+                    if let validationMessage {
+                        Text(validationMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                } footer: {
                     Text(
                         String(
-                            localized: "progress.friend_invite.description",
-                            defaultValue: "Create a private friend link for the leaderboard.",
+                            localized: "progress.friend_invite.display_name.footer",
+                            defaultValue: "Only you see this name in your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days.",
                             table: "Foundation",
-                            comment: "Body text explaining friend invite creation before the display name field"
+                            comment: "Footer explaining private friend invite display names and expiration"
                         )
                     )
-                    .foregroundStyle(.secondary)
                 }
-            }
 
-            Section {
-                TextField(
-                    String(
-                        localized: "progress.friend_invite.display_name.label",
-                        defaultValue: "Friend name on your leaderboard",
-                        table: "Foundation",
-                        comment: "Text field label for the private friend invite display name"
-                    ),
-                    text: self.$displayName,
-                    prompt: Text(
-                        String(
-                            localized: "progress.friend_invite.display_name.prompt",
-                            defaultValue: "Your friend's name",
-                            table: "Foundation",
-                            comment: "Prompt for an empty friend invite display name field"
-                        )
-                    )
-                )
-                .textInputAutocapitalization(.words)
-                .submitLabel(.done)
-                .focused(self.$isDisplayNameFocused)
-                .disabled(self.invitation != nil || self.isCreating)
-                .accessibilityIdentifier(UITestIdentifier.progressFriendInviteDisplayNameField)
-
-                if let validationMessage {
-                    Text(validationMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
-            } footer: {
-                Text(
-                    String(
-                        localized: "progress.friend_invite.display_name.footer",
-                        defaultValue: "Only you see this name in your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days.",
-                        table: "Foundation",
-                        comment: "Footer explaining private friend invite display names and expiration"
-                    )
-                )
-            }
-
-            if let invitation {
-                Section {
-                    ShareLink(
-                        item: invitation.inviteUrl,
-                        subject: Text(
-                            String(
-                                localized: "progress.friend_invite.share_subject",
-                                defaultValue: "Nibomo friend invite",
-                                table: "Foundation",
-                                comment: "Subject for sharing a created friend invite link"
-                            )
-                        ),
-                        message: Text(
-                            String(
-                                localized: "progress.friend_invite.share_message",
-                                defaultValue: "Open this Nibomo invite, sign in or sign up, and we will see each other in the app.",
-                                table: "Foundation",
-                                comment: "Message for sharing a created friend invite link"
-                            )
-                        )
-                    ) {
-                        Label(
-                            String(
-                                localized: "progress.friend_invite.share_button",
-                                defaultValue: "Send Invite Link",
-                                table: "Foundation",
-                                comment: "Button title for sharing a created friend invite link"
+                if let invitation {
+                    Section {
+                        ShareLink(
+                            item: invitation.inviteUrl,
+                            subject: Text(
+                                String(
+                                    localized: "progress.friend_invite.share_subject",
+                                    defaultValue: "Nibomo friend invite",
+                                    table: "Foundation",
+                                    comment: "Subject for sharing a created friend invite link"
+                                )
                             ),
-                            systemImage: "square.and.arrow.up"
+                            message: Text(
+                                String(
+                                    localized: "progress.friend_invite.share_message",
+                                    defaultValue: "Open this Nibomo invite, sign in or sign up, and we will see each other in the app.",
+                                    table: "Foundation",
+                                    comment: "Message for sharing a created friend invite link"
+                                )
+                            )
+                        ) {
+                            Label(
+                                String(
+                                    localized: "progress.friend_invite.share_button",
+                                    defaultValue: "Send Invite Link",
+                                    table: "Foundation",
+                                    comment: "Button title for sharing a created friend invite link"
+                                ),
+                                systemImage: "square.and.arrow.up"
+                            )
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.progressFriendInviteShareLink)
+
+                        Text(
+                            String(
+                                localized: "progress.friend_invite.created_message",
+                                defaultValue: "They can open it, sign in or sign up, and then you will see each other in the app. Invite links expire in 2 days.",
+                                table: "Foundation",
+                                comment: "Message shown after creating a friend invite link"
+                            )
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    } header: {
+                        Text(
+                            String(
+                                localized: "progress.friend_invite.created_title",
+                                defaultValue: "Send this link to your friend",
+                                table: "Foundation",
+                                comment: "Section header shown after a friend invite link is created"
+                            )
                         )
                     }
-                    .accessibilityIdentifier(UITestIdentifier.progressFriendInviteShareLink)
+                }
 
-                    Text(
-                        String(
-                            localized: "progress.friend_invite.created_message",
-                            defaultValue: "They can open it, sign in or sign up, and then you will see each other in the app. Invite links expire in 2 days.",
-                            table: "Foundation",
-                            comment: "Message shown after creating a friend invite link"
-                        )
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                } header: {
-                    Text(
-                        String(
-                            localized: "progress.friend_invite.created_title",
-                            defaultValue: "Send this link to your friend",
-                            table: "Foundation",
-                            comment: "Section header shown after a friend invite link is created"
-                        )
-                    )
+                if self.isCreating {
+                    HStack {
+                        Spacer(minLength: 0)
+                        ProgressView()
+                        Spacer(minLength: 0)
+                    }
                 }
             }
-
-            if self.isCreating {
-                HStack {
-                    Spacer(minLength: 0)
-                    ProgressView()
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-        .accessibilityIdentifier(UITestIdentifier.progressFriendInviteSheet)
-        .pageNavigationTitle(
-            String(
-                localized: "progress.friend_invite.title",
-                defaultValue: "Add Friend",
-                table: "Foundation",
-                comment: "Navigation title for the friend invite creation sheet"
+            .accessibilityIdentifier(UITestIdentifier.progressFriendInviteSheet)
+            .navigationTitle(
+                String(
+                    localized: "progress.friend_invite.title",
+                    defaultValue: "Add Friend",
+                    table: "Foundation",
+                    comment: "Navigation title for the friend invite creation sheet"
+                )
             )
-        )
-        .toolbar {
-            if self.presentationStyle == .sheet {
+            .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(
                         String(
@@ -208,33 +188,35 @@ struct ProgressFriendInviteSheet: View {
                     }
                     .disabled(self.isCreating)
                 }
-            }
 
-            if self.invitation == nil {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(self.createButtonTitle) {
-                        Task {
-                            await self.createInvite()
+                if self.invitation == nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(self.createButtonTitle) {
+                            Task {
+                                await self.createInvite()
+                            }
                         }
+                        .disabled(self.canCreateInvite == false)
+                        .accessibilityIdentifier(UITestIdentifier.progressFriendInviteCreateButton)
                     }
-                    .disabled(self.canCreateInvite == false)
-                    .accessibilityIdentifier(UITestIdentifier.progressFriendInviteCreateButton)
+                }
+            }
+            .onAppear {
+                self.isDisplayNameFocused = true
+                Analytics.trackScreenViewed(.friendInvite)
+            }
+            .onSubmit {
+                guard self.canCreateInvite else {
+                    return
+                }
+
+                Task {
+                    await self.createInvite()
                 }
             }
         }
-        .onAppear {
-            self.isDisplayNameFocused = true
-            Analytics.trackScreenViewed(.friendInvite)
-        }
-        .onSubmit {
-            guard self.canCreateInvite else {
-                return
-            }
-
-            Task {
-                await self.createInvite()
-            }
-        }
+        .technicalErrorSheet(store: self.store)
+        .interactiveDismissDisabled(self.isCreating)
     }
 
     private var createButtonTitle: String {
@@ -309,7 +291,7 @@ extension View {
      * person is actually on rather than a fixed one.
      */
     func friendInviteSheet(isPresented: Binding<Bool>, store: FlashcardsStore) -> some View {
-        self.sectionChildPresentation(
+        self.sheet(
             isPresented: isPresented,
             onDismiss: {
                 Analytics.trackScreenViewedOnDismiss(
@@ -320,8 +302,6 @@ extension View {
         ) {
             ProgressFriendInviteSheet()
                 .environment(store)
-        } sheet: { invite in
-            invite
         }
     }
 }

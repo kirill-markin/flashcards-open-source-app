@@ -2,7 +2,6 @@ import Foundation
 
 enum UITestIdentifier {
     static let aiCompanionToggle: String = "ai.companion.toggle"
-    static let aiCompanionBackButton: String = "ai.companion.back"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
@@ -34,6 +33,7 @@ enum UITestIdentifier {
     static let reviewCardTagChipPrefix: String = "review.cardTagChip."
     static let reviewCardTagsButton: String = "review.cardTagsButton"
     static let reviewTagFilterCancelButton: String = "review.tagFilter.cancelButton"
+    static let reviewCompanionTitle = "review.companionTitle"
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsAction: String = "review.filter.allCards"
     static let reviewFilterDeckActionPrefix: String = "review.filter.deck."
@@ -308,9 +308,6 @@ enum UITestIdentifier {
     static let aiComposerDictationButton: String = "ai.composerDictationButton"
     static let aiComposerAttachmentButton: String = "ai.composerAttachmentButton"
     static let aiDictationStatus: String = "ai.dictationStatus"
-    static let aiComposerDictationCancelButton: String = "ai.composerDictationCancelButton"
-    static let aiComposerDictationFinishButton: String = "ai.composerDictationFinishButton"
-    static let aiDictationError: String = "ai.dictationError"
     static let aiNewChatButton: String = "ai.newChatButton"
     static let aiHistoryButton: String = "ai.historyButton"
     static let aiHistoryList: String = "ai.history.list"

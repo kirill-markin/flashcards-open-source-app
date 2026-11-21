@@ -11,6 +11,7 @@ final class AICompanionComposerHost {
     @ObservationIgnored weak var parkingView: UIView?
 
     var isFocused: Bool { self.field?.isFirstResponder == true }
+    var sceneIdentifier: String? { self.parkingView?.window?.windowScene?.session.persistentIdentifier }
 
     func textView(input: AIChatComposerTextView, coordinator: AIChatComposerTextView.Coordinator) -> AIChatComposerUITextView {
         if let field = self.field { return field }

@@ -22,13 +22,14 @@ extension AIChatStore {
             && self.dictationState == .idle
     }
 
-    /// Dictation locks the draft, as on T3 Code: the keyboard and any system dictation go away, and the transcript
-    /// lands at the caret captured when it began.
+    /// Text editing intentionally stays available during dictation so the keyboard and cursor remain active.
     var canEditDraftText: Bool {
         guard self.isChatInteractive,
-              self.dictationState == .idle,
               self.currentComposerDraft().aiImportRequestId == nil else {
             return false
+        }
+        if aiChatDictationStateKeepsDraftTextEditable(self.dictationState) {
+            return true
         }
         return aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
     }
@@ -242,5 +243,14 @@ func aiChatComposerPhaseAllowsDraftPreparation(_ phase: AIChatComposerPhase) -> 
         return true
     case .preparingSend, .startingRun, .stopping:
         return false
+    }
+}
+
+func aiChatDictationStateKeepsDraftTextEditable(_ state: AIChatDictationState) -> Bool {
+    switch state {
+    case .idle:
+        return false
+    case .requestingPermission, .recording, .transcribing:
+        return true
     }
 }

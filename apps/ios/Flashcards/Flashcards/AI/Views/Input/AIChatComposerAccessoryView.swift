@@ -69,6 +69,38 @@ final class AIChatComposerShellWidth: Observable {
 }
 #endif
 
+private let aiChatComposerStatusLaneHeight: CGFloat = 24
+
+struct AIChatDictationStatusLane: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let statusText: String
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds, paused: self.reduceMotion)) { context in
+            let activeDotCount = aiChatTypingIndicatorActiveDotCount(date: context.date)
+
+            HStack(spacing: 10) {
+                HStack(alignment: .bottom, spacing: 6) {
+                    ForEach(0..<5, id: \.self) { index in
+                        Capsule()
+                            .fill(.tint.opacity(index < activeDotCount + 1 ? 0.95 : 0.35))
+                            .frame(width: 6, height: index < activeDotCount + 1 ? 18 : 10)
+                    }
+                }
+                Text(self.statusText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+            .frame(
+                maxWidth: .infinity,
+                minHeight: aiChatComposerStatusLaneHeight,
+                alignment: .leading
+            )
+        }
+    }
+}
+
 extension AIChatView {
     var composerAccessory: some View {
         @Bindable var chatStore = self.chatStore
@@ -209,7 +241,11 @@ extension AIChatView {
                     .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
                 }
 
-                self.composerDictationErrorNotice
+                if self.chatStore.dictationState != .idle {
+                    AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                        .accessibilityIdentifier(UITestIdentifier.aiDictationStatus)
+                        .accessibilityValue(String(describing: self.chatStore.dictationState))
+                }
 
                 #if targetEnvironment(macCatalyst)
                 self.macComposerShell
@@ -238,13 +274,6 @@ extension AIChatView {
 
                 self.composerPrimaryButton
             }
-            .modifier(AIChatComposerDictationDraftLock(
-                isLocked: self.chatStore.dictationState != .idle,
-                lockedHeight: aiChatComposerSendButtonHitSize
-            ))
-            .overlay {
-                self.composerDictationToolbar
-            }
             .background {
                 self.composerKeyboardObserver
             }
@@ -260,10 +289,6 @@ extension AIChatView {
                 }
                 Spacer()
             }
-            // The action row hides in place, so the shell above it does not move.
-            .opacity(self.chatStore.dictationState == .idle ? 1 : 0)
-            .disabled(self.chatStore.dictationState != .idle)
-            .accessibilityHidden(self.chatStore.dictationState != .idle)
         }
     }
     #else
@@ -303,13 +328,6 @@ extension AIChatView {
                     self.composerPrimaryButton
                 }
             }
-        }
-        .modifier(AIChatComposerDictationDraftLock(
-            isLocked: self.chatStore.dictationState != .idle,
-            lockedHeight: self.composerSingleRowHeight
-        ))
-        .overlay {
-            self.composerDictationToolbar
         }
         .padding(.horizontal, aiChatComposerShellHorizontalInset)
         .padding(.vertical, aiChatComposerShellVerticalInset)
@@ -512,21 +530,38 @@ extension AIChatView {
         .menuOrder(.fixed)
     }
 
+    var dictationStatusText: String {
+        switch self.chatStore.dictationState {
+        case .idle:
+            return ""
+        case .requestingPermission:
+            return aiSettingsLocalized("ai.composer.dictation.waiting", "Waiting for microphone access...")
+        case .recording:
+            return aiSettingsLocalized("ai.composer.dictation.listening", "Listening...")
+        case .transcribing:
+            return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
+        }
+    }
+
     private var composerDictationButton: some View {
         Button {
-            self.startComposerDictation()
+            self.handleDictationButtonTap()
         } label: {
-            aiChatComposerAccessoryIcon(systemName: "mic")
+            aiChatComposerAccessoryIcon(systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic")
         }
         #if targetEnvironment(macCatalyst)
         .nativeActionButtonStyle()
         #else
         .nativeInlineActionButtonStyle()
         #endif
-        .tint(.accentColor)
-        .disabled(self.chatStore.canStartDictation == false)
+        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+        .disabled(self.chatStore.canUseDictation == false)
         .accessibilityIdentifier(UITestIdentifier.aiComposerDictationButton)
-        .accessibilityLabel(aiSettingsLocalized("ai.composer.dictation.start", "Start dictation"))
+        .accessibilityLabel(
+            self.chatStore.dictationState == .recording
+                ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")
+                : aiSettingsLocalized("ai.composer.dictation.start", "Start dictation")
+        )
     }
 
     private func composerTextView(topContentInset: CGFloat) -> AIChatComposerTextView {

@@ -33,7 +33,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
             }
-            .pageNavigationTitle(
+            .navigationTitle(
                 self.preview == nil
                     ? aiSettingsLocalized("settings.workspace.resetAllProgress", "Reset all progress")
                     : aiSettingsLocalized("settings.workspace.resetConfirmation.title", "Confirm reset")
@@ -89,16 +89,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
             .keyboardType(.asciiCapable)
-            #if targetEnvironment(macCatalyst)
             .textFieldStyle(.roundedBorder)
-            #else
-            .textFieldStyle(.plain)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: appMinimumTouchTarget)
-            .nativeTextInputFocusTarget(isFocused: self.$isConfirmationFieldFocused)
-            .nativeTextInputBackground(cornerRadius: 12)
-            #endif
             .submitLabel(.done)
             .focused(self.$isConfirmationFieldFocused)
             .onSubmit {

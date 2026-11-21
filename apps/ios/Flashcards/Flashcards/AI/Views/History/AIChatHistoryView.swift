@@ -39,7 +39,7 @@ extension View {
                 AIChatHistoryReaderView(
                     chatStore: chatStore,
                     summary: route.summary,
-                    model: route.list.readerModel(sessionId: route.summary.sessionId)
+                    model: route.list.makeReaderModel(sessionId: route.summary.sessionId)
                 )
                 .aiCompanionColumnPage()
                 #if targetEnvironment(macCatalyst)
@@ -51,10 +51,11 @@ extension View {
 
 struct AIChatHistoryView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
-    @Environment(\.aiCompanionPaneOpensPages) private var isInPane
+    @Environment(\.aiCompanionHostTab) private var companionHostTab
+    private var isInPane: Bool { self.companionHostTab != nil }
     let chatStore: AIChatStore
     @Bindable private var model: AIChatHistoryListModel
-    @FocusState private var isSearchFocused: Bool
+    @State private var isSearchPresented = false
     @State private var renameTarget: AIChatSessionHistorySummary?
     @State private var renameDraft: String
     @State private var archiveTarget: AIChatSessionHistorySummary?
@@ -85,7 +86,16 @@ struct AIChatHistoryView: View {
                 )
             ))
             #endif
-            .task(id: self.model.searchQuery) {
+            .onChange(of: self.canSearch) { _, canSearch in
+                if canSearch == false {
+                    self.isSearchPresented = false
+                }
+            }
+            .onDisappear {
+                self.isSearchPresented = false
+            }
+            .task(id: self.isVisible ? self.model.searchQuery : nil) {
+                guard self.isVisible else { return }
                 await self.model.handleSearchQueryChange()
             }
             .onChange(of: self.model.searchQuery) { _, query in
@@ -140,69 +150,104 @@ struct AIChatHistoryView: View {
             }
     }
 
+    private var isVisible: Bool {
+        if let companionHostTab = self.companionHostTab {
+            guard self.navigation.isAICompanionVisible,
+                  self.navigation.selectedTab == companionHostTab,
+                  case .history(let route)? = self.navigation.aiCompanionPath.last else {
+                return false
+            }
+            return route.model === self.model
+        }
+        return self.navigation.selectedTab == .ai && self.navigation.aiPath.count == 1
+    }
+
+    private var canSearch: Bool {
+        self.isVisible && self.renameTarget == nil && self.archiveTarget == nil
+    }
+
     private var content: some View {
-        ScrollViewReader { scrollProxy in
-            List {
-                #if !targetEnvironment(macCatalyst)
-                NativeSearchRow(
-                    text: self.$model.searchQuery,
-                    isFocused: self.$isSearchFocused,
-                    prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
-                    isInPlainList: true
-                )
-                #endif
+        self.sessionList
+            #if !targetEnvironment(macCatalyst)
+            .searchable(
+                text: self.searchQueryBinding,
+                isPresented: self.isSearchPresentedBinding,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: Text(verbatim: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"))
+            )
+            #endif
+    }
 
-                switch self.model.phase {
-                case .loading:
-                    ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
-                        .frame(maxWidth: .infinity)
-                        .listRowSeparator(.hidden)
-                case .failed(let message):
-                    ContentUnavailableView {
-                        Label(
-                            aiSettingsLocalized("ai.history.loadError", "Couldn't load chat history."),
-                            systemImage: "exclamationmark.triangle"
-                        )
-                    } description: {
-                        Text(message)
-                            .textSelection(.enabled)
-                    } actions: {
-                        Button(aiSettingsLocalized("common.retry", "Retry")) {
-                            self.model.retry()
-                        }
-                        .nativeProminentActionButtonStyle()
-                    }
-                    .listRowSeparator(.hidden)
-                case .loaded:
-                    if let notice = self.model.notice {
-                        Text(notice)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    ForEach(
-                        aiChatHistoryCurrentChatFirst(
-                            sessions: self.model.sessions,
-                            currentSessionId: self.currentSessionId
-                        )
-                    ) { summary in
-                        self.sessionRow(summary: summary)
-                    }
-
-                    if self.model.nextCursor != nil {
-                        self.loadMoreRow
-                    } else if self.model.sessions.isEmpty {
-                        self.emptyState
-                            .listRowSeparator(.hidden)
-                    }
+    private var searchQueryBinding: Binding<String> {
+        Binding(
+            get: { self.model.searchQuery },
+            set: { query in
+                if self.canSearch {
+                    self.model.searchQuery = query
                 }
             }
-            .listStyle(.plain)
-            .nativeSearchListMargins()
-            .refreshable {
-                await self.model.refresh()
+        )
+    }
+
+    private var isSearchPresentedBinding: Binding<Bool> {
+        Binding(
+            get: { self.canSearch && self.isSearchPresented },
+            set: { isPresented in
+                self.isSearchPresented = self.canSearch && isPresented
             }
-            .nativeSearchKeyboardShortcut(isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true }, prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"), scrollProxy: scrollProxy)
+        )
+    }
+
+    private var sessionList: some View {
+        List {
+            switch self.model.phase {
+            case .loading:
+                ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+            case .failed(let message):
+                ContentUnavailableView {
+                    Label(
+                        aiSettingsLocalized("ai.history.loadError", "Couldn't load chat history."),
+                        systemImage: "exclamationmark.triangle"
+                    )
+                } description: {
+                    Text(message)
+                        .textSelection(.enabled)
+                } actions: {
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.model.retry()
+                    }
+                    .nativeProminentActionButtonStyle()
+                }
+                .listRowSeparator(.hidden)
+            case .loaded:
+                if let notice = self.model.notice {
+                    Text(notice)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(
+                    aiChatHistoryCurrentChatFirst(
+                        sessions: self.model.sessions,
+                        currentSessionId: self.currentSessionId
+                    )
+                ) { summary in
+                    self.sessionRow(summary: summary)
+                }
+
+                if self.model.nextCursor != nil {
+                    self.loadMoreRow
+                } else if self.model.sessions.isEmpty {
+                    self.emptyState
+                        .listRowSeparator(.hidden)
+                }
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            await self.model.refresh()
         }
         .accessibilityIdentifier(UITestIdentifier.aiHistoryList)
     }
@@ -271,7 +316,12 @@ struct AIChatHistoryView: View {
                 .accessibilityIdentifier(UITestIdentifier.aiHistoryCurrentSessionRow)
             } else if self.isInPane {
                 Button {
-                    self.navigation.aiCompanionPath.append(.reader(AIChatHistoryReaderRoute(summary: summary, list: self.model)))
+                    self.isSearchPresented = false
+                    let route = AICompanionHistoryReaderRoute(
+                        summary: summary,
+                        model: self.model.makeReaderModel(sessionId: summary.sessionId)
+                    )
+                    self.navigation.aiCompanionPath.append(.reader(route))
                 } label: {
                     rowContent
                 }
@@ -356,7 +406,7 @@ struct AIChatHistoryView: View {
     }
 
     private func beginRename(summary: AIChatSessionHistorySummary) {
-        self.isSearchFocused = false
+        self.isSearchPresented = false
         self.renameDraft = summary.title ?? ""
         self.renameTarget = summary
     }

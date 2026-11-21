@@ -9,9 +9,8 @@ struct AICompanionColumns<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
-    @Environment(\.usesRegularToolbarLayout) private var usesRegularToolbarLayout
     #if !targetEnvironment(macCatalyst)
-    @State private var rowMetrics: AICompanionRowMetrics = AICompanionRowMetrics()
+    @State private var tabRowInset: CGFloat = 0
     #endif
     private let hostTab: AppTab
     private let content: Content
@@ -66,10 +65,7 @@ struct AICompanionColumns<Content: View>: View {
                     .frame(width: isVisible && isLeading ? width : 0)
                     .accessibilityHidden(true)
                 self.content
-                    .environment(\.showsAICompanionBarBackground, (isPad || self.usesRegularToolbarLayout) && isVisible)
-                    #if !targetEnvironment(macCatalyst)
-                    .environment(\.aiCompanionRowMetrics, self.rowMetrics)
-                    #endif
+                    .environment(\.showsAICompanionBarBackground, isPad && isVisible)
                     #if targetEnvironment(macCatalyst)
                     // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
                     .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
@@ -84,16 +80,14 @@ struct AICompanionColumns<Content: View>: View {
             .overlay(alignment: isLeading ? .leading : .trailing) {
                 if isVisible {
                     self.pane
-                        #if !targetEnvironment(macCatalyst)
-                        .environment(\.aiCompanionRowMetrics, self.rowMetrics)
-                        #endif
                         .frame(width: width)
                         .overlay(alignment: isLeading ? .trailing : .leading) {
                             if isPad == false {
                                 HStack(spacing: 0) { Divider() }.frame(width: 1)
                             }
                         }
-                        .transition(AICompanionPaneTransition(offset: isLeading ? -width : width))
+                        .clipped()
+                        .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
                 }
             }
             // A section switch leaves this unchanged; the toggle and an availability change (rotation, a resized window,
@@ -101,10 +95,13 @@ struct AICompanionColumns<Content: View>: View {
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
         }
         #if !targetEnvironment(macCatalyst)
+        .padding(.top, isPad ? self.tabRowInset : 0)
         .background {
-            AICompanionBarReader(metrics: self.rowMetrics)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            if isPad {
+                AICompanionTabContentInset(inset: self.$tabRowInset)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
         #endif
         // The paired columns share one keyboard boundary and one layout proposal.
@@ -130,8 +127,6 @@ struct AICompanionColumns<Content: View>: View {
             #endif
     }
 
-    /// On iOS the chat hosts the pane's pages and its row level with the section's bar; on Mac its controls join the
-    /// window toolbar.
     private var paneChat: some View {
         AIChatView(chatStore: self.store.aiChatStore, isCompanion: true, companionHostTab: self.hostTab)
     }
@@ -141,105 +136,29 @@ extension EnvironmentValues {
     /// True inside both halves while a wide layout, iPad or Duo's inner display, shows the side chat; their pages then
     /// keep an opaque bar band.
     @Entry var showsAICompanionBarBackground: Bool = false
-    /// How far the side chat is still slid toward its edge while it opens or closes.
-    @Entry var aiCompanionPaneSlide: CGFloat = 0
-}
-
-/// Slides the side chat in from its edge and fades it, telling the pane how far it is slid so its row can stay put:
-/// the toggle sits at the same place in the section's bar and in the pane's row, so it never moves under a tap.
-private struct AICompanionPaneTransition: Transition {
-    let offset: CGFloat
-
-    func body(content: Content, phase: TransitionPhase) -> some View {
-        let slide = phase.isIdentity ? 0 : self.offset
-        content
-            .environment(\.aiCompanionPaneSlide, slide)
-            .offset(x: slide)
-            .opacity(phase.isIdentity ? 1 : 0)
-    }
 }
 
 extension View {
-    /// A page in a navigation stack inside `AICompanionColumns`, or in the AI tab's stack, whose chat follows the same
-    /// keyboard rule. Each page is its own hosting controller, and one that returns to the window after a rotation can
-    /// keep the inset of a keyboard that has since gone.
     func aiCompanionColumnPage() -> some View {
         self.modifier(AICompanionColumnPageKeyboard())
             .modifier(AICompanionColumnPageBar())
     }
-
-    /// A page a child screen pushes itself: a column page while the child is pushed, a sheet's own page otherwise.
-    @ViewBuilder
-    func aiCompanionColumnPage(when style: SectionChildPresentationStyle) -> some View {
-        if style == .push {
-            self.aiCompanionColumnPage()
-        } else {
-            self
-        }
-    }
 }
 
-/// Beside the open side chat both halves' bars are opaque, so content scrolled up never shows behind the tab bar's
-/// row; only the values change, so toggling the chat keeps the page. Under iPad's top tab bar a pushed page's title
-/// follows its Back in the tab bar's row instead of taking a row of its own below it, and beside the side chat both
-/// move to the section half's outer edge, since the floating tab bar covers the half's leading edge.
 private struct AICompanionColumnPageBar: ViewModifier {
     @Environment(\.showsAICompanionBarBackground) private var showsBackground
-    @Environment(\.isPresented) private var isPushed
-    @Environment(\.tabBarPlacement) private var tabBarPlacement
-    #if !targetEnvironment(macCatalyst)
-    @Environment(\.layoutDirection) private var layoutDirection
-    @Environment(\.aiCompanionRowMetrics) private var rowMetrics: AICompanionRowMetrics?
-    #endif
 
     func body(content: Content) -> some View {
         #if targetEnvironment(macCatalyst)
         content
         #else
-        let isTopTabBar = UIDevice.current.userInterfaceIdiom == .pad && self.tabBarPlacement == .topBar
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
         content
-            .modifier(AICompanionBarStyle())
+            .toolbarBackground(.bar, for: isPad ? .navigationBar : .bottomBar)
             .toolbarBackgroundVisibility(self.showsBackground ? .visible : .automatic, for: .navigationBar)
-            .toolbarRole(isTopTabBar && self.isPushed ? .editor : .automatic)
-            .modifier(SectionPageBack(
-                usesTrailingBack: isTopTabBar && self.isPushed && self.showsBackground && self.findsTabBarRow,
-                trailingTitleWidth: self.trailingTitleWidth
-            ))
         #endif
     }
-
-    #if !targetEnvironment(macCatalyst)
-    /// Whether the floating tab bar was found in the section's bar. Without it, as where UIKit lays the tab bar out
-    /// differently, the page keeps the system Back and the pane a standard row.
-    private var findsTabBarRow: Bool {
-        self.rowMetrics?.tabBarSpan != nil && self.rowMetrics?.sectionBarHeight != nil
-    }
-
-    /// What the half beside the floating tab bar leaves for the title after Back and room for the page's actions. The
-    /// section's trailing edge is the window's left edge in a right-to-left language.
-    private var trailingTitleWidth: CGFloat? {
-        guard let rowMetrics = self.rowMetrics, let span = rowMetrics.tabBarSpan, let windowWidth = rowMetrics.windowWidth else {
-            return nil
-        }
-        let clearance = self.layoutDirection == .rightToLeft ? span.lowerBound : windowWidth - span.upperBound
-        return clearance - 16 - appMinimumTouchTarget - 12 - 130
-    }
-    #endif
 }
-
-#if !targetEnvironment(macCatalyst)
-/// The bar material on iPad, as main sets it, and on a phone, Duo's inner display, while the side chat is open. Any
-/// navigation bar style replaces a phone's soft scroll edge, so a phone otherwise gives it to a bottom toolbar, which
-/// these pages never show. Only the value changes, so neither the side chat nor a fold rebuilds the page.
-private struct AICompanionBarStyle: ViewModifier {
-    @Environment(\.showsAICompanionBarBackground) private var showsBackground
-
-    func body(content: Content) -> some View {
-        let isStyled = UIDevice.current.userInterfaceIdiom == .pad || self.showsBackground
-        content.toolbarBackground(.bar, for: isStyled ? .navigationBar : .bottomBar)
-    }
-}
-#endif
 
 private struct AICompanionColumnPageKeyboard: ViewModifier {
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
@@ -274,6 +193,7 @@ private struct AICompanionColumnPageKeyboard: ViewModifier {
 #if !targetEnvironment(macCatalyst)
 /// Whether a keyboard frame change ends docked: on screen, across its full width and at its bottom, which a docked
 /// keyboard can stop a few points short of. Nil while the keyboard leaves the screen.
+@MainActor
 private func dockedKeyboardFrame(_ notification: Notification) -> Bool? {
     guard let frame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue,
           let screen = notification.object as? UIScreen else { return nil }

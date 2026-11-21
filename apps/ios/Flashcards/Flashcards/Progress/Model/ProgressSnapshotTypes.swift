@@ -52,7 +52,6 @@ struct ProgressSnapshot: Hashable, Sendable {
     /// Nil while only the local fallback is available.
     let insights: ProgressInsights?
     let chartData: ProgressChartData
-    let reviewChartPages: [ProgressReviewChartPage]
     let streakWeeks: [ProgressCalendarWeek]
     let presentationCalendar: Calendar
     let summarySourceState: ProgressSourceState

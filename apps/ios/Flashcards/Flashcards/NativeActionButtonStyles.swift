@@ -65,9 +65,3 @@ extension View {
         }
     }
 }
-
-extension EnvironmentValues {
-    /// iPad and Duo's inner display, a phone window with regular width, share one toolbar layout: no top-level section
-    /// titles, the AI companion's controls in the host bar, and equal icon controls. Mac has its own toolbar.
-    @Entry var usesRegularToolbarLayout: Bool = false
-}

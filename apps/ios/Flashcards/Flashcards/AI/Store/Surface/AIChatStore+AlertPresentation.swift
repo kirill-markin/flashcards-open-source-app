@@ -18,15 +18,11 @@ extension AIChatStore {
      while that read is for the current month; otherwise the copy names no date.
      */
     func showAccountAILimitReachedError() {
-        self.showGeneralError(message: self.accountAILimitReachedMessage())
-    }
-
-    func accountAILimitReachedMessage() -> String {
         let currentMonthUsage: AIMonthlyUsage? = self.flashcardsStore.currentAIMonthlyUsage.flatMap {
             (usage: AIMonthlyUsage) -> AIMonthlyUsage? in
             usage.monthEndsAt > Date() ? usage : nil
         }
-        return aiChatAccountLimitReachedMessage(usage: currentMonthUsage)
+        self.showGeneralError(message: aiChatAccountLimitReachedMessage(usage: currentMonthUsage))
     }
 
     /// A known terminal error code shows its client copy. Only an uncoded failure on the person's own key is OpenAI's text,
@@ -67,11 +63,6 @@ extension AIChatStore {
 private struct AIChatAlertPresentation {
     let title: String
     let message: String
-}
-
-/// The general error alert's message, for a failure shown inline instead.
-func aiChatGeneralErrorMessage(error: Error) -> String {
-    aiChatAlertPresentation(error: error, resumeAttemptSequence: nil).message
 }
 
 func aiChatGeneralErrorAlert(

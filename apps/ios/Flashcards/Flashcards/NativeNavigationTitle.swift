@@ -1,36 +1,13 @@
 import SwiftUI
 
 
-/// A page's navigation title, for a bar that shows it outside the system title.
-struct PageNavigationTitleKey: PreferenceKey {
-    static let defaultValue = ""
-
-    static func reduce(value: inout String, nextValue: () -> String) {
-        let next = nextValue()
-        if next.isEmpty == false {
-            value = next
-        }
-    }
-}
-
 extension View {
     /// Keeps mobile navigation titles and emits specific Mac destination metadata.
     func nativeNavigationTitle(_ title: String) -> some View {
         #if targetEnvironment(macCatalyst)
         self.modifier(MacNavigationTitle(title: title))
         #else
-        self.pageNavigationTitle(title)
-        #endif
-    }
-
-    /// A navigation title that also reaches the page's own bar items, which name a pushed section page beside the side
-    /// chat. The Mac keeps a plain navigation title.
-    func pageNavigationTitle(_ title: String) -> some View {
-        #if targetEnvironment(macCatalyst)
         self.navigationTitle(title)
-        #else
-        self.navigationTitle(title)
-            .preference(key: PageNavigationTitleKey.self, value: title)
         #endif
     }
 

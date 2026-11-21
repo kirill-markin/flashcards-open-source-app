@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "ไม่สามารถอัปโหลดไฟล์แนบได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง";
 "ai.drop.overlay" = "วางไฟล์เพื่อแนบ";
 "ai.composer.dictation.start" = "เริ่มป้อนตามคำบอก";
-"ai.composer.dictation.cancel" = "ยกเลิกการป้อนตามคำบอก";
-"ai.composer.dictation.finish" = "เสร็จสิ้นการป้อนตามคำบอก";
-"ai.composer.dictation.preparing" = "กำลังเตรียม";
-"ai.composer.dictation.recording" = "กำลังบันทึก %@";
+"ai.composer.dictation.stop" = "หยุดป้อนตามคำบอก";
+"ai.composer.dictation.waiting" = "กำลังรอสิทธิ์ใช้ไมโครโฟน...";
+"ai.composer.dictation.listening" = "กำลังฟัง...";
 "ai.composer.dictation.transcribing" = "กำลังถอดเสียง...";
-"ai.composer.dictation.dismissError" = "ปิดข้อผิดพลาดการป้อนตามคำบอก";
-"ai.composer.dictation.announcement.started" = "เริ่มบันทึกแล้ว";
-"ai.composer.dictation.announcement.inserted" = "เพิ่มข้อความถอดเสียงแล้ว";
 "ai.error.title" = "ข้อผิดพลาด";
 "ai.error.requestTooLarge.title" = "ข้อความใหญ่เกินไป";
 "ai.error.requestTooLarge.message" = "แชต AI ส่งเนื้อหาปริมาณมากขนาดนี้ในครั้งเดียวไม่ได้ นำไฟล์แนบออก เลือกไฟล์หรือรูปภาพที่เล็กลง หรือแบ่งคำขอแล้วลองอีกครั้ง";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "เตรียมเสียงที่บันทึกไม่สำเร็จ";
 "ai.dictation.error.recordingStartFailed" = "เริ่มบันทึกเสียงจากไมโครโฟนไม่สำเร็จ";
 "ai.dictation.error.emptyRecording" = "ไม่ได้บันทึกเสียงพูด";
-"ai.dictation.error.interrupted" = "การบันทึกถูกขัดจังหวะ";
 "ai.dictation.error.network" = "เครือข่ายมีปัญหา แก้ไขแล้วลองอีกครั้ง";
 "ai.dictation.error.invalidAudio" = "ประมวลผลเสียงบันทึกนี้ไม่ได้ โปรดลองอีกครั้ง";
 "ai.message.unsupportedContent" = "ไม่รองรับเนื้อหา";

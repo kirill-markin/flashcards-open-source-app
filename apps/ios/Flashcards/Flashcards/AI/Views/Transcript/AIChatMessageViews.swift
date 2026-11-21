@@ -732,4 +732,3 @@ private func aiChatToolSectionAccessibilityIdentifier(sectionId: String) -> Stri
         return ""
     }
 }
-

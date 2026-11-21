@@ -14,7 +14,7 @@ struct AIChatHistoryListRoute: Hashable {
     }
 }
 
-/// Carries the list it was opened from, which keeps the old chat's loaded transcript for every section's side chat.
+/// The full AI tab's value-based link identifies its chat and owning list.
 struct AIChatHistoryReaderRoute: Hashable {
     let summary: AIChatSessionHistorySummary
     let list: AIChatHistoryListModel
@@ -146,8 +146,6 @@ final class AIChatHistoryListModel {
     @ObservationIgnored private var listGeneration: Int
     @ObservationIgnored private var activeFirstPageTask: Task<Void, Never>?
     @ObservationIgnored private var activeNextPageTask: Task<Void, Never>?
-    /// Old chats cannot change, so each one opened from this list loads once.
-    @ObservationIgnored private var readerModels: [String: AIChatHistoryReaderModel] = [:]
 
     init(chatStore: AIChatStore) {
         self.searchQuery = ""
@@ -322,17 +320,12 @@ final class AIChatHistoryListModel {
         self.notice = aiSettingsLocalized("ai.history.unavailable", "This chat is no longer available.")
     }
 
-    func readerModel(sessionId: String) -> AIChatHistoryReaderModel {
-        if let model = self.readerModels[sessionId] {
-            return model
-        }
-        let model = AIChatHistoryReaderModel(
+    func makeReaderModel(sessionId: String) -> AIChatHistoryReaderModel {
+        AIChatHistoryReaderModel(
             chatStore: self.chatStore,
             sessionId: sessionId,
             onUnavailable: { [weak self] in self?.removeUnavailableSession(sessionId: sessionId) }
         )
-        self.readerModels[sessionId] = model
-        return model
     }
 
     private func reload(searchText: String?) {

@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "無法上傳附件。請檢查連線後重試。";
 "ai.drop.overlay" = "將檔案拖放到這裡以附加";
 "ai.composer.dictation.start" = "開始語音輸入";
-"ai.composer.dictation.cancel" = "取消語音輸入";
-"ai.composer.dictation.finish" = "完成語音輸入";
-"ai.composer.dictation.preparing" = "正在準備";
-"ai.composer.dictation.recording" = "正在錄音 %@";
+"ai.composer.dictation.stop" = "停止語音輸入";
+"ai.composer.dictation.waiting" = "正在等候麥克風取用權限…";
+"ai.composer.dictation.listening" = "正在聆聽…";
 "ai.composer.dictation.transcribing" = "正在轉寫…";
-"ai.composer.dictation.dismissError" = "關閉語音輸入錯誤";
-"ai.composer.dictation.announcement.started" = "已開始錄音";
-"ai.composer.dictation.announcement.inserted" = "已加入轉錄文字";
 "ai.error.title" = "錯誤";
 "ai.error.requestTooLarge.title" = "訊息太大";
 "ai.error.requestTooLarge.message" = "AI 聊天一次無法傳送這麼多內容。請移除一個或多個附件，選擇更小的檔案或照片，或拆分請求後重試。";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "無法準備錄製的音訊。";
 "ai.dictation.error.recordingStartFailed" = "無法開始麥克風錄音。";
 "ai.dictation.error.emptyRecording" = "沒有錄到聲音。";
-"ai.dictation.error.interrupted" = "錄音已中斷";
 "ai.dictation.error.network" = "網路連線發生問題。請檢查連線後重試。";
 "ai.dictation.error.invalidAudio" = "我們無法處理該錄音。請重試。";
 "ai.message.unsupportedContent" = "不支援的內容";

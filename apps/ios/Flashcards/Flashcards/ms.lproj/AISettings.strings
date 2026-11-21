@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Lampiran tidak dapat dimuat naik. Semak sambungan anda, kemudian cuba lagi.";
 "ai.drop.overlay" = "Lepaskan fail di sini untuk melampirkannya";
 "ai.composer.dictation.start" = "Mulakan imlak";
-"ai.composer.dictation.cancel" = "Batalkan imlak";
-"ai.composer.dictation.finish" = "Selesaikan imlak";
-"ai.composer.dictation.preparing" = "Menyediakan";
-"ai.composer.dictation.recording" = "Merakam %@";
+"ai.composer.dictation.stop" = "Hentikan imlak";
+"ai.composer.dictation.waiting" = "Menunggu akses mikrofon...";
+"ai.composer.dictation.listening" = "Sedang mendengar...";
 "ai.composer.dictation.transcribing" = "Mentranskripsikan...";
-"ai.composer.dictation.dismissError" = "Tutup ralat imlak";
-"ai.composer.dictation.announcement.started" = "Rakaman dimulakan";
-"ai.composer.dictation.announcement.inserted" = "Transkrip ditambah";
 "ai.error.title" = "Ralat";
 "ai.error.requestTooLarge.title" = "Mesej terlalu besar";
 "ai.error.requestTooLarge.message" = "Sembang AI tidak boleh menghantar kandungan sebanyak ini sekali gus. Alih keluar satu atau lebih lampiran, pilih fail atau foto yang lebih kecil, atau bahagikan permintaan dan cuba lagi.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Rakaman audio tidak dapat disediakan.";
 "ai.dictation.error.recordingStartFailed" = "Rakaman mikrofon tidak dapat dimulakan.";
 "ai.dictation.error.emptyRecording" = "Tiada pertuturan dirakam.";
-"ai.dictation.error.interrupted" = "Rakaman terganggu";
 "ai.dictation.error.network" = "Terdapat masalah rangkaian. Betulkan masalah itu dan cuba lagi.";
 "ai.dictation.error.invalidAudio" = "Rakaman itu tidak dapat diproses. Sila cuba lagi.";
 "ai.message.unsupportedContent" = "Kandungan tidak disokong";

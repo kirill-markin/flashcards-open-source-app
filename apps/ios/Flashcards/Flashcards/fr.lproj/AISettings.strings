@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Impossible d’envoyer une pièce jointe. Vérifiez votre connexion, puis réessayez.";
 "ai.drop.overlay" = "Déposez des fichiers pour les joindre";
 "ai.composer.dictation.start" = "Démarrer la dictée";
-"ai.composer.dictation.cancel" = "Annuler la dictée";
-"ai.composer.dictation.finish" = "Terminer la dictée";
-"ai.composer.dictation.preparing" = "Préparation";
-"ai.composer.dictation.recording" = "Enregistrement %@";
+"ai.composer.dictation.stop" = "Arrêter la dictée";
+"ai.composer.dictation.waiting" = "En attente de l’accès au microphone...";
+"ai.composer.dictation.listening" = "Écoute...";
 "ai.composer.dictation.transcribing" = "Transcription...";
-"ai.composer.dictation.dismissError" = "Fermer l'erreur de dictée";
-"ai.composer.dictation.announcement.started" = "Enregistrement commencé";
-"ai.composer.dictation.announcement.inserted" = "Transcription ajoutée";
 "ai.error.title" = "Erreur";
 "ai.error.requestTooLarge.title" = "Message trop volumineux";
 "ai.error.requestTooLarge.message" = "Le chat IA ne peut pas envoyer autant de contenu en une seule fois. Supprimez une ou plusieurs pièces jointes, choisissez un fichier ou une photo plus petite, ou divisez la demande et réessayez.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Échec de la préparation de l’audio enregistré.";
 "ai.dictation.error.recordingStartFailed" = "Échec du démarrage de l’enregistrement avec le microphone.";
 "ai.dictation.error.emptyRecording" = "Aucune parole n’a été enregistrée.";
-"ai.dictation.error.interrupted" = "Enregistrement interrompu";
 "ai.dictation.error.network" = "Un problème de réseau est survenu. Corrigez-le et réessayez.";
 "ai.dictation.error.invalidAudio" = "Nous n’avons pas pu traiter cet enregistrement. Veuillez réessayer.";
 "ai.message.unsupportedContent" = "Contenu non pris en charge";

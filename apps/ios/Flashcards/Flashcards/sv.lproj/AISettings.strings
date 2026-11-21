@@ -59,14 +59,10 @@
 "ai.attachment.error.uploadFailed" = "Det gick inte att ladda upp en bilaga. Kontrollera anslutningen och försök igen.";
 "ai.drop.overlay" = "Släpp filer för att bifoga dem";
 "ai.composer.dictation.start" = "Starta diktering";
-"ai.composer.dictation.cancel" = "Avbryt diktering";
-"ai.composer.dictation.finish" = "Slutför diktering";
-"ai.composer.dictation.preparing" = "Förbereder";
-"ai.composer.dictation.recording" = "Spelar in %@";
+"ai.composer.dictation.stop" = "Stoppa diktering";
+"ai.composer.dictation.waiting" = "Väntar på mikrofonåtkomst...";
+"ai.composer.dictation.listening" = "Lyssnar...";
 "ai.composer.dictation.transcribing" = "Transkriberar...";
-"ai.composer.dictation.dismissError" = "Stäng dikteringsfel";
-"ai.composer.dictation.announcement.started" = "Inspelningen har startat";
-"ai.composer.dictation.announcement.inserted" = "Transkription tillagd";
 "ai.error.title" = "Fel";
 "ai.error.requestTooLarge.title" = "Meddelandet är för stort";
 "ai.error.requestTooLarge.message" = "AI-chatten kan inte skicka så mycket innehåll på en gång. Ta bort en eller flera bilagor, välj en mindre fil eller bild eller dela upp begäran och försök igen.";
@@ -101,7 +97,6 @@
 "ai.dictation.error.invalidRecording" = "Det inspelade ljudet kunde inte förberedas.";
 "ai.dictation.error.recordingStartFailed" = "Mikrofoninspelningen kunde inte startas.";
 "ai.dictation.error.emptyRecording" = "Inget tal spelades in.";
-"ai.dictation.error.interrupted" = "Inspelningen avbröts";
 "ai.dictation.error.network" = "Det finns ett nätverksproblem. Åtgärda det och försök igen.";
 "ai.dictation.error.invalidAudio" = "Inspelningen kunde inte bearbetas. Försök igen.";
 "ai.message.unsupportedContent" = "Innehållet stöds inte";

@@ -92,7 +92,6 @@ struct AIChatLongTextView: View {
     let isSelectable: Bool
 
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
-    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.aiChatPushesFullResponse) private var pushesFullResponse
     @State private var isFullResponsePresented: Bool = false
 
@@ -115,8 +114,6 @@ struct AIChatLongTextView: View {
             VStack(alignment: .leading, spacing: 8) {
                 AIChatContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable)
                 Button {
-                    // The full response covers the composer, so a recording finishes into the draft first.
-                    self.store.aiChatStore.leaveDictationForNavigation()
                     // Decided once per tap, so a shown page never turns into a sheet or back.
                     if self.pushesFullResponse {
                         self.navigation.aiCompanionPath.append(.fullResponse(AIChatFullResponseRoute(messageId: self.messageId, text: self.text)))
@@ -381,7 +378,6 @@ func aiChatFullResponseLiveText(route: AIChatFullResponseRoute, chatStore: AICha
 /// A sheet with Close, or a page in the side chat's pane, whose row holds its Back and Copy.
 struct AIChatFullResponseView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.aiCompanionPaneOpensPages) private var isInPane
 
     @State private var chunks: AIChatFullResponseChunks?
     @State private var chunkedText: String?
@@ -437,9 +433,7 @@ struct AIChatFullResponseView: View {
         .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if self.isInPane == false {
-                self.toolbarContent
-            }
+            self.toolbarContent
         }
     }
 

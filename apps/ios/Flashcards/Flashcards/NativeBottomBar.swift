@@ -6,30 +6,9 @@ extension View {
         alignment: HorizontalAlignment,
         usesColumnLayout: Bool = false,
         showsBackground: Bool = true,
-        extendsScrollEdgeEffect: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        #if !targetEnvironment(macCatalyst)
-        let usesTransparentColumnInset = usesColumnLayout && showsBackground == false
-        #else
-        let usesTransparentColumnInset = false
-        #endif
-        if #available(iOS 26.0, *), usesColumnLayout, extendsScrollEdgeEffect {
-            let accessory = content()
-            GeometryReader { geometry in
-                self
-                    .safeAreaBar(edge: .bottom, alignment: alignment, spacing: 0) { accessory }
-                    .scrollEdgeEffectStyle(.soft, for: .bottom)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-            }
-        } else if #available(iOS 26.0, *), usesTransparentColumnInset {
-            // Like the full-width composer, reserve scroll space through the safe area so the transcript can
-            // continue behind the glass. The chat's outer column already owns its keyboard layout proposal.
-            self.safeAreaInset(edge: .bottom, alignment: alignment, spacing: 0) {
-                content()
-                    .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
-            }
-        } else if usesColumnLayout {
+        if usesColumnLayout {
             // Keep the accessory in the same layout proposal as its content.
             // Floating keyboards must not relocate an independent safe-area bar.
             VStack(spacing: 0) {
