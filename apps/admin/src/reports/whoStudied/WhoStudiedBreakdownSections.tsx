@@ -1,12 +1,16 @@
-import type { JSX } from "react";
+import { useCallback, type JSX } from "react";
 import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
+import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import { buildPeopleBreakdowns, PeopleBreakdownSections } from "../levelOneMetrics/PeopleBreakdownSections";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { loadWhoStudiedBreakdownReport } from "./breakdownQuery";
+import { loadWhoStudiedByDeviceReport } from "./deviceBreakdownQuery";
 
 const metricTitle = "Who studied";
+const showDevice = (value: string): string => value;
 
 const fromLastAppOpen = "The server records answered reviews without the app’s context, so this comes from the person’s last app open in the same bar; someone who studied there without opening the app is Unknown.";
 
@@ -28,6 +32,10 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
   appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
+  const loadDevices = useCallback<BreakdownReportLoader>((config, dateRange, period, signal) => (
+    loadWhoStudiedByDeviceReport(config, dateRange, period, props.eventPlatforms, props.eventDeviceTypes, props.appVersions, signal)
+  ), [props.eventPlatforms, props.eventDeviceTypes, props.appVersions]);
+
   return (
     <PeopleBreakdownSections
       config={props.config}
@@ -40,6 +48,33 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
       metricTitle={metricTitle}
       testIdPrefix="who-studied"
       breakdowns={whoStudiedBreakdowns}
+      platformCompanion={(
+        <BreakdownSection
+          config={props.config}
+          dateRange={props.dateRange}
+          period={props.period}
+          onTerminalAdminError={props.onTerminalAdminError}
+          title="Who studied by device"
+          testId="who-studied-by-device-section"
+          explanationId="who-studied-by-device-explanation"
+          explanation={<>
+            <li>A person counts once per UTC day, week or month on each native device category they answered a review on. The same person can count in several categories.</li>
+            <li>Unknown includes native reviews with missing or unsupported device details.</li>
+            <li>The Platform and Device filters apply to each review. The App version filter keeps a person when their last app open in the same bucket, on a selected platform and device class, has a selected version.</li>
+            <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. Today’s bucket is in progress. A bucket that starts before the retained history is unavailable.</li>
+            <li>Later offline review syncs can revise past bars.</li>
+          </>}
+          countLabel="Unique people"
+          unavailableBarText="Unavailable: retained source history does not cover all of its days."
+          noAvailableBarText="Retained source history does not cover this range."
+          loadReport={loadDevices}
+          formatValue={showDevice}
+          buildExtraNotes={null}
+          keyLink={null}
+          chartStyle="grouped"
+          showDataTable
+        />
+      )}
       appVersionFilterNote={<li>The App version filter narrows these people as it narrows {metricTitle}.</li>}
     />
   );

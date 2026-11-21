@@ -10,12 +10,14 @@ import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import {
   buildBreakdownValueColors,
+  renderGroupedBreakdownChart,
   renderStackedBreakdownChart,
   sumBreakdownBar,
 } from "../../charts/stackedBreakdownChart";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { BreakdownDataTable } from "./BreakdownDataTable";
 import type { BreakdownBucket, BreakdownReport, BreakdownReportLoader } from "./breakdownReport";
 import {
   findInProgressBucketKey,
@@ -51,12 +53,11 @@ function getValueColor(model: BreakdownChartModel, value: string): string {
   return color;
 }
 
-/** The values a bar holds, top of the stack first, as the eye reads the bar. */
 function listBucketCounts(
-  report: BreakdownReport,
+  values: ReadonlyArray<string>,
   countsByValue: ReadonlyMap<string, number>,
 ): ReadonlyArray<Readonly<{ value: string; count: number }>> {
-  return [...report.values].reverse()
+  return values
     .map((value) => ({ value, count: countsByValue.get(value) ?? 0 }))
     .filter((entry) => entry.count > 0);
 }
@@ -77,6 +78,7 @@ function BreakdownChartColumn(props: Readonly<{
   colorKey: ReactNode;
   chartArea: ReactNode;
   notes: ReadonlyArray<PlacedChartNote> | null;
+  dataTable?: ReactNode;
 }>): JSX.Element {
   return (
     <section className="chart-column">
@@ -87,6 +89,7 @@ function BreakdownChartColumn(props: Readonly<{
         </div>
         <div className="chart-scroll">{props.chartArea}</div>
         <ChartNotesKey notes={props.notes} />
+        {props.dataTable}
       </div>
     </section>
   );
@@ -110,7 +113,6 @@ export function BreakdownLoadingChart(props: Readonly<{
 }
 
 /**
- * One Level 1 chart split by one dimension, stacked per bucket in the report's value order.
  * `loadReport`, `formatValue` and `buildExtraNotes` must be stable.
  */
 export function BreakdownSection(props: Readonly<{
@@ -136,6 +138,8 @@ export function BreakdownSection(props: Readonly<{
   buildExtraNotes: ((today: string) => ReadonlyArray<ChartNote>) | null;
   /** Where the color key's entries link; null for a plain key. */
   keyLink: ChartColorKeyLink<string> | null;
+  chartStyle?: "grouped";
+  showDataTable?: boolean;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -168,6 +172,8 @@ export function BreakdownSection(props: Readonly<{
   useEffect(() => {
     if (chartRef.current === null || model === null) return;
     const report = model.report;
+    const grouped = props.chartStyle === "grouped";
+    const tooltipValues = grouped ? report.values : [...report.values].reverse();
     const getBucket = (key: string): BreakdownBucket => {
       const entry = model.bucketsByKey.get(key);
       if (entry === undefined) throw new Error(`${props.title} chart has no bucket for ${key}.`);
@@ -178,21 +184,26 @@ export function BreakdownSection(props: Readonly<{
       const entry = getBucket(key);
       if (entry.countsByValue === null && entry.freshness === "not-arrived") return notArrivedBarText;
       const valueText = entry.countsByValue === null ? props.unavailableBarText : [
-        ...listBucketCounts(report, entry.countsByValue).map((count) => `${model.formatValue(count.value)}: ${formatCount(count.count)}`),
-        `total: ${formatCount(sumBreakdownBar(entry.countsByValue))}.`,
-      ].join("; ");
+        ...listBucketCounts(tooltipValues, entry.countsByValue).map((count) => `${model.formatValue(count.value)}: ${formatCount(count.count)}`),
+        ...(grouped ? [] : [`total: ${formatCount(sumBreakdownBar(entry.countsByValue))}.`]),
+      ].join("; ") || "Nothing counted.";
       return entry.freshness === "final" ? valueText : `${valueText} ${notFinalBarText}`;
     };
     const buildTooltipMetricsHtml = (key: string): string => {
       const entry = getBucket(key);
       if (entry.countsByValue === null) return `<p>${escapeHtml(describeBucket(key))}</p>`;
+      const counts = listBucketCounts(tooltipValues, entry.countsByValue);
+      const totalHtml = grouped
+        ? (counts.length === 0 ? "<p>Nothing counted.</p>" : "")
+        : `<div class="tooltip-metric"><span>Total</span><strong>${formatCount(sumBreakdownBar(entry.countsByValue))}</strong></div>`;
       return [
-        ...listBucketCounts(report, entry.countsByValue).map((count) => `<div class="tooltip-metric"><span>${escapeHtml(model.formatValue(count.value))}</span><strong>${formatCount(count.count)}</strong></div>`),
-        `<div class="tooltip-metric"><span>Total</span><strong>${formatCount(sumBreakdownBar(entry.countsByValue))}</strong></div>`,
+        ...counts.map((count) => `<div class="tooltip-metric"><span>${escapeHtml(model.formatValue(count.value))}</span><strong>${formatCount(count.count)}</strong></div>`),
+        totalHtml,
         entry.freshness === "final" ? "" : `<p class="tooltip-hint">${escapeHtml(notFinalBarText)}</p>`,
       ].join("");
     };
-    renderStackedBreakdownChart({
+    const renderChart = grouped ? renderGroupedBreakdownChart : renderStackedBreakdownChart;
+    renderChart({
       svgElement: chartRef.current,
       bars: report.buckets.map((entry) => ({
         key: entry.bucket.key,
@@ -209,7 +220,7 @@ export function BreakdownSection(props: Readonly<{
       getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(getTitle(key))}${key === model.inProgressKey ? " · in progress" : ""}</p>${buildTooltipMetricsHtml(key)}`,
       tooltipHandlers,
     });
-  }, [model, props.title, props.countLabel, props.unavailableBarText, tooltipHandlers]);
+  }, [model, props.title, props.countLabel, props.unavailableBarText, props.chartStyle, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -249,6 +260,17 @@ export function BreakdownSection(props: Readonly<{
             </ChartAreaWithNote>
           )}
           notes={model.notes}
+          dataTable={props.showDataTable ? (
+            <BreakdownDataTable
+              report={model.report}
+              title={props.title}
+              sectionTestId={props.testId}
+              formatValue={model.formatValue}
+              formatCount={formatCount}
+              inProgressKey={model.inProgressKey}
+              unavailableBarText={props.unavailableBarText}
+            />
+          ) : null}
         />
       )}
       <ChartTooltip {...tooltipState} />
