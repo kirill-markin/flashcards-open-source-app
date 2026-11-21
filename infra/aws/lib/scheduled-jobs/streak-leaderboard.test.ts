@@ -43,7 +43,7 @@ test("stack wires the streak leaderboard snapshot function into monitoring, ci-c
 });
 
 test("monitoring alarms cover streak leaderboard snapshot Lambda errors and snapshot staleness", () => {
-  const source = readLibSource("lib/monitoring.ts");
+  const source = readLibSource("lib/scheduled-data-job-monitoring.ts");
 
   assert.match(source, /new cloudwatch\.Alarm\(scope, "StreakLeaderboardSnapshotLambdaErrorAlarm"/);
   assert.match(source, /props\.streakLeaderboardSnapshotFn\.metricErrors\(/);

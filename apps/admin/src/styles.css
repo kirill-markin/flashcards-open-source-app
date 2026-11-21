@@ -1536,7 +1536,7 @@ h2 {
   align-items: start;
 }
 
-.who-studied-threshold-charts {
+.level-1-metrics-grid > .journeys-first-launch {
   grid-column: 1 / -1;
   min-width: 0;
 }
@@ -1966,6 +1966,18 @@ h2 {
 @media (max-width: 1100px) {
   .level-1-metrics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .journeys-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .journeys-overview-grid .table-scroll {
+    overflow-x: auto;
+  }
+
+  .journeys-overview-grid .funnel-steps-chart {
+    min-width: 960px;
   }
 
   .filter-bar {

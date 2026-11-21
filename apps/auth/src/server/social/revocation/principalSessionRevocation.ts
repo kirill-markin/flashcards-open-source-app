@@ -1,7 +1,7 @@
 import {
   AdminUserGlobalSignOutCommand, CognitoIdentityProviderClient, UserNotFoundException,
 } from "@aws-sdk/client-cognito-identity-provider";
-import { logWarning } from "../logger.js";
+import { logWarning } from "../../logger.js";
 
 const client = new CognitoIdentityProviderClient({
   maxAttempts: 2,

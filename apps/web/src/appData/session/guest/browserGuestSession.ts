@@ -1,5 +1,4 @@
-import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
-import { ApiError } from "../../../api/transport/errors";
+import { probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { BrowserGuestSessionInvalidatedError, getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
@@ -8,8 +7,8 @@ import { isCatalogImportPath } from "../../../routes";
 import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
-import { endGuestBrowserChallenge, waitForGuestBrowserChallengeToken } from "./guestBrowserChallenge";
-import { clearBrowserGuestCreatingMarker, readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
+import { readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
+import { captureBrowserGuestCreationVerifier, clearPendingBrowserGuestCreation, createAndProbeBrowserGuestSession, reconcileBrowserGuestCreation } from "./browserGuestCreation";
 
 export class GuestConversionRequiredError extends Error {
   readonly pending: PendingGuestConversion | null;
@@ -50,35 +49,6 @@ function requireMatchingOwner(probe: BrowserGuestProbe, localUserId: string | nu
   }
 }
 
-/**
- * The backend answers both check codes before it commits anything, so the creation marker is
- * cleared while the user takes the check (a reload then starts a fresh creation) and the same key is
- * retried with each token. Only a token from a check the user passes creates a guest; the screen
- * stays up until this creation settles.
- */
-async function createBrowserGuestSessionPassingCheck(idempotencyKey: string): Promise<BrowserGuestProbe> {
-  let siteKey: string | null = null;
-  let turnstileToken: string | null = null;
-  try {
-    for (;;) {
-      try {
-        return await createBrowserGuestSession(idempotencyKey, turnstileToken);
-      } catch (error) {
-        if (error instanceof ApiError === false) throw error;
-        const challengeSiteKey: string | null = error.code === "GUEST_BROWSER_CHALLENGE_REQUIRED" ? error.guestBrowserChallengeSiteKey
-          : error.code === "GUEST_BROWSER_CHALLENGE_FAILED" ? siteKey : null;
-        if (challengeSiteKey === null) throw error;
-        siteKey = challengeSiteKey;
-        clearBrowserGuestCreatingMarker();
-        turnstileToken = await waitForGuestBrowserChallengeToken(challengeSiteKey, turnstileToken !== null);
-        writeBrowserGuestState({ status: "creating" });
-      }
-    }
-  } finally {
-    endGuestBrowserChallenge();
-  }
-}
-
 export async function loadCachedBrowserGuestOwner(): Promise<CloudSettings | null> {
   const settings = await loadCloudSettings();
   if (settings?.cloudState !== "guest" || settings.linkedUserId === null || settings.linkedWorkspaceId === null) return null;
@@ -97,17 +67,19 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
   return runWithBrowserGuestLock("exclusive", async () => {
     const persisted = await loadCloudSettings();
     const saved = readBrowserGuestState();
-    const hasGuestOwnership = saved !== null || persisted?.cloudState === "guest";
+    reconcileBrowserGuestCreation(saved);
+    if (persisted !== null) clearPendingBrowserGuestCreation();
+    const hasSavedGuestState = saved !== null || persisted?.cloudState === "guest";
     const canRevalidateCurrentOwner = saved?.status === "owned" && saved.owner.pending === null
       && persisted?.cloudState === "guest" && persisted.linkedUserId === saved.owner.userId
       && persisted.linkedWorkspaceId === saved.owner.workspaceId
       && isBrowserGuestSessionVerified(saved.owner.userId, saved.owner.workspaceId);
-    if (hasGuestOwnership && canRevalidateCurrentOwner === false) pauseBrowserGuestSession();
+    if (hasSavedGuestState && canRevalidateCurrentOwner === false) pauseBrowserGuestSession();
     try {
       let probe = await probeBrowserGuestSessionWithRegisteredRecovery();
       const guest = probe.guestSession;
       const pending = saved?.status === "owned" ? saved.owner.pending : null;
-      if (hasGuestOwnership && (probe.registeredSession.present || guest.status !== "active" || pending !== null)) {
+      if (hasSavedGuestState && (probe.registeredSession.present || guest.status !== "active" || pending !== null)) {
         pauseBrowserGuestSession();
       }
       if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
@@ -120,8 +92,10 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
         throw new GuestConversionRequiredError(probe, pending);
       }
       if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await getSession());
+      let verifyCreationIdentity = captureBrowserGuestCreationVerifier();
       if (guest.status === "absent") {
-        if (saved !== null || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
+        if (saved?.status === "owned" || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
+          clearPendingBrowserGuestCreation();
           if (saved === null && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
             await recoverRegisteredCredentialForProbe();
             const refreshed = await probeBrowserGuestSession();
@@ -130,20 +104,12 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
           }
           throw new Error("Browser credential is missing while local ownership exists. Local data has been preserved; restore the original session.");
         }
-        // This marker survives a lost response without persisting the per-attempt bearer key.
-        writeBrowserGuestState({ status: "creating" });
-        const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-        const created = await createBrowserGuestSessionPassingCheck(key);
-        probe = await probeBrowserGuestSession();
-        requireMatchingOwner(probe, null);
-        if (created.guestSession.status !== "active" || probe.guestSession.status !== "active"
-          || created.guestSession.userId !== probe.guestSession.userId || created.guestSession.sessionId !== probe.guestSession.sessionId) {
-          throw new Error("Browser guest cookie round-trip changed identity. Preserve local state and retry recovery.");
-        }
+        ({ probe, verifyCreationIdentity } = await createAndProbeBrowserGuestSession());
       }
       requireMatchingOwner(probe, persisted?.linkedUserId ?? null);
       const activeGuest = probe.guestSession;
       if (activeGuest.status !== "active") throw new Error("Active browser guest is required");
+      verifyCreationIdentity(activeGuest);
       const session = await loadVerifiedBrowserGuestSession(activeGuest.userId, activeGuest.workspaceId);
       writeBrowserGuestState({ status: "owned", owner: {
         userId: activeGuest.userId, workspaceId: activeGuest.workspaceId,
@@ -151,9 +117,10 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
           && (saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent"),
         pending: null,
       } });
+      clearPendingBrowserGuestCreation();
       return resumeVerifiedBrowserSession(session);
     } catch (error) {
-      if (hasGuestOwnership || readBrowserGuestState() !== null) pauseBrowserGuestSession();
+      if (hasSavedGuestState || readBrowserGuestState() !== null) pauseBrowserGuestSession();
       throw error;
     }
   });

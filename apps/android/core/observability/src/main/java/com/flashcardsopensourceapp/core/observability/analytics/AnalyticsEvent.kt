@@ -955,6 +955,12 @@ sealed interface AnalyticsEvent {
         )
     }
 
+    data object ManualCardSaved : AnalyticsEvent {
+        override val eventName: String = "manual_card_saved"
+        override val screen: AnalyticsSurface = AnalyticsSurface.CARD_EDITOR
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
     /**
      * The paywall events below are what the person did as this client saw it, never evidence that
      * anything was sold or granted; the server-derived billing facts are that. `screen` is the

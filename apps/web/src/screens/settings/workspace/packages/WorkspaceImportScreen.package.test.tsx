@@ -20,9 +20,9 @@ import type {
 } from "../../../../types";
 import { LibraryImportScreen } from "../../../library/LibraryImportScreen";
 import { aiImportSources } from "./aiImportSources";
+import { WorkspacePackageImportProvider } from "./fileImport/WorkspacePackageImportContext";
 import { WorkspaceAiImport } from "./WorkspaceAiImport";
 import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
-import { WorkspacePackageImportProvider } from "./WorkspacePackageImportContext";
 import { WorkspaceTextImportScreen } from "./WorkspaceTextImportScreen";
 
 const workspaceReplicaId = "ed46c6cc-17c9-5b1c-a82a-169543e8a453";

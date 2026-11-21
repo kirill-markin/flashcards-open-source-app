@@ -1,15 +1,15 @@
 import { randomBytes } from "node:crypto";
-import type { DatabaseExecutor } from "../../db.js";
-import { query } from "../../db.js";
-import { verifyCurrentAccountSession } from "../browserSession.js";
-import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
-import { requireAuthHandle } from "./attemptContract.js";
-import { authHandleHash, type ClaimedAuthAttempt } from "./attemptStore.js";
-import { authoritativeRealProviderEmail, type ProviderEnrollmentProof } from "./principalEnrollment.js";
-import { connectionParameters, connectionReceipt } from "./accountConnectionStore.js";
+import type { DatabaseExecutor } from "../../../db.js";
+import { query } from "../../../db.js";
+import { verifyCurrentAccountSession } from "../../browserSession.js";
+import type { CognitoEmailPrincipal } from "../../cognito/cognitoAuth.js";
+import { requireAuthHandle } from "../attemptContract.js";
+import { authHandleHash, type ClaimedAuthAttempt } from "../attemptStore.js";
+import { authoritativeRealProviderEmail, type ProviderEnrollmentProof } from "../principalEnrollment.js";
+import { connectionParameters, connectionReceipt } from "./store.js";
 import {
   AccountConnectionError, type ConnectionBinding, type ConnectionReceipt, type ConnectionRow, type ConnectionSuggestion, type ConnectionSession,
-} from "./accountConnectionContract.js";
+} from "./contract.js";
 
 /** Call only with the exact authoritative mailbox prepared before the completion transaction. */
 export async function captureConnectionSuggestionInExecutor(

@@ -1,5 +1,4 @@
-import { captureConnectionSuggestionInExecutor } from "./accountConnectionPreparation.js";
-import type { ConnectionSuggestion } from "./accountConnectionContract.js";
+import { captureConnectionSuggestionInExecutor, type ConnectionSuggestion } from "./accountConnection/index.js";
 import { randomBytes } from "node:crypto";
 import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
 import { log, logWarning } from "../logger.js";

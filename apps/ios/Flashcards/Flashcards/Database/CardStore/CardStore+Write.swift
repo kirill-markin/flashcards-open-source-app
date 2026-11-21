@@ -64,7 +64,8 @@ extension CardStore {
         }
 
         let newCardId = UUID().uuidString.lowercased()
-        let metadataJson = try self.core.encodeJsonString(value: initialMetadata ?? makeDefaultCardMetadata(createdAt: now))
+        let metadata = initialMetadata ?? makeCardMetadata(createdAt: now, creationKind: .userAdded)
+        let metadataJson = try self.core.encodeJsonString(value: metadata)
         try self.core.execute(
             sql: """
             INSERT INTO cards (

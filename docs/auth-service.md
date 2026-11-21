@@ -337,7 +337,7 @@ because there is no OAuth connection-management HTTP API.
 
 ## Apple lifecycle
 
-[Durable lifecycle](../apps/auth/src/server/social/appleLifecycle.ts) stages encrypted Apple tokens
+[Durable lifecycle](../apps/auth/src/server/social/revocation/appleLifecycle.ts) stages encrypted Apple tokens
 before unlink or account erasure. Verified revocation notifications and committed method unlinks
 asynchronously wake the existing auth Lambda; its bounded drain alternates session and provider work
 when execution time permits. The minute schedule retains durable recovery.

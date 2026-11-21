@@ -4,7 +4,7 @@
  * It lives beside `identity.ts` rather than in it because this is the half that talks to the API,
  * and `identity.ts` is imported by the browser-data cleanup the API transport itself depends on.
  */
-import { requestAnalyticsVisitor } from "../api";
+import { requestAnalyticsVisitor, submitAnalyticsVisitorConsent } from "../api";
 import { publishAnalyticsConsentJurisdiction, readAnalyticsConsentDecision } from "./consent";
 import {
   adoptLegacyAnalyticsAnonymousId,
@@ -27,6 +27,9 @@ let hasSettledVisitorIdentity = false;
 let hasFailedVisitorIdentity = false;
 let visitorIdentityAttemptCount = 0;
 let lastVisitorIdentityFailureAtMs = 0;
+// Hold across post-grant resolution, which temporarily clears the settled flag.
+let isConsentIdentityMintInFlight = false;
+let deferredConsentMintNotBeforeMs = 0;
 
 async function runVisitorIdentityResolution(): Promise<void> {
   try {
@@ -110,7 +113,7 @@ function startVisitorIdentityAttempt(): Promise<void> {
  * asked for once and then kept, and only a call that threw is asked again, under the two bounds
  * above. A call made while one is in flight joins it rather than starting a second.
  */
-export function resolveAnalyticsVisitorIdentity(): Promise<void> {
+function resolveAnalyticsVisitorIdentity(): Promise<void> {
   if (visitorIdentityTask === null) {
     return startVisitorIdentityAttempt();
   }
@@ -131,11 +134,69 @@ export function resolveAnalyticsVisitorIdentity(): Promise<void> {
  * The attempt bounds are reset with it: they exist to stop a flaky network from polling the route,
  * and a person answering a banner is neither.
  */
-export function resolveAnalyticsVisitorIdentityAfterConsentGrant(): Promise<void> {
+function resolveAnalyticsVisitorIdentityAfterConsentGrant(): Promise<void> {
   hasSettledVisitorIdentity = false;
   visitorIdentityAttemptCount = 0;
   lastVisitorIdentityFailureAtMs = 0;
   return startVisitorIdentityAttempt();
+}
+
+/**
+ * A grant is accepted when the server returns an id. The caller can apply the consent decision
+ * before resolution reads it, or skip resolution if collection was disabled during the POST.
+ */
+export async function mintAnalyticsVisitorIdentity(
+  prepareResolution: () => boolean,
+  onAttemptFinished: () => void,
+): Promise<boolean> {
+  isConsentIdentityMintInFlight = true;
+  try {
+    const visitor = await submitAnalyticsVisitorConsent(true);
+    if (visitor.visitorId === null || prepareResolution() === false) {
+      return false;
+    }
+
+    await resolveAnalyticsVisitorIdentityAfterConsentGrant();
+  } finally {
+    isConsentIdentityMintInFlight = false;
+  }
+
+  onAttemptFinished();
+  return true;
+}
+
+/** A collection re-enable may try again immediately, including after an attempt interrupted by opt-out. */
+export function resetDeferredConsentMintRetry(): void {
+  deferredConsentMintNotBeforeMs = 0;
+}
+
+/** The load, connectivity changes and periodic ticks drive retries without scheduling extra work. */
+export function startAnalyticsVisitorIdentityResolution(
+  isCollecting: () => boolean,
+  onAttemptFinished: () => void,
+): void {
+  if (isCollecting() === false) {
+    return;
+  }
+
+  const decision = readAnalyticsConsentDecision();
+  if (decision === "declined") {
+    return;
+  }
+
+  if (decision === "granted" && readAnalyticsVisitorId() === null && hasSettledVisitorIdentity === false) {
+    // A GET could withhold the cookie but settle on the stored grant, preventing any later mint.
+    // Keep it suppressed even when this attempt is already in flight or in the retry window.
+    if (isConsentIdentityMintInFlight || Date.now() < deferredConsentMintNotBeforeMs) {
+      return;
+    }
+
+    deferredConsentMintNotBeforeMs = Date.now() + visitorIdentityRetryDelayMs;
+    void mintAnalyticsVisitorIdentity(isCollecting, onAttemptFinished).catch((): void => undefined);
+    return;
+  }
+
+  void resolveAnalyticsVisitorIdentity().then(onAttemptFinished);
 }
 
 /**

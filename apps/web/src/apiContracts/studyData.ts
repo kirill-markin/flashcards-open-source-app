@@ -11,6 +11,7 @@ import type {
 import {
   isValidCardMaintenanceRevision,
   makeDefaultCardMetadata,
+  normalizeCardCreationKind,
   normalizeOnboardingDemoMetadata,
 } from "../appData/domain/cardMetadata";
 import { appendLegacyEffortTag } from "../legacyEffort";
@@ -76,11 +77,13 @@ function parseCardMaintenanceRevision(value: unknown, endpoint: string, path: st
 
 function parseCardMetadata(value: unknown, endpoint: string, path: string): CardMetadata {
   const objectValue = parseObject(value, endpoint, path);
+  const creationKind = normalizeCardCreationKind(objectValue.creationKind);
   const onboardingDemo = normalizeOnboardingDemoMetadata(objectValue.onboardingDemo);
   const maintenanceRevision = parseOptionalField(
     objectValue, "maintenanceRevision", endpoint, path, parseCardMaintenanceRevision,
   );
   return {
+    ...(creationKind === undefined ? {} : { creationKind }),
     ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
     ...(maintenanceRevision === undefined ? {} : { maintenanceRevision }),
     version: parseLiteral(parseRequiredField(objectValue, "version", endpoint, path, parseNumber), endpoint, joinPath(path, "version"), 1),

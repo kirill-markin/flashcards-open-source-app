@@ -2,7 +2,16 @@
     <string name="app_name">Nibomo Flashcards</string>
     <string name="wear_retry">Cuba lagi</string>
     <string name="wear_session_open_phone_app">Buka Nibomo pada telefon anda</string>
-    <string name="wear_session_not_connected_message">Log masuk pada telefon untuk mengulang kaji kad anda pada jam tangan.</string>
+    <string name="wear_session_not_connected_message">Log masuk pada telefon, kemudian ketik Cuba lagi.</string>
+    <string name="wear_session_connect_android_phone">Sambungkan telefon Android</string>
+    <string name="wear_session_connect_android_phone_message">Pastikan jam tangan anda dipasangkan dan disambungkan, kemudian ketik Cuba lagi.</string>
+    <string name="wear_session_setup_phone_app">Sediakan Nibomo pada telefon anda</string>
+    <string name="wear_session_install_phone_app_message">Pasang atau kemas kini Nibomo di Google Play, kemudian log masuk dan ketik Cuba lagi.</string>
+    <string name="wear_session_check_phone_message">Pastikan telefon anda disambungkan. Jika perlu, pasang atau kemas kini Nibomo, kemudian log masuk dan ketik Cuba lagi.</string>
+    <string name="wear_session_open_play_store">Buka Google Play</string>
+    <string name="wear_session_play_store_requested_message">Selesaikan pemasangan atau kemas kini di Google Play pada telefon anda. Kemudian log masuk ke Nibomo dan ketik Cuba lagi.</string>
+    <string name="wear_session_play_store_failed">Tidak dapat membuka Google Play</string>
+    <string name="wear_session_play_store_failed_message">Cari Nibomo Flashcards di Google Play pada telefon anda. Kemudian log masuk dan ketik Cuba lagi.</string>
     <string name="wear_session_connecting">Menyambung ke telefon…</string>
     <string name="wear_session_syncing">Menyegerakkan kad…</string>
     <string name="wear_session_update_required">Kemas kini Nibomo pada telefon dan jam tangan</string>

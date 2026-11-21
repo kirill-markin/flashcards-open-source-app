@@ -215,7 +215,6 @@ class WearAppGraph(context: Context) {
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
         ensureLocalWorkspaceShell(database = database, currentTimeMillis = System.currentTimeMillis())
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
-        Unit
     }
 }
 

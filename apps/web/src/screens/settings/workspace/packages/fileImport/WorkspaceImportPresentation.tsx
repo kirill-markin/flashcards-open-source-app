@@ -1,69 +1,25 @@
 import type { ReactElement } from "react";
-import { useI18n } from "../../../../i18n";
-import { WorkspaceImportFileField } from "./WorkspaceImportFileField";
-import type {
-  WorkspaceImportOptions,
-  WorkspaceImportPresentationCopy,
-  WorkspaceImportPreviewModel,
-} from "./workspaceImportPresentationModel";
+import { useI18n } from "../../../../../i18n";
+import { WorkspaceImportFileField } from "../WorkspaceImportFileField";
+import type { WorkspaceImportOptions } from "../useWorkspaceImportActions";
+import type { WorkspacePackageImportCommands, WorkspacePackageImportFormState } from "./useWorkspacePackageImportController";
+import type { WorkspaceImportPreviewModel } from "./workspaceImportPresentationModel";
 
 type WorkspaceImportPresentationProps = Readonly<{
-  copy: WorkspaceImportPresentationCopy;
-  fileName: string | null;
-  preview: WorkspaceImportPreviewModel | null;
-  options: WorkspaceImportOptions;
-  isControlDisabled: boolean;
-  canConfirm: boolean;
-  isPreviewing: boolean;
-  isBusy: boolean;
-  unavailableMessage: string | null;
-  errorMessage: string;
-  successMessage: string;
-  onSelect: (files: ReadonlyArray<File>) => void;
-  onOptionsChange: (options: WorkspaceImportOptions) => void;
-  onConfirm: () => void;
+  state: WorkspacePackageImportFormState;
+  commands: WorkspacePackageImportCommands;
 }>;
 
 type WorkspaceImportPreviewProps = Readonly<{
-  copy: WorkspaceImportPresentationCopy;
   preview: WorkspaceImportPreviewModel;
   options: WorkspaceImportOptions;
   isControlDisabled: boolean;
-  onOptionsChange: (options: WorkspaceImportOptions) => void;
+  commands: Pick<WorkspacePackageImportCommands, "setImportTag" | "toggleRemovedTag">;
 }>;
 
-function updateImportTagEnabled(
-  options: WorkspaceImportOptions,
-  suggestedImportTag: string | null,
-  addImportTag: boolean,
-): WorkspaceImportOptions {
-  return {
-    ...options,
-    addImportTag,
-    importTag: addImportTag && options.importTag.trim() === "" && suggestedImportTag !== null
-      ? suggestedImportTag
-      : options.importTag,
-  };
-}
-
-function updateImportTag(options: WorkspaceImportOptions, importTag: string): WorkspaceImportOptions {
-  return {
-    ...options,
-    importTag,
-  };
-}
-
-function toggleRemovedTag(options: WorkspaceImportOptions, tag: string): WorkspaceImportOptions {
-  return {
-    ...options,
-    removeTags: options.removeTags.includes(tag)
-      ? options.removeTags.filter((removedTag) => removedTag !== tag)
-      : [...options.removeTags, tag],
-  };
-}
-
 function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElement {
-  const { copy, preview, options, isControlDisabled, onOptionsChange } = props;
+  const { preview, options, isControlDisabled, commands } = props;
+  const { t } = useI18n();
 
   return (
     <section className="workspace-import-preview" data-testid="workspace-package-import-preview">
@@ -77,14 +33,14 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
       </div>
       {options.addImportTag ? (
         <label className="workspace-import-tag-field" htmlFor="workspace-package-import-tag-input">
-          <span>{copy.importTagValueLabel}</span>
+          <span>{t("workspaceImport.importTagValueLabel")}</span>
           <input
             id="workspace-package-import-tag-input"
             type="text"
             value={options.importTag}
             disabled={isControlDisabled}
             data-testid="workspace-package-import-tag-input"
-            onChange={(event) => onOptionsChange(updateImportTag(options, event.currentTarget.value))}
+            onChange={(event) => commands.setImportTag(event.currentTarget.value)}
           />
         </label>
       ) : null}
@@ -104,7 +60,7 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
       )}
       {preview.warnings.length === 0 ? null : (
         <div className="workspace-import-preview-warnings" data-testid="workspace-package-import-preview-warnings">
-          <strong>{copy.warningsTitle}</strong>
+          <strong>{t("workspaceImport.previewWarningsTitle")}</strong>
           <ul>
             {preview.warnings.map((warning) => <li key={warning.id}>{warning.message}</li>)}
           </ul>
@@ -112,7 +68,7 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
       )}
       {preview.tags.length === 0 ? null : (
         <div className="workspace-import-preview-tags">
-          <strong>{copy.tagsTitle}</strong>
+          <strong>{t("workspaceImport.previewTagsTitle")}</strong>
           <div className="workspace-import-preview-tag-list">
             {preview.tags.map((tagOption) => (
               <label key={tagOption.tag} className="workspace-import-preview-tag-control">
@@ -122,7 +78,7 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
                   disabled={isControlDisabled}
                   data-testid="workspace-package-remove-tag-checkbox"
                   data-tag={tagOption.tag}
-                  onChange={() => onOptionsChange(toggleRemovedTag(options, tagOption.tag))}
+                  onChange={() => commands.toggleRemovedTag(tagOption.tag)}
                 />
                 <span>{tagOption.removalLabel}</span>
               </label>
@@ -134,23 +90,20 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
   );
 }
 
-export function WorkspaceImportPresentation(props: WorkspaceImportPresentationProps): ReactElement {
+export function WorkspaceImportPresentation({ state, commands }: WorkspaceImportPresentationProps): ReactElement {
   const {
-    copy,
     fileName,
     preview,
     options,
     isControlDisabled,
-    canConfirm,
+    canSubmit,
     isPreviewing,
     isBusy,
+    submitActionLabel,
     unavailableMessage,
     errorMessage,
     successMessage,
-    onSelect,
-    onOptionsChange,
-    onConfirm,
-  } = props;
+  } = state;
   const { t } = useI18n();
 
   return (
@@ -159,16 +112,16 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
         className="content-card workspace-export-format-card"
         data-testid="workspace-package-import-card"
       >
-        <p className="subtitle">{copy.description}</p>
+        <p className="subtitle">{t("workspaceImport.packageDescription")}</p>
         <WorkspaceImportFileField
           accept=".zip,application/zip,application/x-zip-compressed"
           multiple={false}
-          label={copy.selectionActionLabel}
+          label={t("workspaceImport.packageImportButton")}
           isDisabled={isControlDisabled}
           isBusy={isPreviewing}
           inputTestId="workspace-package-import-file-input"
           pickerTestId="workspace-package-import-button"
-          onSelect={onSelect}
+          onSelect={commands.selectFiles}
         >
           {fileName === null ? null : (
             <p className="workspace-import-file-name" data-testid="workspace-package-import-file-name">
@@ -184,37 +137,32 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
               checked={options.addImportTag}
               disabled={isControlDisabled}
               data-testid="workspace-package-import-tag-checkbox"
-              onChange={(event) => onOptionsChange(updateImportTagEnabled(
-                options,
-                preview?.suggestedImportTag ?? null,
-                event.currentTarget.checked,
-              ))}
+              onChange={(event) => commands.setImportTagEnabled(event.currentTarget.checked)}
             />
             <span className="workspace-import-tag-copy">
-              <span>{copy.importTagLabel}</span>
-              <span className="subtitle">{copy.importTagDescription}</span>
+              <span>{t("workspaceImport.importTagLabel")}</span>
+              <span className="subtitle">{t("workspaceImport.importTagDescription")}</span>
             </span>
           </label>
         </details>
         {preview === null ? null : (
           <WorkspaceImportPreview
-            copy={copy}
             preview={preview}
             options={options}
             isControlDisabled={isControlDisabled}
-            onOptionsChange={onOptionsChange}
+            commands={commands}
           />
         )}
         <div className="workspace-export-actions">
           <button
             className="primary-btn"
             type="button"
-            disabled={!canConfirm}
+            disabled={!canSubmit}
             aria-busy={isBusy}
             data-testid="workspace-package-import-confirm-button"
-            onClick={onConfirm}
+            onClick={() => void commands.submit()}
           >
-            {copy.confirmActionLabel}
+            {submitActionLabel}
           </button>
         </div>
         {unavailableMessage === null ? null : (

@@ -31,6 +31,10 @@ export interface OutputsProps {
   communityLeaderboardSnapshotFunction: lambda.IFunction;
   streakLeaderboardSnapshotFunction: lambda.IFunction;
   progressActiveDaysBackfillFunction: lambda.IFunction;
+  cardAdditionReconciliationFunction: lambda.IFunction;
+  cardAdditionReconciliationLogGroupName: string;
+  cardAdditionReconciliationScheduleName: string;
+  cardAdditionReconciliationScheduleArn: string;
   webGuestReaperFunction: lambda.IFunction;
   catalogDumpBucket: s3.IBucket;
   catalogDumpDistribution: cloudfront.Distribution;
@@ -192,6 +196,26 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "ProgressActiveDaysBackfillFunctionName", {
     value: props.progressActiveDaysBackfillFunction.functionName,
     description: "Lambda function name for Progress active review days backfill",
+  });
+
+  new cdk.CfnOutput(scope, "CardAdditionReconciliationFunctionName", {
+    value: props.cardAdditionReconciliationFunction.functionName,
+    description: "Lambda function name for legacy card-addition reconciliation",
+  });
+
+  new cdk.CfnOutput(scope, "CardAdditionReconciliationLogGroupName", {
+    value: props.cardAdditionReconciliationLogGroupName,
+    description: "Structured completion, retry, and error logs for legacy card-addition reconciliation",
+  });
+
+  new cdk.CfnOutput(scope, "CardAdditionReconciliationScheduleName", {
+    value: props.cardAdditionReconciliationScheduleName,
+    description: "EventBridge Scheduler name for daily legacy card-addition reconciliation",
+  });
+
+  new cdk.CfnOutput(scope, "CardAdditionReconciliationScheduleArn", {
+    value: props.cardAdditionReconciliationScheduleArn,
+    description: "EventBridge Scheduler ARN for daily legacy card-addition reconciliation",
   });
 
   new cdk.CfnOutput(scope, "WebGuestReaperFunctionName", {

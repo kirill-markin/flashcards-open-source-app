@@ -15,6 +15,7 @@ struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
     let sourceText: String
+    let cardId: String
     let onSelectText: () -> Void
     /// Shown beside the caption; nil hides it.
     let repetitionCount: Int?
@@ -41,6 +42,7 @@ struct ReviewCardSideView: View {
         label: String,
         content: ReviewRenderedContent,
         sourceText: String,
+        cardId: String,
         onSelectText: @escaping () -> Void,
         repetitionCount: Int?,
         isSpeechPlaying: Bool,
@@ -57,6 +59,7 @@ struct ReviewCardSideView: View {
         self.label = label
         self.content = content
         self.sourceText = sourceText
+        self.cardId = cardId
         self.onSelectText = onSelectText
         self.repetitionCount = repetitionCount
         self.isSpeechPlaying = isSpeechPlaying
@@ -109,10 +112,15 @@ struct ReviewCardSideView: View {
                 }
             }
 
-            ReviewSelectableTextView(sourceText: self.sourceText, content: self.content, surfaceStyle: self.surfaceStyle)
-                .accessibilityIdentifier(self.surfaceStyle == .front
-                    ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            ReviewSelectableTextView(
+                sourceText: self.sourceText,
+                content: self.content,
+                surfaceStyle: self.surfaceStyle,
+                activeReviewCardId: self.cardId
+            )
+            .accessibilityIdentifier(self.surfaceStyle == .front
+                ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             self.cardActions
         }

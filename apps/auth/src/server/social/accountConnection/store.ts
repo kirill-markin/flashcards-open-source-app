@@ -1,12 +1,13 @@
 import { randomBytes } from "node:crypto";
-import { query, type DatabaseExecutor } from "../../db.js";
-import { verifyCurrentAccountSession } from "../browserSession.js";
-import { requireAuthHandle } from "./attemptContract.js";
-import { authAttemptBindingHash, authHandleHash } from "./attemptStore.js";
+import { query, type DatabaseExecutor } from "../../../db.js";
+import { verifyCurrentAccountSession } from "../../browserSession.js";
+import { requireAuthHandle } from "../attemptContract.js";
+import { authAttemptBindingHash, authHandleHash } from "../attemptStore.js";
 import {
-  AccountConnectionError, type ConnectionBinding, type ConnectionReceipt, type ConnectionRow,
-  type ConnectionSession, type ConnectionReplay, type ConnectionSqlParameters, type ConnectionChoices,
-} from "./accountConnectionContract.js";
+  AccountConnectionError, connectionConsequences, type ConnectionAction, type ConnectionActionResult,
+  type ConnectionBinding, type ConnectionChoices, type ConnectionCommitted, type ConnectionPreview,
+  type ConnectionReceipt, type ConnectionReplay, type ConnectionRow, type ConnectionSession, type ConnectionSqlParameters,
+} from "./contract.js";
 
 export function connectionParameters(operation: string, current: ConnectionSession, binding: ConnectionBinding): ConnectionSqlParameters {
   requireAuthHandle(operation);
@@ -62,7 +63,7 @@ export async function replayAccountConnectionInExecutor(
 }
 
 /** The consent transaction must take retirement locks first and call this before changing ownership. */
-export async function claimAccountConnectionProofsInExecutor(
+async function claimAccountConnectionProofsInExecutor(
   executor: DatabaseExecutor, operation: string, current: ConnectionSession, binding: ConnectionBinding,
 ): Promise<ConnectionReceipt> {
   const result = await executor.query<ConnectionRow>(
@@ -83,4 +84,27 @@ export async function prepareAccountConnectionChoicesInExecutor(
   const row = result.rows[0];
   if (row === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
   return row.choices;
+}
+
+/** current is verified by the coordinator; this seam also serves the real PostgreSQL module fixture. */
+export async function connectionConsentInExecutor(
+  executor: DatabaseExecutor, current: ConnectionSession, binding: ConnectionBinding,
+  action: Extract<ConnectionAction, { action: "preview" | "confirm" }>,
+): Promise<ConnectionActionResult> {
+  await executor.query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED", []);
+  await executor.query("SET LOCAL statement_timeout = '10s'", []);
+  const parameters = [...connectionParameters(action.operation, current, binding), action.omittedWorkspaceIds];
+  if (action.action === "preview") {
+    const response = await executor.query<Readonly<{ preview: ConnectionPreview }>>(
+      "SELECT auth.preview_account_connection($1,$2,$3,$4,$5,$6,$7,$8::uuid[]) AS preview", parameters);
+    const preview = response.rows[0]?.preview;
+    if (preview === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
+    return { status: "preview", operation: action.operation, ...preview, consequences: connectionConsequences };
+  }
+  const response = await executor.query<Readonly<{ result: ConnectionCommitted }>>(
+    "SELECT auth.confirm_account_connection($1,$2,$3,$4,$5,$6,$7,$8::uuid[],$9,$10) AS result",
+    [...parameters, action.previewDigest, action.accepted]);
+  const result = response.rows[0]?.result;
+  if (result === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
+  return result;
 }

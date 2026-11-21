@@ -39,13 +39,18 @@ data class CardSourceMetadata(
     val importId: String?
 )
 
+enum class CardCreationKind(val wireValue: String) {
+    USER_ADDED("user_added")
+}
+
 data class CardMetadata(
     val version: Int,
     val source: CardSourceMetadata?,
     val onboardingDemo: OnboardingDemoMetadata?,
-    val maintenanceRevision: Long?
+    val maintenanceRevision: Long?,
+    val creationKind: CardCreationKind?
 ) {
-    constructor(version: Int, source: CardSourceMetadata?) : this(version, source, null, null)
+    constructor(version: Int, source: CardSourceMetadata?) : this(version, source, null, null, null)
 }
 
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card.

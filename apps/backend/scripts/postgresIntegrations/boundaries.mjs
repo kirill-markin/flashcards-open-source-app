@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0246_card_maintenance_sync.sql",
-    expectedMigrationCount: 248,
+    migrationFileName: "0250_card_addition_recovery_clock_skew.sql",
+    expectedMigrationCount: 252,
     testFiles: Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
@@ -94,6 +94,10 @@ export const boundaryDefinitions = Object.freeze([
       "src/sync/freshBootstrap.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/cards/onboardingDemo.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/cardAdditions.postgres.integration.ts",
+      "src/productAnalytics/cardAdditionRecovery.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
+      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -108,14 +112,12 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 226,
     testFiles: Object.freeze([
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
-      "src/catalog/distribution/install/install.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0231_probable_scraper_fleet_demo_card_passive.sql",
     expectedMigrationCount: 233,
     testFiles: Object.freeze([
-      "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
       "src/productAnalytics/reviewMetricsSql.postgres.integration.ts",
     ]),
   }),

@@ -1237,13 +1237,28 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
-  // The content facts, each derived from the row the write actually left behind rather than from
-  // the client that intended it. An offline-first client queues a write and syncs it later, so the
-  // server is the only place that knows a card or a deck really exists; `card_create_started` above
-  // stays a client event precisely because it reports the intent, which is the other half of the
-  // pair. Nothing describing what was written is carried, because that would be content a person
-  // typed; `card_created.source` is the one property here and it names the channel the server
-  // observed the write through rather than anything about the card.
+  // Records a new card committed by the local editor, which can happen offline before server sync.
+  manual_card_saved: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {},
+  },
+  // First server insert of a card. An unmarked legacy snapshot can still be an offline demo.
+  card_addition_committed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      demo_status: {
+        kind: "enum",
+        values: ["demo", "non_demo", "unknown"],
+      },
+    },
+  },
+  card_addition_recovered: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
   card_created: {
     serverOnly: true,
     requiresScreen: false,

@@ -14,14 +14,20 @@ still apply before submission/publication. Enable a manual publishing hold only
 when the user explicitly requests it, and preserve any user-reserved final action
 under the [release authorization rules](README.md).
 
-For a matching draft or submitted artifact, resume at the remaining
-checks/publication steps without creating a duplicate. For an approved release,
-verify retained gate evidence and continue at step 8. An already-published
-matching release counts complete under the shared historical evidence rule;
-record its identity and rollout scope at step 9 without reconstructing old logs.
-Otherwise create a new artifact through every gate below.
+Track phone and Wear production separately in the [ledger](evidence.md#release-ledger)
+when both are in scope. For each matching draft or submitted artifact, resume at
+the remaining checks or publication steps. For an approved artifact, verify
+retained gate evidence and continue at step 8. For a matching public artifact,
+record its identity and rollout scope at step 9 under the shared historical
+evidence rule. When the phone is already public, resume the pinned Wear draft
+at its first unfinished gate. Continue at step 7 once Wear's step 6 evidence
+is recorded.
+Create a new artifact through every gate below when no matching artifact exists.
 
-Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing outside the mandatory physical Device Run sessions.
+The physical Device Run sessions and, for Wear production submission, the
+first passing Play-installed pairing are mandatory. Apply the
+[standing best-effort policy](README.md#standing-best-effort-release-policy)
+to other unavailable testing.
 
 1. Pin the intended release SHA and confirm its required
    `Repository static checks` passed. Use a checkout with no uncommitted source
@@ -30,8 +36,9 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    [API 30 walkthrough](#first-release-api-30-walkthrough) is applicable and
    retain or plan its evidence before publication.
 2. Before dispatch, inspect Play Console's Publishing overview for all pending
-   changes and active reviews. The upload commits an app-wide edit;
-   `status: draft` alone does not prevent other pending changes from entering review.
+   changes and active reviews. Use [Play rejection recovery](#play-rejection-recovery)
+   to clear affected rejected releases before dispatch. The upload commits
+   an app-wide edit. Other pending changes can enter review with a draft upload.
    Require managed publishing OFF unless the user requested a manual hold above,
    no active review and an empty ready-to-submit queue before upload; resolve
    unrelated pending changes with the release owner.
@@ -62,15 +69,14 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    failed jobs cannot work, because the Wear OS job downloads its own attempt's bundle. Inspect build/lint and native diagnostics under the
    [warning policy](README.md#release-warning-policy), then retain the
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
-6. Open Google Play Console and select that draft by its
-   `main-draft-<releaseIdentifier>` name and version code, and the Wear OS
-   `wear:production` draft by its wear name and version code from the run
-   summary.
-   Confirm both belong to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
-   phone AAB manifest advertises minimum API 30 and target API 37; source declarations
-   alone do not prove the distributed minimum. Device Run exercises the
-   debug APKs from that SHA; the production artifact is the signed AAB from
-   the same release run.
+6. In Google Play Console, select each draft being advanced by its release
+   name and version code from the run summary. For the phone, use
+   `main-draft-<releaseIdentifier>`. For `wear:production`, use the Wear OS form
+   factor. Verify each draft's SHA/run/attempt against the passing Device Run
+   sessions. For the phone draft, confirm its uploaded AAB manifest advertises
+   minimum API 30 and target API 37. Source declarations alone do not prove the
+   distributed minimum. Device Run exercises the debug APKs from that SHA. The
+   production artifact is the signed AAB from the same release run.
    Check Publishing overview again: verify the exact intended draft and saved
    publishing mode under the policy above, and that unrelated changes or reviews
    were not unexpectedly submitted, cancelled or replaced. App policy may send changes for review
@@ -80,25 +86,28 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
    Reuse completed first-release evidence when that behavior is unchanged.
 7. Compare the uploaded localized notes with the retained input, or fill them
-   from the chat when the dispatch input was empty. Review the draft and required
-   translations, and complete the production publication controls for that
-   exact bundle and its `wear:production` draft. Keep its identity pinned; do not select a newer unrelated
-   upload. After required release gates pass and any other unavailable testing is recorded under the standing policy, inspect the complete app-wide
-   change set and submit the intended changes when a manual submission is
-   required. Verify the actual review status; complete any publication action
-   already available.
-8. Follow the exact version code through Play review and publication. Verify
-   managed publishing remains OFF and automatic publication follows approval.
+   from the chat when the dispatch input was empty. Review the required
+   translations for the pinned drafts. Before advancing a Wear production
+   draft, complete the [Wear OS submission checks](#wear-os-submission).
+   After the applicable gates pass and any unavailable testing is recorded
+   under the standing policy, use **Next** in each intended draft to preview
+   and confirm it. In **Publishing overview**, verify the full app-wide change
+   set and use **Send for review** if manual submission is required. Verify the
+   intended changes under **Changes in review** or the actual later state, and
+   complete any publication action already available.
+8. Follow each intended production version code through Play review and
+   publication. Verify managed publishing remains OFF and automatic publication
+   follows approval.
    If the user explicitly requested a manual hold, approval leaves changes ready
    to publish: complete **Publish changes** when authorized, preserving any
    user-reserved final action. See Google's
    [review and managed publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
    Confirm the production rollout and intended countries/audience; record any
    staged percentage or hold rather than describing it as full rollout.
-9. Verify the exact target version code is public to the intended production
-   audience at the selected rollout scope using Play release and public
-   availability evidence. Record the public URL, version/code, rollout scope
-   and verification time. Do not add an installation, extra test, or wider
+9. For each intended form factor, verify the exact target version code is
+   public at its intended production rollout scope using Play release and
+   public availability evidence. Record the public URL, version/code, rollout
+   scope and verification time. Do not add an installation, extra test, or wider
    propagation wait when available evidence already establishes this publication.
    Use an eligible installation/update only if needed to resolve uncertain
    availability. If approved but unavailable at the selected scope, keep the
@@ -106,13 +115,74 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
 
 Completion requires passing GitHub and physical Device Run gates, applicable
 OS-specific acceptance or an unavailability record under the standing policy,
-and public availability of the exact production version at the intended scope.
-Already-published matching releases use the shared historical evidence rule.
-Submission or review approval alone leaves this channel open
-under the [canonical completion contract](README.md#release-inventory-and-completion).
+and public availability of each intended form factor's exact production
+version at its intended scope. Already-published matching artifacts use the
+shared historical evidence rule. Keep Android open while any intended form
+factor is awaiting publication under the
+[canonical completion contract](README.md#release-inventory-and-completion).
 
 Configuration, Device Run access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
+
+## Wear OS submission
+
+1. Use phone production rollout and availability evidence to verify that a
+   public phone build that answers the watch candidate's sign-in handoff
+   covers the full Wear review audience. Record the compatible version code
+   and coverage in the ledger. Keep Wear production pending if a staged or
+   restricted rollout leaves any reviewer coverage uncertain or incomplete.
+   If the same submission would replace that phone build, verify the new phone
+   bundle also answers the pinned watch candidate's handoff before sending both.
+   If a compatible phone release is needed, leave Wear production in draft
+   and apply steps 6–9 to the phone alone. Drafts are separately editable by
+   form factor. Confirm **Publishing overview** contains only the intended
+   phone changes, then recheck any **Save for later** changes after submission.
+   Verify reviewer coverage before resuming the pinned Wear draft.
+2. In **App content → Sign in details**, use **Manage** or **Start declaration**
+   and add or update the Wear steps in **Any other instructions**. Describe
+   installing the public phone companion, signing in to the official service
+   with the dedicated review demo account, and opening Review on the paired
+   watch. Seed due cards for revealing and rating. Verify repeat sign-in from
+   clean app state with credentials usable from any location without an
+   operator or their inbox. Keep credentials in the private Console instructions.
+   [Google's setup](https://support.google.com/googleplay/android-developer/answer/9859455?hl=en) ·
+   [Reviewer credential requirements](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en)
+3. Roll out the pinned watch bundle on **Wear OS → Internal testing**
+   (`wear:internal`). If Play requires review, verify the app-wide change set
+   and send only the intended internal change and applicable access details.
+   Install the watch from Play as a tester and the public phone companion
+   without phone testing access. Verify both installed version codes, the
+   shared application ID and the matching Play app-signing certificate.
+4. Require a passing pairing with those Play installs before Wear production
+   submission. With fresh app state and the documented demo sign-in, follow the
+   setup, first Review and rating-sync portions of the
+   [Wear manual flow](../wear-os.md#try-it-in-the-emulator). Verify the watch links
+   to the account, shows a due card and syncs a rating to the phone.
+   Device Run covers phones only. Test a second paired configuration when
+   available. In the ledger, record both models and OS versions, version codes
+   and tracks, signing identity, time and outcome for each pairing. Handle an
+   unavailable second pairing under the
+   [standing policy](README.md#standing-best-effort-release-policy) and reuse
+   evidence under the [shared artifact rules](evidence.md#reuse-existing-artifacts).
+5. After the final paired smoke, replenish the demo account's due queue.
+   Before Wear production submission, verify Review on the watch offers a due
+   card the reviewer can reveal and rate.
+
+## Play rejection recovery
+
+1. Read the policy notice. Use the form-factor selector to check phone and
+   Wear production and test tracks for flagged version codes and releases
+   rejected in the same submission. If a track's latest release was rejected,
+   open its summary and select **Discard release**. For a draft with a
+   flagged code, use **Discard draft release**. [Play release controls](https://support.google.com/googleplay/android-developer/answer/9859348?hl=en)
+2. Replace the flagged code where it is served with a corrected bundle that
+   passes the required gates. For manual replacement, use **Manage track →
+   Create new release** and verify the flagged previous bundle is under **Not
+   included**. Follow Play's required rollout to deactivate it on each
+   affected track. [Play policy resubmission](https://support.google.com/googleplay/android-developer/answer/2477981?hl=en)
+3. Reopen **Publishing overview**. Discarding a release can leave other
+   changes ready to send. Before **Send for review** in step 7, confirm the
+   intended form factors, tracks, replacement codes and access changes.
 
 ## Intermittent Play translation failures
 
@@ -125,11 +195,10 @@ again. For a manual Console retry, reuse the draft and original signed AAB.
 Reload after saving to distinguish an old failed-upload message from the
 persisted candidate; verify its identity, translations and remaining gates.
 
-Restore the pinned localized notes, save, use **Next** through preview and
-confirmation, then inspect Publishing overview and submit only the intended
-change. Verify the saved publishing mode and follow step 8 through quick checks,
-approval and publication under the policy above.
-Verify the exact production version is public before calling Android complete.
+Restore the pinned localized notes and resume at step 7, including the Wear
+submission checks when applicable. Verify the saved publishing mode and follow
+step 8 through quick checks, approval and publication under the policy above.
+Apply step 9 to each intended form factor before calling Android complete.
 
 ## Exact-bundle upload recovery
 
@@ -180,9 +249,9 @@ Source changes require the bounded comparisons and affected gates in
 5. Resume step 6 above with the exact recovered bundle. Recheck app-wide Play
    state, delivered translations, processing and publication controls; upload
    recovery alone does not establish readiness or public availability.
-   Recovery re-uploads only the phone bundle, so a recovered release has no
-   Wear OS draft: publish the phone draft alone; the watch follows with the
-   next normal release.
+   Recovery re-uploads only the phone bundle. Record the recovered Android
+   release as phone-only in the ledger and carry Wear forward to the next
+   normal release. Mark Android complete after the recovered phone passes steps 6–9.
 
 ## First-release API 30 walkthrough
 

@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.CardCreationKind
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
@@ -201,7 +202,10 @@ private fun makeNewCard(workspaceId: String, cardDraft: CardDraft, currentTimeMi
         cardType = defaultCardType,
         metadataJson = encodeCardMetadataJson(metadata = makeDefaultCardMetadata(
             createdAt = formatIsoTimestamp(currentTimeMillis)
-        ).copy(onboardingDemo = cardDraft.onboardingDemo)),
+        ).copy(
+            onboardingDemo = cardDraft.onboardingDemo,
+            creationKind = if (cardDraft.onboardingDemo == null) CardCreationKind.USER_ADDED else null
+        )),
         dueAtMillis = null,
         createdAtMillis = currentTimeMillis,
         updatedAtMillis = currentTimeMillis,

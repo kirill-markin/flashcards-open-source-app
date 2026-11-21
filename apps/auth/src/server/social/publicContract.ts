@@ -1,3 +1,4 @@
+import type { ConnectionAction, ConnectionActionResult } from "./accountConnection/index.js";
 import type { AuthAttemptBinding, AuthAttemptRequest, AuthProviderSubmission } from "./attemptContract.js";
 import { AuthAttemptError, requireAuthHandle } from "./attemptContract.js";
 import type { AccountProviderMethod, AccountProviderMethodTarget } from "./accountMethods.js";
@@ -179,12 +180,12 @@ export type AccountProviderLinkCompleteInput = Readonly<{
 export type AccountConnectionInput = (
   | Readonly<{ client: NativeSocialClient; codeVerifier: string }>
   | Readonly<{ client: "web"; csrfToken: string }>
-) & import("./accountConnectionContract.js").ConnectionAction & Readonly<{ redirectUri?: string }>;
-export type AccountConnectionResult = import("./accountConnectionContract.js").ConnectionActionResult
+) & ConnectionAction & Readonly<{ redirectUri?: string }>;
+export type AccountConnectionResult = ConnectionActionResult
   | Readonly<{ status: "provider_required"; authorizationUrl: string; expiresAt: string }>
   | Readonly<{ status: "provider_required"; proof: import("./attemptContract.js").AuthAttemptResponse; browserStart: string | null }>;
 
-export function parseAccountConnectionAction(value: unknown): import("./accountConnectionContract.js").ConnectionAction {
+export function parseAccountConnectionAction(value: unknown): ConnectionAction {
   const fields = parseSocialObject(value);
   const client = parseSocialClient(fields.client);
   if (fields.action === "begin" || fields.action === "adopt") {

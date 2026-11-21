@@ -114,6 +114,14 @@ test("historical Android bursts re-enter reports on later evidence and respect p
     for (const actor of recentActors) {
       await insertActivity(client, actor, now, "android");
     }
+    await client.query(
+      `INSERT INTO analytics.product_events (
+         event_id, schema_version, event_name, origin, trust_level, platform,
+         server_received_at, occurred_at, user_id, subject_user_id, event_properties
+       ) VALUES ($1, 1, 'card_addition_committed', 'server', 'server_derived', 'android',
+         '2020-01-01T10:00:00Z', '2019-12-29T10:00:00Z', $2, $3, '{"demo_status":"non_demo"}')`,
+      [randomUUID(), actorAt(6).rawUserId, actorAt(6).subjectId],
+    );
     for (const index of [0, 1, 2]) {
       await insertExclusion(client, actorAt(index).actorId, "automatic", detector, legacyReason);
     }

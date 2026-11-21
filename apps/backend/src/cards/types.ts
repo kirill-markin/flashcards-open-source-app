@@ -33,6 +33,7 @@ export type OnboardingDemoMetadata = Readonly<{
 export type CardMetadata = Readonly<{
   version: 1;
   source: CardSourceMetadata | null;
+  creationKind?: "user_added";
   onboardingDemo?: OnboardingDemoMetadata;
   maintenanceRevision?: number;
 }>;
