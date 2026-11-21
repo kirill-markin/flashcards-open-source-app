@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the phone and Wear OS release bundles with explicit signing inputs.
+# Build signed Android release bundles with explicit signing inputs.
 
 set -euo pipefail
 
@@ -31,11 +31,6 @@ if [[ -z "${VERSION_CODE}" ]]; then
   exit 1
 fi
 
-if [[ -z "${WEAR_VERSION_CODE}" ]]; then
-  echo "ERROR: --wear-version-code is required." >&2
-  exit 1
-fi
-
 if [[ -z "${KEYSTORE_PATH}" ]]; then
   echo "ERROR: ANDROID_RELEASE_STORE_FILE is required in the process environment." >&2
   exit 1
@@ -63,10 +58,15 @@ fi
 
 cd "${ANDROID_DIR}"
 
+bundle_tasks=(:app:bundleRelease)
+if [[ -n "${WEAR_VERSION_CODE}" ]]; then
+  bundle_tasks+=(:wear:bundleRelease)
+fi
+
 ANDROID_VERSION_CODE="${VERSION_CODE}" \
 ANDROID_WEAR_VERSION_CODE="${WEAR_VERSION_CODE}" \
 ANDROID_RELEASE_STORE_FILE="${KEYSTORE_PATH}" \
 ANDROID_RELEASE_STORE_PASSWORD="${KEYSTORE_PASSWORD}" \
 ANDROID_RELEASE_KEY_ALIAS="${KEY_ALIAS}" \
 ANDROID_RELEASE_KEY_PASSWORD="${KEY_PASSWORD}" \
-./gradlew --no-daemon --warning-mode all :app:bundleRelease :wear:bundleRelease
+./gradlew --no-daemon --warning-mode all "${bundle_tasks[@]}"

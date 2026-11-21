@@ -50,7 +50,9 @@ to other unavailable testing.
    it does not isolate other pending changes or guarantee a manual-review hold.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
-   supply the [localized notes JSON](release-notes.md#android-draft-upload-input). Record its
+   supply the [localized notes JSON](release-notes.md#android-draft-upload-input).
+   For a phone-only release, set `include_wear_os=false` and select a SHA
+   that supports phone-only builds. Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
 3. Device Run runs the [named critical journeys and compatibility smoke](../android-ci-cd.md#choose-the-device-run-devices)
    sequentially on physical API 37 and API 30 devices. The signed AAB build and

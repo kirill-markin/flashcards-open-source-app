@@ -11,6 +11,10 @@ on:
         description: Optional JSON list of {language,text} records using exact Google Play locale codes
         required: false
         type: string
+      include_wear_os:
+        description: Also build and upload a Wear OS production draft
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -60,6 +64,7 @@ jobs:
       - name: Resolve Android release metadata
         id: release-metadata
         env:
+          INCLUDE_WEAR_OS: ${{ inputs.include_wear_os }}
           TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -75,10 +80,16 @@ jobs:
           target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
           release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
           play_release_name="main-draft-${release_id}"
-          wear_version_code=$(( version_code + 1 ))
-          wear_play_release_name="main-draft-vc${wear_version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
+          version_codes=("${version_code}")
+          wear_version_code=""
+          wear_play_release_name=""
+          if [[ "${INCLUDE_WEAR_OS}" == 'true' ]]; then
+            wear_version_code=$(( version_code + 1 ))
+            wear_play_release_name="main-draft-vc${wear_version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
+            version_codes+=("${wear_version_code}")
+          fi
 
-          for code in "${version_code}" "${wear_version_code}"; do
+          for code in "${version_codes[@]}"; do
             if [[ "${code}" -le 0 ]]; then
               echo "Resolved Android version code must be positive. Got: ${code}." >&2
               exit 1
@@ -145,8 +156,9 @@ jobs:
             echo "- Version name: \`${{ steps.release-metadata.outputs.android_version_name }}\`"
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
-            echo "- Wear OS version code: \`${{ steps.release-metadata.outputs.android_wear_version_code }}\`"
-            echo "- Wear OS Play release name: \`${{ steps.release-metadata.outputs.android_wear_play_release_name }}\`"
+            echo "- Include Wear OS: \`${{ inputs.include_wear_os }}\`"
+            echo "- Wear OS version code: \`${{ steps.release-metadata.outputs.android_wear_version_code || 'n/a' }}\`"
+            echo "- Wear OS Play release name: \`${{ steps.release-metadata.outputs.android_wear_play_release_name || 'n/a' }}\`"
             echo "- Upload draft to Play: \`true\`"
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -478,20 +490,22 @@ jobs:
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          bash scripts/android/run-android-release.sh \
-            --version-code "${ANDROID_VERSION_CODE}" \
-            --wear-version-code "${ANDROID_WEAR_VERSION_CODE}"
+          release_args=(--version-code "${ANDROID_VERSION_CODE}")
+          if [[ -n "${ANDROID_WEAR_VERSION_CODE}" ]]; then
+            release_args+=(--wear-version-code "${ANDROID_WEAR_VERSION_CODE}")
+          fi
+          bash scripts/android/run-android-release.sh "${release_args[@]}"
 
       - name: Record signed Android App Bundle checksum
         id: bundle
         run: |
           set -euo pipefail
           aab_sha256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
-          wear_aab_sha256="$(sha256sum "${WEAR_AAB_PATH}" | cut -d ' ' -f 1)"
-          {
-            echo "sha256=${aab_sha256}"
-            echo "wear_sha256=${wear_aab_sha256}"
-          } >> "${GITHUB_OUTPUT}"
+          echo "sha256=${aab_sha256}" >> "${GITHUB_OUTPUT}"
+          if [[ -n "${ANDROID_WEAR_VERSION_CODE}" ]]; then
+            wear_aab_sha256="$(sha256sum "${WEAR_AAB_PATH}" | cut -d ' ' -f 1)"
+            echo "wear_sha256=${wear_aab_sha256}" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Upload signed Android App Bundle artifact
         id: upload-bundle
@@ -502,6 +516,7 @@ jobs:
           path: ${{ env.AAB_PATH }}
 
       - name: Upload signed Wear OS App Bundle artifact
+        if: ${{ inputs.include_wear_os }}
         id: upload-wear-bundle
         uses: actions/upload-artifact@v7
         with:
@@ -569,7 +584,9 @@ jobs:
           }
 
           gate_r8_coverage phone "${AAB_PATH}"
-          gate_r8_coverage wear "${WEAR_AAB_PATH}"
+          if [[ -n "${ANDROID_WEAR_VERSION_CODE}" ]]; then
+            gate_r8_coverage wear "${WEAR_AAB_PATH}"
+          fi
 
           if [[ "${#failures[@]}" -gt 0 ]]; then
             printf 'R8 optimization coverage gate failed: %s\n' "${failures[*]}" >&2
@@ -590,8 +607,10 @@ jobs:
             echo ""
             echo "- Bundle artifact: [${BUNDLE_ARTIFACT_ID}](${BUNDLE_ARTIFACT_URL})"
             echo "- Bundle SHA-256: \`${AAB_SHA256}\`"
-            echo "- Wear OS bundle artifact: [${WEAR_BUNDLE_ARTIFACT_ID}](${WEAR_BUNDLE_ARTIFACT_URL})"
-            echo "- Wear OS bundle SHA-256: \`${WEAR_AAB_SHA256}\`"
+            if [[ -n "${ANDROID_WEAR_VERSION_CODE}" ]]; then
+              echo "- Wear OS bundle artifact: [${WEAR_BUNDLE_ARTIFACT_ID}](${WEAR_BUNDLE_ARTIFACT_URL})"
+              echo "- Wear OS bundle SHA-256: \`${WEAR_AAB_SHA256}\`"
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_android:
@@ -719,7 +738,7 @@ jobs:
       - preflight
       - build_signed_android
       - publish_android
-    if: ${{ !cancelled() && needs.publish_android.result == 'success' }}
+    if: ${{ !cancelled() && inputs.include_wear_os && needs.publish_android.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
@@ -817,10 +836,11 @@ jobs:
             echo "- Signed bundle and R8 gate result: \`${{ needs.build_signed_android.result }}\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
+            echo "- Include Wear OS: \`${{ inputs.include_wear_os }}\`"
             echo "- Wear OS version code: \`${{ needs.preflight.outputs.android_wear_version_code || 'n/a' }}\`"
             echo "- Wear OS Play release name: \`${{ needs.preflight.outputs.android_wear_play_release_name || 'n/a' }}\`"
             echo "- Wear OS Play draft upload result: \`${{ needs.publish_wear_android.result }}\`"
             echo "- Device Run named results and private evidence references: \`android-device-run-submissions\`"
-            echo "- Play publish mode: \`CI uploads phone and Wear OS production-track drafts; Play Console publication remains manual\`"
+            echo "- Play publish mode: \`production-track draft upload; see Play Console for review and publication\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
