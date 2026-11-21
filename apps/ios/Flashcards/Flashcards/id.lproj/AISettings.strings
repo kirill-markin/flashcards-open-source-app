@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sinkronisasi diblokir: %@";
 "settings.sync.failed" = "Sinkronisasi gagal: %@";
 "settings.sync.failed.generic" = "Sinkronisasi gagal";
+"settings.sync.storageFull" = "Kosongkan sebagian ruang penyimpanan di perangkat ini untuk melanjutkan sinkronisasi.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Kredensial masuk aman tidak ada di perangkat ini. Data lokal tetap tersimpan. Masuk lagi untuk menghubungkan kembali sinkronisasi.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Akses cloud ke ruang kerja terhubung berubah. Data lokal tetap tersimpan. Masuk lagi setelah akses akun dan ruang kerja semula dipulihkan.";
 "settings.sync.recovery.guestSessionMissing" = "Kredensial tamu tidak ada di perangkat ini. Data lokal tetap tersimpan, tetapi akun cloud tamu lama tidak dapat dipulihkan tanpa tokennya.";

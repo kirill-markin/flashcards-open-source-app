@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sünkroonimine blokeeritud: %@";
 "settings.sync.failed" = "Sünkroonimine ebaõnnestus: %@";
 "settings.sync.failed.generic" = "Sünkroonimine ebaõnnestus";
+"settings.sync.storageFull" = "Sünkroonimise jätkamiseks vabastage selles seadmes salvestusruumi.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Turvalised sisselogimisandmed puuduvad selles seadmes. Kohalikud andmed säilivad. Sünkroonimise taastamiseks logi uuesti sisse.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Seotud tööruumi pilvejuurdepääs on muutunud. Kohalikud andmed säilivad. Logi uuesti sisse pärast algse konto ja tööruumi juurdepääsu taastamist.";
 "settings.sync.recovery.guestSessionMissing" = "Külalise pääsuandmed puuduvad selles seadmes. Kohalikud andmed säilivad, kuid vana külalise pilvekontot ei saa ilma selle tõendita taastada.";

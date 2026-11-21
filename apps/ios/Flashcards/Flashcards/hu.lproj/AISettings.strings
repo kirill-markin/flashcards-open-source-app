@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Szinkronizálás letiltva: %@";
 "settings.sync.failed" = "Sikertelen szinkronizálás: %@";
 "settings.sync.failed.generic" = "Sikertelen szinkronizálás";
+"settings.sync.storageFull" = "A szinkronizálás folytatásához szabadítson fel tárhelyet ezen az eszközön.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Hiányoznak a biztonságos bejelentkezési adatok az eszközről. A helyi adatok megmaradtak. A szinkronizálás újracsatlakoztatásához jelentkezz be újra.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Megváltozott a kapcsolt munkaterület felhőhozzáférése. A helyi adatok megmaradtak. Az eredeti fiók- és munkaterület-hozzáférés helyreállítása után jelentkezz be újra.";
 "settings.sync.recovery.guestSessionMissing" = "Hiányoznak a vendég hitelesítési adatai az eszközről. A helyi adatok megmaradtak, de a régi vendég felhőfiók token nélkül nem állítható helyre.";

@@ -35,8 +35,9 @@ type SettingsNavigationCardProps = Readonly<{
 
 type SettingsActionCardProps = Readonly<{
   title: string;
-  description: string;
+  description: string | null;
   value: string | null;
+  ariaLabel?: string;
   onClick: () => void;
   testId?: string;
   isMuted?: boolean;
@@ -128,21 +129,22 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
 }
 
 export function SettingsActionCard(props: SettingsActionCardProps): ReactElement {
-  const { title, description, value, onClick, testId, isMuted, disabled, workspaceManagementState } = props;
+  const { title, description, value, ariaLabel, onClick, testId, isMuted, disabled, workspaceManagementState } = props;
 
   return (
     <button
-      className={`settings-nav-card settings-nav-card-button content-card${isMuted ? " settings-nav-card-muted" : ""}`}
+      className={`settings-nav-card settings-nav-card-button content-card${description === null ? " settings-nav-card-inline" : ""}${isMuted ? " settings-nav-card-muted" : ""}`}
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       aria-disabled={workspaceManagementState === undefined ? undefined : workspaceManagementState === "locked" ? "true" : "false"}
       data-workspace-management-state={workspaceManagementState}
       data-testid={testId}
     >
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
-        <p className="subtitle">{description}</p>
+        {description === null ? null : <p className="subtitle">{description}</p>}
       </div>
       {value === null ? null : <span className="badge">{value}</span>}
     </button>

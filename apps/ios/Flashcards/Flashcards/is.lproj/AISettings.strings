@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Samstilling lokuð: %@";
 "settings.sync.failed" = "Samstilling mistókst: %@";
 "settings.sync.failed.generic" = "Samstilling mistókst";
+"settings.sync.storageFull" = "Losaðu um geymslupláss í þessu tæki til að halda samstillingu áfram.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Örugg innskráningargögn vantar á þetta tæki. Staðbundin gögn eru varðveitt. Skráðu þig aftur inn til að endurtengja samstillingu.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Skýjaaðgangur að tengda vinnusvæðinu breyttist. Staðbundin gögn eru varðveitt. Skráðu þig aftur inn þegar aðgangur að upprunalega reikningnum og vinnusvæðinu hefur verið endurheimtur.";
 "settings.sync.recovery.guestSessionMissing" = "Innskráningargögn gests vantar á þetta tæki. Staðbundin gögn eru varðveitt en ekki er hægt að endurheimta gamla skýjagestaaðganginn án táknsins hans.";

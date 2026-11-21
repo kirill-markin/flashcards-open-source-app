@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synchronizacja zablokowana: %@";
 "settings.sync.failed" = "Synchronizacja nie powiodła się: %@";
 "settings.sync.failed.generic" = "Synchronizacja nie powiodła się";
+"settings.sync.storageFull" = "Zwolnij miejsce na tym urządzeniu, aby wznowić synchronizację.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Na tym urządzeniu brakuje bezpiecznych danych logowania. Dane lokalne są zachowane. Zaloguj się ponownie, aby przywrócić synchronizację.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Dostęp w chmurze do połączonego obszaru roboczego uległ zmianie. Dane lokalne są zachowane. Zaloguj się ponownie po przywróceniu dostępu do oryginalnego konta i obszaru roboczego.";
 "settings.sync.recovery.guestSessionMissing" = "Na tym urządzeniu brakuje danych uwierzytelniających gościa. Dane lokalne są zachowane, ale starego konta gościa w chmurze nie można odzyskać bez jego tokenu.";

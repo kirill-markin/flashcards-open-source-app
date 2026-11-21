@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Synkronisering blokkert: %@";
 "settings.sync.failed" = "Synkronisering mislyktes: %@";
 "settings.sync.failed.generic" = "Synkronisering mislyktes";
+"settings.sync.storageFull" = "Frigjør plass på denne enheten for å fortsette synkroniseringen.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Sikre påloggingsopplysninger mangler på denne enheten. Lokale data er bevart. Logg inn igjen for å koble til synkroniseringen på nytt.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Skytilgangen til det tilknyttede arbeidsområdet er endret. Lokale data er bevart. Logg inn igjen når tilgangen til den opprinnelige kontoen og arbeidsområdet er gjenopprettet.";
 "settings.sync.recovery.guestSessionMissing" = "Gjesteopplysninger mangler på denne enheten. Lokale data er bevart, men den gamle gjestekontoen i skyen kan ikke gjenopprettes uten tokenet.";

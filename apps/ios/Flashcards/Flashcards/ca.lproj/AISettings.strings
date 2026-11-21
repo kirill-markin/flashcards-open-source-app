@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Sincronització bloquejada: %@";
 "settings.sync.failed" = "La sincronització ha fallat: %@";
 "settings.sync.failed.generic" = "La sincronització ha fallat";
+"settings.sync.storageFull" = "Allibera espai en aquest dispositiu per reprendre la sincronització.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Falten les credencials d'inici de sessió segures en aquest dispositiu. Es conserven les dades locals. Torna a iniciar la sessió per tornar a connectar la sincronització.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "S'ha canviat l'accés al núvol a l'espai de treball enllaçat. Es conserven les dades locals. Torneu a iniciar la sessió després de restaurar el compte original i l'accés a l'espai de treball.";
 "settings.sync.recovery.guestSessionMissing" = "Falten les credencials de convidat en aquest dispositiu. Es conserven les dades locals, però el compte de núvol de convidat antic no es pot recuperar sense el seu testimoni.";

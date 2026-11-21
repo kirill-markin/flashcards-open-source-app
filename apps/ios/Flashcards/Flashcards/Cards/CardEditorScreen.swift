@@ -34,7 +34,7 @@ func cardEditorInlineErrorMessage(error: Error) -> String? {
         return Flashcards.errorMessage(error: error)
     case .notFound:
         return String(localized: "Card not found.", table: "ReviewCards")
-    case .database, .uninitialized:
+    case .database, .storageFull, .uninitialized:
         return nil
     }
 }

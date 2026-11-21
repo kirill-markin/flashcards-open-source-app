@@ -39,7 +39,7 @@ extension FlashcardsStore {
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: trigger.source == .postAuth,
                 identityConflictMessage: self.blockedCloudIdentityConflictMessage(error: error),
-                failureMessage: Flashcards.errorMessage(error: error),
+                error: error,
                 fallback: .cloudState(fallbackCloudState)
             )
         )
@@ -54,7 +54,7 @@ extension FlashcardsStore {
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: false,
                 identityConflictMessage: self.blockedCloudIdentityConflictMessage(error: error),
-                failureMessage: Flashcards.errorMessage(error: error),
+                error: error,
                 fallback: .failed
             )
         )
@@ -69,7 +69,7 @@ extension FlashcardsStore {
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: trigger.source == .postAuth,
                 identityConflictMessage: self.blockedCloudIdentityConflictMessage(error: error),
-                failureMessage: Flashcards.errorMessage(error: error),
+                error: error,
                 fallback: .failed
             )
         )
@@ -240,6 +240,8 @@ extension FlashcardsStore {
             return .blocked(message: message)
         case .failed(let message):
             return .failed(message: message)
+        case .localStorageFull(let message):
+            return .localStorageFull(message: message)
         }
     }
 

@@ -297,6 +297,7 @@
 "settings.sync.blocked" = "Synchronisierung blockiert: %@";
 "settings.sync.failed" = "Synchronisierungsfehler: %@";
 "settings.sync.failed.generic" = "Synchronisierung fehlgeschlagen";
+"settings.sync.storageFull" = "Gib Speicherplatz auf diesem Gerät frei, damit die Synchronisierung fortgesetzt werden kann.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten. Melde dich erneut an, um die Synchronisierung wieder zu verbinden.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Der Cloud-Zugriff auf den verknüpften Arbeitsbereich hat sich geändert. Lokale Daten bleiben erhalten. Melde dich erneut an, nachdem der Zugriff auf das ursprüngliche Konto und den Arbeitsbereich wiederhergestellt wurde.";
 "settings.sync.recovery.guestSessionMissing" = "Gast-Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten, aber das alte Gast-Cloudkonto kann ohne sein Token nicht wiederhergestellt werden.";

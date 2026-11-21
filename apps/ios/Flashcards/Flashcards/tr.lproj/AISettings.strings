@@ -294,6 +294,7 @@
 "settings.sync.blocked" = "Eşzamanlama engellendi: %@";
 "settings.sync.failed" = "Eşzamanlama başarısız: %@";
 "settings.sync.failed.generic" = "Eşzamanlama başarısız";
+"settings.sync.storageFull" = "Eşitlemeye devam etmek için bu cihazda yer açın.";
 "settings.sync.recovery.linkedCredentialsMissing" = "Bu aygıtta güvenli giriş bilgileri eksik. Yerel veriler korunuyor. Eşzamanlamayı yeniden bağlamak için tekrar giriş yapın.";
 "settings.sync.recovery.linkedWorkspaceUnavailable" = "Bağlı çalışma alanına bulut erişimi değişti. Yerel veriler korunuyor. Asıl hesaba ve çalışma alanına erişim geri geldikten sonra tekrar giriş yapın.";
 "settings.sync.recovery.guestSessionMissing" = "Bu aygıtta misafir giriş bilgileri eksik. Yerel veriler korunuyor ancak eski misafir bulut hesabı belirteci olmadan kurtarılamaz.";
