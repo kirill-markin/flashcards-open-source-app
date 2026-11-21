@@ -52,6 +52,7 @@ extension View {
 struct AIChatHistoryView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.aiCompanionHostTab) private var companionHostTab
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
     private var isInPane: Bool { self.companionHostTab != nil }
     let chatStore: AIChatStore
     @Bindable private var model: AIChatHistoryListModel
@@ -71,8 +72,9 @@ struct AIChatHistoryView: View {
 
     var body: some View {
         self.content
-            .nativeNavigationTitle(aiSettingsLocalized("ai.history.title", "Chat history"))
-            .navigationBarTitleDisplayMode(.inline)
+            .aiCompanionPageTitle(aiSettingsLocalized("ai.history.title", "Chat history"), sharesSectionBar: self.sharesSectionBar) {
+                self.paneSearchField
+            }
             #if targetEnvironment(macCatalyst)
             .macToolbarContribution(MacToolbarContribution(
                 tab: .ai,
@@ -166,7 +168,40 @@ struct AIChatHistoryView: View {
         self.isVisible && self.renameTarget == nil && self.archiveTarget == nil
     }
 
+    @ViewBuilder
     private var content: some View {
+        if self.sharesSectionBar {
+            self.sessionList
+        } else {
+            self.searchableSessionList
+        }
+    }
+
+    /// The pane's search, beside its heading: a drawer would attach to the section's bar.
+    @ViewBuilder
+    private var paneSearchField: some View {
+        if self.sharesSectionBar {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                TextField(
+                    aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
+                    text: self.searchQueryBinding
+                )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .disabled(self.canSearch == false)
+                .accessibilityIdentifier(UITestIdentifier.aiHistorySearchField)
+            }
+            .padding(.horizontal, 10)
+            .frame(minHeight: 36)
+            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
+        }
+    }
+
+    private var searchableSessionList: some View {
         self.sessionList
             #if !targetEnvironment(macCatalyst)
             .searchable(

@@ -137,26 +137,20 @@ struct ReviewView: View {
             && self.navigation.isAICompanionPaneOpen
     }
 
-    private var usesCompactCompanionToolbar: Bool {
+    /// Beside the side chat its controls lead the shared bar, so Review's trail it.
+    private var usesPairedReviewToolbar: Bool {
         #if targetEnvironment(macCatalyst)
         false
         #else
         self.usesPairedReviewSpacing
+        #endif
+    }
+
+    /// A floating tab bar leaves the shared row little room, so the filter shows only its icon there.
+    private var usesCompactCompanionToolbar: Bool {
+        self.usesPairedReviewToolbar
             && self.navigation.selectedTab == .review
             && self.tabBarPlacement == .topBar
-        #endif
-    }
-
-    private var showsFilterInReviewColumn: Bool {
-        #if targetEnvironment(macCatalyst)
-        false
-        #else
-        self.usesPairedReviewSpacing && self.usesCompactCompanionToolbar == false
-        #endif
-    }
-
-    private var hidesReviewNavigationBar: Bool {
-        self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar
     }
 
     private var nativeReviewContent: some View {
@@ -180,15 +174,7 @@ struct ReviewView: View {
             )
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
-        .nativeTopBar(alignment: .leading) {
-            if self.showsFilterInReviewColumn {
-                reviewCompanionHeader
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
-                    .background(.bar)
-            }
-        }
-        .onChange(of: [self.showsFilterInReviewColumn, self.usesCompactCompanionToolbar]) { _, _ in
+        .onChange(of: [self.usesPairedReviewToolbar, self.usesCompactCompanionToolbar]) { _, _ in
             self.finishReviewFiltering()
         }
         .onChange(of: self.reviewFilterEditSession.isPresented) { _, _ in
@@ -237,11 +223,7 @@ struct ReviewView: View {
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         // Beside the side chat the selected tab or sidebar row names the section, leaving the column's row to its controls.
-        .nativeNavigationTitle(self.showsFilterInReviewColumn || self.usesCompactCompanionToolbar
-            ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
-        #if !targetEnvironment(macCatalyst)
-        .toolbar(self.hidesReviewNavigationBar ? .hidden : .automatic, for: .navigationBar)
-        #endif
+        .nativeNavigationTitle(self.usesPairedReviewToolbar ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
         // Keep iPad's shared tab/toolbar row stable when a card handoff focuses AI.
         // Switching from a large title can retain its empty band after keyboard dismissal.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
@@ -365,7 +347,7 @@ struct ReviewView: View {
         .toolbar {
             #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
-            if self.usesCompactCompanionToolbar {
+            if self.usesPairedReviewToolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     reviewFilterMenu
                 }
@@ -373,7 +355,7 @@ struct ReviewView: View {
                     reviewLeaderboardButton
                     reviewProgressBadgeButton
                 }
-            } else if self.showsFilterInReviewColumn == false {
+            } else {
                 ToolbarItem(placement: .topBarLeading) {
                     reviewFilterMenu
                 }
@@ -686,44 +668,11 @@ struct ReviewView: View {
         self.reviewScreen.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
     }
 
-    private var reviewCompanionHeader: some View {
-        // Preserve the same controls/popover anchor when enlarged text needs more space.
-        let layout = self.dynamicTypeSize > .large
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            // The sidebar names the section, so the filter takes the row's free space.
-            reviewFilterMenu
-                .nativeActionButtonStyle()
-                .controlSize(.regular)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            reviewCompanionBadges
-        }
-    }
-
-    @ViewBuilder
-    private var reviewCompanionBadges: some View {
-        let badges = HStack(spacing: 8) {
-            reviewLeaderboardButton
-            reviewProgressBadgeButton
-        }
-        .buttonStyle(.plain)
-        .font(.title3)
-        .padding(.horizontal, 8)
-
-        if #available(iOS 26.0, *) {
-            badges.glassEffect(.regular, in: .capsule)
-        } else {
-            badges.background(.regularMaterial, in: Capsule())
-        }
-    }
-
     private var reviewFilterMenu: some View {
         let dueLabel = makeReviewDueBadgeLabel(dueCount: store.displayedReviewDueCount)
         let usesNativeBadge: Bool
         if #available(iOS 26.0, *) {
-            usesNativeBadge = self.showsFilterInReviewColumn == false
+            usesNativeBadge = true
         } else {
             usesNativeBadge = false
         }
@@ -746,7 +695,7 @@ struct ReviewView: View {
                             Text(self.reviewFilterButtonTitle)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                                .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
+                                .frame(maxWidth: 180, alignment: .leading)
                         }
                         if let inlineDueLabel {
                             Text(verbatim: inlineDueLabel)
@@ -759,8 +708,7 @@ struct ReviewView: View {
                         }
                     }
                     .foregroundStyle(Color.primary)
-                    .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
-                    .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
+                    .fixedSize(horizontal: true, vertical: false)
                     .contentShape(Rectangle())
                 }
             }
@@ -1043,7 +991,6 @@ struct ReviewView: View {
                     .lineLimit(1)
             }
             .fixedSize(horizontal: true, vertical: false)
-            .frame(minWidth: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil, minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
             .contentShape(Rectangle())
         }
         .disabled(badgeState.isInteractive == false)
@@ -1083,7 +1030,6 @@ struct ReviewView: View {
                         .foregroundStyle(Color.yellow)
                 }
             }
-            .frame(minWidth: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil, minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
             .contentShape(Rectangle())
         }
         .labelStyle(.titleAndIcon)

@@ -378,6 +378,7 @@ func aiChatFullResponseLiveText(route: AIChatFullResponseRoute, chatStore: AICha
 /// A sheet with Close, or a page in the side chat's pane, whose row holds its Back and Copy.
 struct AIChatFullResponseView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
 
     @State private var chunks: AIChatFullResponseChunks?
     @State private var chunkedText: String?
@@ -386,6 +387,27 @@ struct AIChatFullResponseView: View {
     let isPushed: Bool
 
     var body: some View {
+        if self.sharesSectionBar {
+            self.page
+                .nativeTopBar(alignment: .leading) {
+                    AICompanionPageHeading(
+                        title: aiSettingsLocalized("ai.message.fullResponse.title", "Full response"),
+                        accessory: self.copyButton
+                            .labelStyle(.titleAndIcon)
+                            .nativeActionButtonStyle()
+                    )
+                }
+        } else {
+            self.page
+                .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    self.toolbarContent
+                }
+        }
+    }
+
+    private var page: some View {
         ScrollView {
             switch self.chunks {
             case .markdown(let chunks):
@@ -430,11 +452,16 @@ struct AIChatFullResponseView: View {
             self.chunks = chunks
             self.chunkedText = text
         }
-        .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            self.toolbarContent
+    }
+
+    private var copyButton: some View {
+        Button(
+            aiSettingsLocalized("common.copy", "Copy"),
+            systemImage: "doc.on.doc"
+        ) {
+            UIPasteboard.general.string = self.text
         }
+        .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
     }
 
     @ToolbarContentBuilder
@@ -447,13 +474,7 @@ struct AIChatFullResponseView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
-            Button(
-                aiSettingsLocalized("common.copy", "Copy"),
-                systemImage: "doc.on.doc"
-            ) {
-                UIPasteboard.general.string = self.text
-            }
-            .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
+            self.copyButton
         }
     }
 }

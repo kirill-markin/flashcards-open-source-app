@@ -722,10 +722,19 @@ struct RootTabView: View {
                 .toolbar(.hidden, for: .navigationBar)
         }
         #else
-        AICompanionColumns(hostTab: hostTab) {
+        if UIDevice.current.userInterfaceIdiom == .pad {
             NavigationStack {
-                content()
-                    .aiCompanionColumnPage()
+                AICompanionColumns(hostTab: hostTab, sharesSectionStack: true) {
+                    content()
+                        .aiCompanionColumnPage()
+                }
+            }
+        } else {
+            AICompanionColumns(hostTab: hostTab) {
+                NavigationStack {
+                    content()
+                        .aiCompanionColumnPage()
+                }
             }
         }
         #endif

@@ -74,6 +74,7 @@ final class AIChatHistoryReaderModel {
 /// Shows an old chat without a composer; the server refuses to continue a chat that is not current.
 struct AIChatHistoryReaderView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
     let chatStore: AIChatStore
     let summary: AIChatSessionHistorySummary
     @State private var model: AIChatHistoryReaderModel
@@ -86,8 +87,9 @@ struct AIChatHistoryReaderView: View {
 
     var body: some View {
         self.content
-            .nativeNavigationTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle())
-            .navigationBarTitleDisplayMode(.inline)
+            .aiCompanionPageTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle(), sharesSectionBar: self.sharesSectionBar) {
+                EmptyView()
+            }
             #if targetEnvironment(macCatalyst)
             .macToolbarContribution(MacToolbarContribution(tab: .ai, role: .navigation))
             #endif

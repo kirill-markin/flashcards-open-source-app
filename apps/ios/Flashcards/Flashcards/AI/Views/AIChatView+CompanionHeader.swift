@@ -13,6 +13,74 @@ extension AIChatView {
     #if !targetEnvironment(macCatalyst)
     @ToolbarContentBuilder
     var companionPaneToolbar: some ToolbarContent {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            self.sectionBarCompanionToolbar
+        } else {
+            self.ownBarCompanionToolbar
+        }
+    }
+
+    /// On iPad the chat's controls join its section's bar. They all lead, so they stay clear of a floating tab bar
+    /// centred over the window and of the section's own trailing controls.
+    @ToolbarContentBuilder
+    private var sectionBarCompanionToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            AICompanionToolbarButton()
+                .labelStyle(.iconOnly)
+        }
+        if #available(iOS 26.0, *) {
+            ToolbarSpacer(.fixed, placement: .topBarLeading)
+        }
+        if self.navigation.aiCompanionPath.isEmpty {
+            ToolbarItemGroup(placement: .topBarLeading) {
+                self.historyButton(usesToolbarIconLabel: false)
+                    .disabled(self.isPresentationActive == false)
+                if self.accessState == .ready {
+                    self.newCompanionChatLabelButton
+                        .labelStyle(.iconOnly)
+                        .disabled(self.isPresentationActive == false)
+                }
+            }
+        } else {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: self.closeCompanionPage) {
+                    Label {
+                        // A long chat title must not reach a floating tab bar.
+                        Text(self.companionBackTitle)
+                            .lineLimit(1)
+                            .frame(maxWidth: 160)
+                    } icon: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .labelStyle(.titleAndIcon)
+                }
+                .accessibilityIdentifier(UITestIdentifier.aiCompanionBackButton)
+            }
+        }
+    }
+
+    /// Like a native back button, it names the page it returns to.
+    private var companionBackTitle: String {
+        let path = self.navigation.aiCompanionPath
+        guard path.count >= 2 else { return aiSettingsLocalized("ai.title", "AI") }
+        switch path[path.count - 2] {
+        case .history:
+            return aiSettingsLocalized("ai.history.title", "Chat history")
+        case .reader(let route):
+            return route.summary.title ?? aiChatHistoryUntitledChatTitle()
+        case .fullResponse:
+            return aiSettingsLocalized("ai.message.fullResponse.title", "Full response")
+        }
+    }
+
+    /// The pane's previous page, from the host the person sees.
+    private func closeCompanionPage() {
+        guard self.navigation.isAICompanionVisible, self.navigation.selectedTab == self.companionHostTab else { return }
+        _ = self.navigation.aiCompanionPath.popLast()
+    }
+
+    @ToolbarContentBuilder
+    private var ownBarCompanionToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             AICompanionToolbarButton()
                 .labelStyle(.iconOnly)

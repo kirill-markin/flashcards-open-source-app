@@ -13,15 +13,19 @@ struct AICompanionColumns<Content: View>: View {
     @State private var tabRowInset: CGFloat = 0
     #endif
     private let hostTab: AppTab
+    /// Inside its section's navigation stack, whose bar already keeps both columns below the tab controller's row.
+    private let sharesSectionStack: Bool
     private let content: Content
 
-    init(hostTab: AppTab, @ViewBuilder content: () -> Content) {
+    init(hostTab: AppTab, sharesSectionStack: Bool = false, @ViewBuilder content: () -> Content) {
         self.hostTab = hostTab
+        self.sharesSectionStack = sharesSectionStack
         self.content = content()
     }
 
     init(hostTab: AppTab, content: Content) {
         self.hostTab = hostTab
+        self.sharesSectionStack = false
         self.content = content
     }
 
@@ -96,9 +100,9 @@ struct AICompanionColumns<Content: View>: View {
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
         }
         #if !targetEnvironment(macCatalyst)
-        .padding(.top, isPad ? self.tabRowInset : 0)
+        .padding(.top, isPad && self.sharesSectionStack == false ? self.tabRowInset : 0)
         .background {
-            if isPad {
+            if isPad && self.sharesSectionStack == false {
                 AICompanionTabContentInset(inset: self.$tabRowInset)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
