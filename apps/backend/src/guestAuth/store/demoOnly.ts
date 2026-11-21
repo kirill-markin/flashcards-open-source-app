@@ -34,6 +34,7 @@ export async function loadGuestDemoOnlyCardInExecutor(
       "OR EXISTS (SELECT 1 FROM ai.chat_items WHERE session_id = sessions.session_id)",
       "OR EXISTS (SELECT 1 FROM ai.chat_runs WHERE session_id = sessions.session_id)))",
       "OR EXISTS (SELECT 1 FROM ai.chat_files WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM ai.workspace_chat_instructions WHERE workspace_id = $1)",
       "OR EXISTS (SELECT 1 FROM content.media_upload_sessions WHERE workspace_id = $1)",
       "OR EXISTS (SELECT 1 FROM content.generated_media_promotion_jobs WHERE workspace_id = $1)",
       "OR EXISTS (SELECT 1 FROM catalog.package_versions WHERE source_workspace_id = $1)",

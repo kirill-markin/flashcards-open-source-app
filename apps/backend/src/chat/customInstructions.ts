@@ -4,7 +4,7 @@ import {
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
+import { lockWorkspaceAccessLifecycleInExecutor, lockWorkspaceMembershipLifecyclesInExecutor } from "../workspaces/accessLocks";
 import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
 import { assertWorkspaceOwner } from "../workspaces/shared";
 
@@ -82,6 +82,7 @@ export async function saveWorkspaceChatInstructionsForUser(
   customInstructions: string | null,
 ): Promise<WorkspaceChatInstructionsResponse> {
   return transactionWithUserScope({ userId }, async (executor) => {
+    await lockWorkspaceMembershipLifecyclesInExecutor(executor, [workspaceId]);
     await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
     await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
     const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);

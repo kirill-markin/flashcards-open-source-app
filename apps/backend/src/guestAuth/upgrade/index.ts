@@ -1,5 +1,6 @@
 import {
   applyUserDatabaseScopeInExecutor,
+  applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
 import {
@@ -28,15 +29,22 @@ import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   UserSettingsRowNotFoundError,
 } from "../../workspaces/state";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../chat/customInstructions";
+import {
+  lockWorkspaceAccessLifecycleInExecutor,
+  lockWorkspaceMembershipLifecyclesInExecutor,
+} from "../../workspaces/accessLocks";
+import { normalizeWorkspaceId } from "../../workspaces/identity";
+import { loadWorkspaceManagementRowInExecutor } from "../../workspaces/queries";
 import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
 import { discardGuestDemoOnlyInExecutor, mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
-  assertTargetWorkspaceAccessInExecutor,
   carryGuestAccentColorToAccountInExecutor,
   carryGuestAnalyticsConsentToAccountInExecutor,
   carryGuestFirstReviewOnboardingToAccountInExecutor,
   carryGuestProductAnalyticsEnabledToAccountInExecutor,
   carryGuestThemeToAccountInExecutor,
+  loadGuestOwnedWorkspaceIdsInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
@@ -50,6 +58,9 @@ import {
   selectWorkspaceForUserInExecutor,
   transferGuestFeedbackInExecutor,
   transferGuestPublicProfileInExecutor,
+  transferGuestOwnedWorkspacesInExecutor,
+  tryLockGuestAccountWriterFenceInExecutor,
+  type GuestUpgradeReplayRecord,
   updateUserEmailInExecutor,
   type GuestSessionRecord,
 } from "../store/index";
@@ -88,6 +99,11 @@ function createGuestUpgradeAccountRequiredError(): HttpError {
 }
 
 type GuestUpgradeAdmission = "native" | "browser";
+
+type GuestUpgradeReplayRequest = Readonly<{
+  selection: GuestUpgradeSelection;
+  strictSelection: boolean;
+}>;
 
 function assertGuestUpgradeSupportedSession(
   session: GuestSessionRecord,
@@ -280,7 +296,7 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
   guestSessionId: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
-  requiredSelection: GuestUpgradeSelection | null,
+  request: GuestUpgradeReplayRequest,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayInExecutor(executor, guestSessionId);
   if (replay === null) {
@@ -301,13 +317,11 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
-    if (requiredSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
+    if (request.strictSelection) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (requiredSelection !== null) {
-    assertGuestUpgradeReplaySelection(replay, requiredSelection);
-  }
+  assertGuestUpgradeReplaySelection(replay, request);
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
@@ -320,7 +334,7 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
   guestToken: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
-  requiredSelection: GuestUpgradeSelection | null,
+  request: GuestUpgradeReplayRequest,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
   if (replay === null) {
@@ -335,13 +349,11 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
-    if (requiredSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
+    if (request.strictSelection) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (requiredSelection !== null) {
-    assertGuestUpgradeReplaySelection(replay, requiredSelection);
-  }
+  assertGuestUpgradeReplaySelection(replay, request);
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
@@ -359,38 +371,62 @@ async function resolveGuestUpgradeTargetInExecutor(
       "GUEST_UPGRADE_TARGET_SAME_AS_SOURCE",
     );
   }
-  const targetWorkspaceId = selection.type === "existing"
-    ? selection.workspaceId
-    : await (async (): Promise<string> => {
-      const nextWorkspaceName = selection.name ?? await (async (): Promise<string> => {
-        const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
-        return guestWorkspaceName === "" ? AUTO_CREATED_WORKSPACE_NAME : guestWorkspaceName;
-      })();
-      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, {
-        name: nextWorkspaceName,
-        cause: "explicit",
-      });
-      await selectWorkspaceForUserInExecutor(executor, targetUserId, nextWorkspaceId);
-      return nextWorkspaceId;
-    })();
-
-  await assertTargetWorkspaceAccessInExecutor(executor, targetUserId, targetWorkspaceId);
-
-  return {
+  const ownedWorkspaceIds = await loadGuestOwnedWorkspaceIdsInExecutor(executor, guestUserId);
+  await lockWorkspaceMembershipLifecyclesInExecutor(executor, [
+    ...ownedWorkspaceIds,
     guestWorkspaceId,
-    targetUserId,
-    targetWorkspaceId,
-  };
+    ...(selection.type === "existing" ? [selection.workspaceId] : []),
+  ]);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guestUserId, workspaceId: guestWorkspaceId });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, guestUserId, guestWorkspaceId);
+  const guestInstructions = await loadWorkspaceChatInstructionsWithExecutor(executor, guestWorkspaceId);
+
+  if (selection.type === "existing") {
+    const targetWorkspaceId = selection.workspaceId;
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: targetUserId, workspaceId: targetWorkspaceId });
+    await lockWorkspaceAccessLifecycleInExecutor(executor, targetUserId, targetWorkspaceId);
+    const target = await loadWorkspaceManagementRowInExecutor(executor, targetUserId, targetWorkspaceId);
+    if (target.workspace_id !== targetWorkspaceId) {
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    }
+    const targetInstructions = await loadWorkspaceChatInstructionsWithExecutor(executor, targetWorkspaceId);
+
+    if (selection.discardDemoOnly === true) {
+      return { guestWorkspaceId, targetUserId, targetWorkspaceId };
+    }
+    if (!ownedWorkspaceIds.includes(targetWorkspaceId)) {
+      if (guestInstructions === null || guestInstructions === targetInstructions) {
+        return { guestWorkspaceId, targetUserId, targetWorkspaceId };
+      }
+      if (targetInstructions === null && target.role === "owner") {
+        await insertGuestChatInstructionsInExecutor(executor, targetWorkspaceId, guestInstructions);
+        return { guestWorkspaceId, targetUserId, targetWorkspaceId };
+      }
+    }
+  }
+
+  const sourceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
+  const targetWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, {
+    name: (selection.type === "create_new" ? selection.name : undefined)
+      ?? (sourceName === "" ? AUTO_CREATED_WORKSPACE_NAME : sourceName),
+    cause: "explicit",
+  });
+  if (guestInstructions !== null) {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: targetUserId, workspaceId: targetWorkspaceId });
+    await insertGuestChatInstructionsInExecutor(executor, targetWorkspaceId, guestInstructions);
+  }
+  return { guestWorkspaceId, targetUserId, targetWorkspaceId };
 }
 
-async function persistGuestUpgradeTargetSelectionInExecutor(
+async function insertGuestChatInstructionsInExecutor(
   executor: DatabaseExecutor,
-  targetUserId: string,
-  targetWorkspaceId: string,
+  workspaceId: string,
+  customInstructions: string,
 ): Promise<void> {
-  // Keep the target account pointed at the post-merge workspace before guest
-  // cleanup starts so replay/idempotency stays anchored to the same selection.
-  await selectWorkspaceForUserInExecutor(executor, targetUserId, targetWorkspaceId);
+  await executor.query(
+    "INSERT INTO ai.workspace_chat_instructions (workspace_id, custom_instructions) VALUES ($1, $2)",
+    [workspaceId, customInstructions],
+  );
 }
 
 async function prepareExistingAccountGuestUpgradeInExecutor(
@@ -405,6 +441,26 @@ async function prepareExistingAccountGuestUpgradeInExecutor(
   return {
     mode: "merge_required",
     ...(destination === null ? {} : { demoOnlyDestinationWorkspaceId: destination }),
+  };
+}
+
+async function prepareCommittedGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  guestSessionId: string | null,
+  cognitoSubject: string,
+): Promise<GuestUpgradePreparation> {
+  const replay = guestSessionId === null
+    ? await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken)
+    : await loadGuestUpgradeReplayInExecutor(executor, guestSessionId);
+  if (replay === null) throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  await lockAccountLifecyclesInExecutor(executor, [replay.canonicalTargetUserId]);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
+  await assertBrowserReplayIdentityInExecutor(executor, replay.canonicalTargetUserId, cognitoSubject);
+  return {
+    mode: "merge_required",
+    ...(replay.requestedExistingWorkspaceId === null
+      ? {} : { demoOnlyDestinationWorkspaceId: replay.requestedExistingWorkspaceId }),
   };
 }
 
@@ -425,21 +481,10 @@ async function prepareGuestUpgradeWithAdmissionInExecutor(
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
-  if (unlockedSession === null) {
-    const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
-    if (replay !== null) {
-      await lockAccountLifecyclesInExecutor(executor, [replay.canonicalTargetUserId]);
-      await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
-      await assertBrowserReplayIdentityInExecutor(executor, replay.canonicalTargetUserId, cognitoSubject);
-      return {
-        mode: "merge_required",
-        ...(replay.selectionType === "existing"
-          ? { demoOnlyDestinationWorkspaceId: replay.targetWorkspaceId } : {}),
-      };
-    }
-    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  if (unlockedSession !== null) assertGuestUpgradeSupportedSession(unlockedSession, admission);
+  if (unlockedSession === null || unlockedSession.revokedAt !== null) {
+    return prepareCommittedGuestUpgradeInExecutor(executor, guestToken, unlockedSession?.sessionId ?? null, cognitoSubject);
   }
-  assertGuestUpgradeSupportedSession(unlockedSession, admission);
   await assertGuestOwnerIsNotRetiredInExecutor(executor, unlockedSession.userId);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   await lockAccountLifecyclesInExecutor(executor, [unlockedSession.userId, existingMapping?.userId ?? cognitoSubject]);
@@ -494,30 +539,28 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
   cognitoSubject: string,
-  selection: GuestUpgradeSelection,
+  requestedSelection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
   admission: GuestUpgradeAdmission,
 ): Promise<GuestUpgradeCompletion> {
-  const replaySelection = admission === "browser" || (selection.type === "existing" && selection.discardDemoOnly === true)
-    ? selection : null;
+  const selection: GuestUpgradeSelection = requestedSelection.type === "existing"
+    ? { ...requestedSelection, workspaceId: normalizeWorkspaceId(requestedSelection.workspaceId).toLowerCase() }
+    : requestedSelection;
+  const replayRequest = {
+    selection,
+    strictSelection: admission === "browser" || (selection.type === "existing" && selection.discardDemoOnly === true),
+  };
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   // Phase 1: load the guest session identity before taking user row locks.
   const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
-  if (selection.type === "existing" && selection.discardDemoOnly === true
-      && unlockedGuestSession !== null && unlockedGuestSession.revokedAt === null
-      && targetMapping !== null && targetMapping.userId !== unlockedGuestSession.userId) {
-    // Fence every scoped guest writer before taking account/row locks; waiting here could
-    // deadlock a writer that already owns a shared scope and needs a lifecycle lock.
-    const fence = await executor.query<Readonly<{ locked: boolean }>>(
-      "SELECT pg_try_advisory_xact_lock(hashtextextended('auth.account_writer:' || $1::text, 2::bigint)) AS locked",
-      [unlockedGuestSession.userId],
-    );
-    if (fence.rows[0]?.locked !== true) {
-      throw new HttpError(409, "Guest writes are still active. Finish syncing the guest workspace and retry the saved destination.",
-        "GUEST_UPGRADE_GUEST_BUSY");
-    }
+  if (unlockedGuestSession !== null && unlockedGuestSession.revokedAt === null
+      && targetMapping !== null && targetMapping.userId !== unlockedGuestSession.userId
+      && !await tryLockGuestAccountWriterFenceInExecutor(executor, unlockedGuestSession.userId)) {
+    // A scoped guest writer may need a lifecycle lock before it can finish.
+    throw new HttpError(409, "Guest writes are still active. Finish syncing the guest workspace and retry the saved destination.",
+      "GUEST_UPGRADE_GUEST_BUSY");
   }
   await lockAccountLifecyclesInExecutor(executor, [
     ...(unlockedGuestSession === null ? [] : [unlockedGuestSession.userId]),
@@ -530,7 +573,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
-      replaySelection,
+      replayRequest,
     );
   }
 
@@ -551,7 +594,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        replaySelection,
+        replayRequest,
       );
     }
 
@@ -573,7 +616,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        replaySelection,
+        replayRequest,
       );
     }
 
@@ -582,7 +625,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
-      replaySelection,
+      replayRequest,
     );
   }
 
@@ -610,7 +653,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        replaySelection,
+        replayRequest,
       );
     }
 
@@ -620,7 +663,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestSession.sessionId,
         cognitoSubject,
         capabilities,
-        replaySelection,
+        replayRequest,
       );
     }
 
@@ -665,7 +708,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
-      replaySelection,
+      replayRequest,
     );
   }
 
@@ -675,7 +718,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
-      replaySelection,
+      replayRequest,
     );
   }
 
@@ -723,6 +766,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       targetUserId: guestUpgradeResolution.targetUserId,
       targetWorkspaceId: guestUpgradeResolution.targetWorkspaceId,
       selectionType: selection.type,
+      requestedExistingWorkspaceId: selection.type === "existing" ? selection.workspaceId : null,
       supportsDroppedEntities: capabilities.supportsDroppedEntities,
     },
   );
@@ -737,7 +781,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   await transferGuestAiConsentInExecutor(executor, guestSession.userId, guestUpgradeResolution.targetUserId);
 
   // Phase 10: persist the selected target workspace.
-  await persistGuestUpgradeTargetSelectionInExecutor(
+  await selectWorkspaceForUserInExecutor(
     executor,
     guestUpgradeResolution.targetUserId,
     guestUpgradeResolution.targetWorkspaceId,
@@ -812,6 +856,13 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
     guestUpgradeResolution.targetUserId,
   );
 
+  await transferGuestOwnedWorkspacesInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeMerge.history.upgradeId,
+    guestUpgradeMerge.history.sourceGuestSessionSecretHash,
+  );
+
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
@@ -851,11 +902,15 @@ async function assertBrowserReplayIdentityInExecutor(
 }
 
 function assertGuestUpgradeReplaySelection(
-  replay: Readonly<{ selectionType: GuestUpgradeSelection["type"]; targetWorkspaceId: string }>,
-  selection: GuestUpgradeSelection,
+  replay: GuestUpgradeReplayRecord,
+  request: GuestUpgradeReplayRequest,
 ): void {
+  const redirected = replay.requestedExistingWorkspaceId !== null
+    && replay.requestedExistingWorkspaceId !== replay.targetWorkspaceId;
+  if (!request.strictSelection && !redirected) return;
+  const selection = request.selection;
   if (selection.type !== replay.selectionType
-      || (selection.type === "existing" && selection.workspaceId !== replay.targetWorkspaceId)) {
+      || (selection.type === "existing" && selection.workspaceId !== replay.requestedExistingWorkspaceId)) {
     throw new HttpError(409, "This guest conversion already completed with another destination. Retry the originally saved selection.", "GUEST_UPGRADE_SELECTION_MISMATCH");
   }
 }

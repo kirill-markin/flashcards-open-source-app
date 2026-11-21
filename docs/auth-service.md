@@ -54,9 +54,8 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
       can let the link reach the database before that binding exists.
     - Upgrade ordering obligation: never send a guest token here that may still need
       `POST /v1/guest-auth/upgrade/prepare` or `POST /v1/guest-auth/upgrade/complete`. This route
-      revokes the guest session, and both upgrade routes refuse a revoked token with
-      `401 GUEST_AUTH_INVALID`: `prepare` rejects it outright, and `complete` looks for an
-      `auth.guest_upgrade_history` replay row and finds none for a session that was never upgraded.
+      revokes the guest session. Both upgrade routes return `401 GUEST_AUTH_INVALID` for a
+      revoked token without a committed conversion in `auth.guest_upgrade_history`.
       No data is lost, because a guest that owns anything is refused below with
       `409 GUEST_IDENTITY_LINK_UPGRADE_REQUIRED` rather than revoked, but that token's upgrade path
       is gone. Run the upgrade flow first, or reserve this route for guest credentials that exist
@@ -68,6 +67,8 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
     - `409 GUEST_IDENTITY_LINK_UPGRADE_REQUIRED` means the guest owns data the upgrade flow transfers
       and must convert through `POST /v1/guest-auth/upgrade/complete`, which writes the same
       `server_derived` link for the same pair. Terminal here; retrying it unchanged never succeeds.
+    - `409 GUEST_IDENTITY_LINK_GUEST_BUSY` means a guest write is still active. Keep the token and retry
+      after the write finishes.
     - `409 GUEST_IDENTITY_LINK_OTHER_ACCOUNT` means the guest token names a user that is already a
       different real account. Terminal: the client is holding a credential that is not its own and
       should discard it rather than retry.
@@ -181,6 +182,9 @@ Authorization headers and JSON `guestToken` are refused.
   both capability fields are required booleans. Fresh completion requires a true
   drain assertion. The response is `{workspace, droppedEntities?}`, using the
   existing native transfer and dropped-entity contract, including media ids.
+  Use the workspace in the completion response for hydration. A conflicting instruction or a
+  required edit to a workspace owned by someone else can send the guest content to a new workspace.
+  The original selection still identifies a replay. Other guest-owned workspaces keep their ids.
 - Keep the authenticated account and selection saved across retries. Completion
   can replay after source cleanup; it checks the destination account and refuses
   a different saved selection. It never re-merges or creates another workspace.

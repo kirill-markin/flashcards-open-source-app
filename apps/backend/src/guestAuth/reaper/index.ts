@@ -1,4 +1,5 @@
 import type pg from "pg";
+import { hasCognitoIdentityMappingForUserInExecutor, lockAccountLifecyclesInExecutor } from "../../auth/userIdentities";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   runDatabaseOperationsWithDeadline,
@@ -21,7 +22,9 @@ import { toIsoString } from "../shared";
 import {
   deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor,
   deleteUserSettingsInExecutor,
+  guestOwnsWorkspaceChatInstructionsInExecutor,
   loadGuestWorkspaceIdOrNullInExecutor,
+  tryLockGuestAccountWriterFenceInExecutor,
 } from "../store/index";
 
 // Session last_seen_at is not updated; analytics ingest clocks determine legacy guest liveness.
@@ -430,11 +433,15 @@ async function guestWorkspaceHasContentInExecutor(
   return row.has_content;
 }
 
-async function reapWebGuestInExecutor(
+export async function reapWebGuestInExecutor(
   executor: DatabaseExecutor,
   candidate: WebGuestReaperCandidate,
   inactiveBefore: Date,
 ): Promise<WebGuestReaperCandidateOutcome> {
+  if (!await tryLockGuestAccountWriterFenceInExecutor(executor, candidate.guestUserId)) {
+    return { outcome: "skipped", workspaceId: null, reason: "no_longer_a_candidate" };
+  }
+  await lockAccountLifecyclesInExecutor(executor, [candidate.guestUserId]);
   // org.user_settings.workspace_id is ON DELETE SET NULL from org.workspaces (migration 0001), so a
   // guest with no selected workspace is reachable. It has nothing this job can delete safely, and
   // treating it as a failure would make one such row fail the run every night forever.
@@ -443,14 +450,16 @@ async function reapWebGuestInExecutor(
     return { outcome: "skipped", workspaceId: null, reason: "workspace_missing" };
   }
 
-  const stillReapable = await webGuestIsStillReapableInExecutor(executor, candidate, inactiveBefore);
+  const stillReapable = !await hasCognitoIdentityMappingForUserInExecutor(executor, candidate.guestUserId)
+    && await webGuestIsStillReapableInExecutor(executor, candidate, inactiveBefore);
   if (!stillReapable) {
     return { outcome: "skipped", workspaceId: guestWorkspaceId, reason: "no_longer_a_candidate" };
   }
 
   // A web guest workspace is empty by construction. Content here means an invariant broke
   // elsewhere, and that has to stay visible rather than be deleted along with the guest.
-  if (await guestWorkspaceHasContentInExecutor(executor, candidate.guestUserId, guestWorkspaceId)) {
+  if (await guestOwnsWorkspaceChatInstructionsInExecutor(executor, candidate.guestUserId)
+      || await guestWorkspaceHasContentInExecutor(executor, candidate.guestUserId, guestWorkspaceId)) {
     return { outcome: "skipped", workspaceId: guestWorkspaceId, reason: "workspace_has_content" };
   }
 

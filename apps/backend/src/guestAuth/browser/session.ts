@@ -2,7 +2,7 @@ import { hasCognitoIdentityMappingForUserInExecutor, resolveCanonicalAccountIdIn
 import { unsafeTransaction } from "../../database/unsafe";
 import { createBrowserGuestSessionInExecutor } from "../session";
 import { loadGuestSessionRecordInExecutor } from "../store/session";
-import { loadGuestUpgradeReplayByGuestTokenInExecutor } from "../store/upgradeHistory";
+import { loadGuestUpgradeReplayByGuestTokenInExecutor, loadGuestUpgradeReplayInExecutor } from "../store/upgradeHistory";
 import { loadGuestWorkspaceIdOrNullInExecutor } from "../store/workspace";
 import type { GuestSessionSnapshot } from "../types";
 import type { GuestBrowserChallengeDecision } from "./challenge";
@@ -34,10 +34,15 @@ export function loadBrowserGuestSession(guestToken: string | undefined): Promise
   }
   return unsafeTransaction<BrowserGuestSession>(async (executor) => {
     const session = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
-    if (session === null) {
+    if (session !== null && (session.purpose !== "browser_product" || session.platform !== "web")) {
+      return { status: "invalid" };
+    }
+    if (session === null || session.revokedAt !== null) {
       // History proves only a committed conversion, never a live product credential.
-      const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
-      if (replay === null) return { status: "invalid" };
+      const replay = session === null
+        ? await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken)
+        : await loadGuestUpgradeReplayInExecutor(executor, session.sessionId);
+      if (replay === null) return { status: session === null ? "invalid" : "revoked" };
       return {
         status: "pending_upgrade",
         sessionId: replay.sourceGuestSessionId,
@@ -47,12 +52,6 @@ export function loadBrowserGuestSession(guestToken: string | undefined): Promise
         platform: null,
         replayOnly: true,
       };
-    }
-    if (session.purpose !== "browser_product" || session.platform !== "web") {
-      return { status: "invalid" };
-    }
-    if (session.revokedAt !== null) {
-      return { status: "revoked" };
     }
     const canonicalUserId = await resolveCanonicalAccountIdInExecutor(executor, session.userId);
     const isAccount = canonicalUserId !== session.userId

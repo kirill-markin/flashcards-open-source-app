@@ -3,7 +3,9 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../chat/customInstructions";
 import { HttpError } from "../../shared/errors";
+import { lockWorkspaceMembershipLifecyclesInExecutor } from "../../workspaces/accessLocks";
 import { lockUserSettingsForWorkspaceLifecycleInExecutor } from "../../workspaces/state";
 import { toIsoString } from "../shared";
 import type { GuestUpgradeCompletion } from "../types";
@@ -51,6 +53,58 @@ export async function loadGuestWorkspaceIdInExecutor(
   }
 
   return workspaceId;
+}
+
+export async function tryLockGuestAccountWriterFenceInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<boolean> {
+  const result = await executor.query<Readonly<{ locked: boolean }>>(
+    "SELECT pg_try_advisory_xact_lock(hashtextextended('auth.account_writer:' || $1::text, 2::bigint)) AS locked",
+    [guestUserId],
+  );
+  return result.rows[0]?.locked === true;
+}
+
+export async function loadGuestOwnedWorkspaceIdsInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<ReadonlyArray<string>> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  const result = await executor.query<Readonly<{ workspace_id: string }>>(
+    "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 AND role = 'owner' ORDER BY workspace_id",
+    [guestUserId],
+  );
+  return result.rows.map((row) => row.workspace_id);
+}
+
+// The caller holds the guest writer fence so a scoped save cannot pass the probe before retirement.
+export async function guestOwnsWorkspaceChatInstructionsInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<boolean> {
+  const workspaceIds = await loadGuestOwnedWorkspaceIdsInExecutor(executor, guestUserId);
+  await lockWorkspaceMembershipLifecyclesInExecutor(executor, workspaceIds);
+  for (const workspaceId of workspaceIds) {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guestUserId, workspaceId });
+    if (await loadWorkspaceChatInstructionsWithExecutor(executor, workspaceId) !== null) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function transferGuestOwnedWorkspacesInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  upgradeId: string,
+  guestSessionSecretHash: string,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  await executor.query(
+    "SELECT auth.transfer_guest_owned_workspaces($1, $2)",
+    [upgradeId, guestSessionSecretHash],
+  );
 }
 
 export async function guestOwnsUpgradeTransferableDataInExecutor(
@@ -125,17 +179,6 @@ export async function loadWorkspaceNameInExecutor(
 ): Promise<string> {
   const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, workspaceId);
   return workspace.name;
-}
-
-export async function assertTargetWorkspaceAccessInExecutor(
-  executor: DatabaseExecutor,
-  userId: string,
-  workspaceId: string,
-): Promise<void> {
-  const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, workspaceId);
-  if (workspace.workspaceId !== workspaceId) {
-    throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
-  }
 }
 
 export async function selectWorkspaceForUserInExecutor(
