@@ -1,10 +1,12 @@
 import {
-  applyWorkspaceDatabaseScopeInExecutor,
-  transactionWithUserScope,
+  transactionWithWorkspaceScope,
   type DatabaseExecutor,
+  type WorkspaceDatabaseScope,
 } from "../database";
+import { activeGuestSessionOwnerPredicateSql, guestSessionBoundToAccountSql } from "../guestAuth/shared";
 import { HttpError } from "../shared/errors";
-import { lockWorkspaceAccessLifecycleInExecutor } from "../workspaces/accessLocks";
+import { lockWorkspaceAccessLifecycleInExecutor, lockWorkspaceMembershipLifecyclesInExecutor } from "../workspaces/accessLocks";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../workspaces/chatInstructions";
 import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
 import { assertWorkspaceOwner } from "../workspaces/shared";
 
@@ -16,6 +18,63 @@ export type WorkspaceChatInstructionsResponse = Readonly<{
   maxLength: number;
   canEdit: boolean;
 }>;
+
+export type ChatGuestCredential = Readonly<{ sessionId: string | null }>;
+
+export async function isEligibleChatGuestInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  credential: ChatGuestCredential,
+): Promise<boolean> {
+  if (credential.sessionId === null) return false;
+
+  // Binding, merge and deletion take the exclusive account lock before changing identity.
+  // Forget can independently revoke the exact session, so hold its row through the scoped operation.
+  await executor.query(
+    "SELECT pg_advisory_xact_lock_shared(hashtextextended('auth.account:' || $1, 2::BIGINT))",
+    [userId],
+  );
+  const result = await executor.query(
+    `SELECT 1 FROM auth.guest_sessions
+     WHERE ${activeGuestSessionOwnerPredicateSql}
+       AND user_id = $2
+       AND NOT ${guestSessionBoundToAccountSql}
+       AND (purpose = 'browser_product' AND platform = 'web'
+         OR purpose = 'legacy' AND platform IS DISTINCT FROM 'web')
+     FOR SHARE`,
+    [credential.sessionId, userId],
+  );
+  return result.rowCount === 1;
+}
+
+function createChatGuestCredentialError(): HttpError {
+  return new HttpError(403, "Use an active guest session or sign in to access workspace AI instructions.",
+    "ACCOUNT_SIGN_IN_REQUIRED");
+}
+
+async function assertChatInstructionsCredentialInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  guestCredential: ChatGuestCredential | undefined,
+): Promise<void> {
+  if (guestCredential !== undefined && !await isEligibleChatGuestInExecutor(executor, userId, guestCredential)) {
+    throw createChatGuestCredentialError();
+  }
+}
+
+export async function assertGuestChatInstructionsStillAuthorized(
+  scope: WorkspaceDatabaseScope,
+  guestSessionId: string,
+): Promise<void> {
+  await transactionWithWorkspaceScope(scope, async (executor) => {
+    await assertChatInstructionsCredentialInExecutor(executor, scope.userId, { sessionId: guestSessionId });
+    const result = await executor.query<Readonly<{ allowed: boolean }>>(
+      "SELECT security.current_workspace_access_allowed($1) AS allowed",
+      [scope.workspaceId],
+    );
+    if (result.rows[0]?.allowed !== true) throw createChatGuestCredentialError();
+  });
+}
 
 const loneSurrogatePattern = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
@@ -49,18 +108,6 @@ export function parseChatCustomInstructionsBody(body: Record<string, unknown>): 
   return trimmed;
 }
 
-/** Reads under the caller's workspace scope; RLS admits every member. */
-export async function loadWorkspaceChatInstructionsWithExecutor(
-  executor: DatabaseExecutor,
-  workspaceId: string,
-): Promise<string | null> {
-  const result = await executor.query<Readonly<{ custom_instructions: string }>>(
-    "SELECT custom_instructions FROM ai.workspace_chat_instructions WHERE workspace_id = $1",
-    [workspaceId],
-  );
-  return result.rows[0]?.custom_instructions ?? null;
-}
-
 function toResponse(customInstructions: string | null, canEdit: boolean): WorkspaceChatInstructionsResponse {
   return { customInstructions, maxLength: workspaceChatInstructionsMaxLength, canEdit };
 }
@@ -68,10 +115,11 @@ function toResponse(customInstructions: string | null, canEdit: boolean): Worksp
 export async function loadWorkspaceChatInstructionsForUser(
   userId: string,
   workspaceId: string,
+  guestCredential?: ChatGuestCredential,
 ): Promise<WorkspaceChatInstructionsResponse> {
-  return transactionWithUserScope({ userId }, async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await assertChatInstructionsCredentialInExecutor(executor, userId, guestCredential);
     const workspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
-    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
     return toResponse(await loadWorkspaceChatInstructionsWithExecutor(executor, workspaceId), workspace.role === "owner");
   });
 }
@@ -80,10 +128,12 @@ export async function saveWorkspaceChatInstructionsForUser(
   userId: string,
   workspaceId: string,
   customInstructions: string | null,
+  guestCredential?: ChatGuestCredential,
 ): Promise<WorkspaceChatInstructionsResponse> {
-  return transactionWithUserScope({ userId }, async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await assertChatInstructionsCredentialInExecutor(executor, userId, guestCredential);
+    await lockWorkspaceMembershipLifecyclesInExecutor(executor, [workspaceId]);
     await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
-    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
     const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
     assertWorkspaceOwner(managedWorkspace.role);
     if (customInstructions === null) {

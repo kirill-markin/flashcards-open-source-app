@@ -35,6 +35,21 @@ export function handleWorkspaceExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>(rows);
   }
 
+  if (text === "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 AND role = 'owner' ORDER BY workspace_id") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const rows = [...state.workspaces.keys()]
+      .filter((workspaceId) => state.workspaceMembershipRoles.get(membershipKey(userId, workspaceId)) === "owner")
+      .sort()
+      .map((workspaceId) => ({ workspace_id: workspaceId } as unknown as Row));
+    return createQueryResult<Row>(rows);
+  }
+
+  if (text === "SELECT custom_instructions FROM ai.workspace_chat_instructions WHERE workspace_id = $1") {
+    scope.requireCurrentWorkspaceScope(String(state.currentUserId), String(params[0]));
+    return createQueryResult<Row>([]);
+  }
+
   if (text.includes("pg_advisory_xact_lock") && text.includes("hashtextextended")) {
     const userId = params[0];
     const workspaceId = params[1];

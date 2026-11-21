@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsS
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScopeChangedException
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 
 sealed interface AiChatCustomInstructionsLoadState {
     data object Loading : AiChatCustomInstructionsLoadState
+    data object Unavailable : AiChatCustomInstructionsLoadState
     data class Failed(val technicalDetails: String) : AiChatCustomInstructionsLoadState
     data class Loaded(
         val scopeId: String,
@@ -52,8 +54,8 @@ class AiChatCustomInstructionsViewModel(
     )
     val uiState: StateFlow<AiChatCustomInstructionsUiState> = uiStateMutable.asStateFlow()
     private val reloadRequests = MutableStateFlow(value = 0)
-    /** The account and workspace the shown text was loaded for; saves go only there. */
     private var loadedScope: AiChatCustomInstructionsScope? = null
+    private var saveJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -61,23 +63,23 @@ class AiChatCustomInstructionsViewModel(
             combine(aiChatRepository.observeCustomInstructionsScope(), reloadRequests) { scope, _ -> scope }
                 .collectLatest { scope ->
                     if (scope == null) {
-                        showLoading()
+                        resetEditor(loadState = AiChatCustomInstructionsLoadState.Unavailable)
                     } else if (scope != loadedScope) {
-                        loadCurrent()
+                        loadCurrent(scope = scope)
                     }
                 }
         }
     }
 
     fun reload() {
-        showLoading()
+        resetEditor(loadState = AiChatCustomInstructionsLoadState.Loading)
         reloadRequests.update { count -> count + 1 }
     }
 
-    private suspend fun loadCurrent() {
-        showLoading()
+    private suspend fun loadCurrent(scope: AiChatCustomInstructionsScope) {
+        resetEditor(loadState = AiChatCustomInstructionsLoadState.Loading)
         try {
-            val (scope, instructions) = aiChatRepository.loadCurrentCustomInstructions()
+            val instructions = aiChatRepository.loadCustomInstructions(scope = scope)
             loadedScope = scope
             uiStateMutable.update { state ->
                 state.copy(
@@ -101,11 +103,12 @@ class AiChatCustomInstructionsViewModel(
         }
     }
 
-    private fun showLoading() {
+    private fun resetEditor(loadState: AiChatCustomInstructionsLoadState) {
+        saveJob?.cancel()
         loadedScope = null
         uiStateMutable.update { state ->
             state.copy(
-                loadState = AiChatCustomInstructionsLoadState.Loading,
+                loadState = loadState,
                 isSaving = false,
                 saveErrorDetails = null,
                 didSave = false
@@ -120,7 +123,7 @@ class AiChatCustomInstructionsViewModel(
             return
         }
         uiStateMutable.update { state -> state.copy(isSaving = true, saveErrorDetails = null) }
-        viewModelScope.launch {
+        saveJob = viewModelScope.launch {
             try {
                 aiChatRepository.saveCustomInstructions(scope = scope, customInstructions = text)
                 if (loadedScope == scope) {

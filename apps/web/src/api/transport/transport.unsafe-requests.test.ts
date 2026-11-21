@@ -1,12 +1,21 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
+import { writeBrowserGuestState } from "../../appData/session/guest/browserGuestStorage";
 import {
   createNewChatSessionResponse,
   createSessionResponse,
 } from "../ApiTestSupport";
 import { createNewChatSession, getCurrentChatSnapshot, stopChatRun } from "../endpoints/chat";
 import { ApiNetworkError } from "./errors";
-import { getSession, primeSessionCsrfToken } from "./transport";
+import {
+  allowAuthRecovery,
+  getSession,
+  primeSessionCsrfToken,
+  readBrowserGuestVerificationGeneration,
+  requestJson,
+  resumeVerifiedBrowserSession,
+  subscribeToBrowserGuestVerification,
+} from "./transport";
 import {
   createFailingJsonResponse,
   createTransportBackedChatSession,
@@ -92,6 +101,59 @@ describe("unsafe request session transport", () => {
       "http://localhost:8080/v1/chat/new?expectedAccountId=user-1",
       "http://localhost:8080/v1/chat?workspaceId=workspace-1&expectedAccountId=user-1",
     ]);
+  });
+
+  it("refuses to retry a guest settings write when CSRF recovery finds the same account signed in", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse(null))
+      .mockResolvedValueOnce(Response.json({
+        error: "Invalid X-CSRF-Token header",
+        code: "SESSION_CSRF_TOKEN_INVALID",
+      }, { status: 403 }))
+      .mockResolvedValueOnce(createSessionResponse({ csrfToken: "registered-csrf" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const registered = await getSession();
+    writeBrowserGuestState({
+      status: "owned",
+      owner: { userId: registered.userId, workspaceId: "workspace-1", initialSeedAllowed: false, pending: null },
+    });
+    resumeVerifiedBrowserSession({
+      ...registered,
+      authTransport: "guest",
+      csrfToken: "guest-csrf",
+      browserGuestCapabilities: {
+        isGuest: true,
+        platformFundedAi: true,
+        ownKeyAi: true,
+        requiresAccountLinking: true,
+      },
+    });
+    const generation = readBrowserGuestVerificationGeneration(registered.userId);
+    if (generation === null) throw new Error("Test setup could not verify the guest session");
+
+    const onVerificationChange = vi.fn();
+    const unsubscribe = subscribeToBrowserGuestVerification(onVerificationChange);
+    try {
+      await expect(requestJson("/workspaces/workspace-1/chat-instructions", {
+        method: "POST",
+        body: JSON.stringify({ customInstructions: "Use short sentences." }),
+      }, {
+        ...allowAuthRecovery,
+        expectedUserId: registered.userId,
+        expectedAuth: { kind: "guest", generation },
+      }, registered.userId)).rejects.toMatchObject({ name: "BrowserGuestSessionInvalidatedError" });
+    } finally {
+      unsubscribe();
+    }
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/workspaces/workspace-1/chat-instructions?expectedAccountId=user-1&expectedAuthKind=guest",
+      "http://localhost:8080/v1/me",
+    ]);
+    expect(readBrowserGuestVerificationGeneration(registered.userId)).toBeNull();
+    expect(onVerificationChange).toHaveBeenCalledExactlyOnceWith("identity_changed");
   });
 
   it("retries a failed stale-CSRF response body read with the shared network budget", async () => {

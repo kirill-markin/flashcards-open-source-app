@@ -853,6 +853,7 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     targetUserId: string;
     targetWorkspaceId: string;
     selectionType: GuestUpgradeSelectionType;
+    requestedExistingWorkspaceId: string | null;
     supportsDroppedEntities: boolean;
   }>,
 ): Promise<GuestMergeResult> {
@@ -950,6 +951,7 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
       targetUserId: params.targetUserId,
       targetWorkspaceId: params.targetWorkspaceId,
       selectionType: params.selectionType,
+      requestedExistingWorkspaceId: params.requestedExistingWorkspaceId,
       ...(finalizedDroppedEntities === undefined
         ? {}
         : { droppedEntities: finalizedDroppedEntities }),
@@ -1006,6 +1008,7 @@ export async function discardGuestDemoOnlyInExecutor(
       targetUserId: params.targetUserId,
       targetWorkspaceId: params.targetWorkspaceId,
       selectionType: "existing",
+      requestedExistingWorkspaceId: params.targetWorkspaceId,
       droppedEntities: {
         cardIds: [card.cardId],
         deckIds: [],

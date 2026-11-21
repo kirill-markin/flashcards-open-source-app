@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0251_workspace_chat_instructions.sql",
-    expectedMigrationCount: 253,
+    migrationFileName: "0253_chat_run_guest_session.sql",
+    expectedMigrationCount: 255,
     testFiles: Object.freeze([
       "src/chat/customInstructions.postgres.integration.ts",
       "src/chat/runs/canonicalOwner.postgres.integration.ts",

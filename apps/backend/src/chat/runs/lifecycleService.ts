@@ -10,8 +10,12 @@ import {
   addBackendBreadcrumb,
   createBackendObservationScope,
 } from "../../observability/sentry";
+import { loadWorkspaceChatInstructionsWithExecutor } from "../../workspaces/chatInstructions";
 import { ChatRunRowNotFoundError, ChatSessionNotCurrentError } from "../errors";
-import { loadWorkspaceChatInstructionsWithExecutor } from "../customInstructions";
+import {
+  isEligibleChatGuestInExecutor,
+  type ChatGuestCredential,
+} from "../customInstructions";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
@@ -81,6 +85,7 @@ import {
   requireRunRow,
   selectChatRunBySessionRequestWithExecutor,
   selectChatRunForUpdateWithExecutor,
+  selectChatRunWithExecutor,
   selectSessionForUpdateWithExecutor,
   touchClaimedChatRunHeartbeatWithExecutor,
   updateChatRunPolicySnapshotWithExecutor,
@@ -174,6 +179,7 @@ export async function prepareChatRun(
   assertAiUsageAllowance: (executor: DatabaseExecutor, sessionId: string) => Promise<void>,
   aiConsentId?: string | null,
   browserGuestTrial?: BrowserGuestTrialContext,
+  guestCredential?: ChatGuestCredential,
 ): Promise<PreparedChatRun> {
   const observationScope = createBackendObservationScope(
     "backend-api",
@@ -193,6 +199,8 @@ export async function prepareChatRun(
     if (browserGuestTrial !== undefined) {
       await acquireBrowserGuestTrialLifecycleInExecutor(executor, browserGuestTrial);
     }
+    const initiatingGuestSessionId = guestCredential !== undefined
+      && await isEligibleChatGuestInExecutor(executor, userId, guestCredential) ? guestCredential.sessionId : null;
     const scope = { userId, workspaceId };
     const session = requestedSessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
@@ -262,6 +270,7 @@ export async function prepareChatRun(
       uiLocale,
       turnInput: storedContent,
       initiatingAuthIsSignedIn,
+      initiatingGuestSessionId,
       browserGuestAiTrial: browserGuestTrial !== undefined,
       clientPlatform,
       clientOsName,
@@ -319,6 +328,13 @@ export async function claimChatRun(
   runId: string,
 ): Promise<ClaimedChatRun | null> {
   return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
+    // Account and credential locks precede domain row locks, as in guest conversion.
+    const queuedRun = await selectChatRunWithExecutor(executor, scope, runId);
+    if (queuedRun === null) return null;
+    const guestSessionId = queuedRun.initiating_guest_session_id;
+    const guestCanReadInstructions = guestSessionId !== null
+      && await isEligibleChatGuestInExecutor(executor, scope.userId, { sessionId: guestSessionId });
+
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
     if (run === null) {
       return null;
@@ -365,7 +381,9 @@ export async function claimChatRun(
     );
 
     const messages = await buildLocalMessagesForClaimedRun(executor, scope, claimedRun.session_id, claimedRun.assistant_item_id);
-    const customInstructions = claimedRun.initiating_auth_is_signed_in
+    const authorizedGuestInstructionsSessionId = guestCanReadInstructions
+      && claimedRun.initiating_guest_session_id === guestSessionId ? guestSessionId : null;
+    const customInstructions = claimedRun.initiating_auth_is_signed_in || authorizedGuestInstructionsSessionId !== null
       ? await loadWorkspaceChatInstructionsWithExecutor(executor, scope.workspaceId)
       : null;
     // The policy mode is the stable producer/worker contract across rolling
@@ -391,6 +409,8 @@ export async function claimChatRun(
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
       browserGuestAiTrial: claimedRun.browser_guest_ai_trial === true,
       aiConsentId: claimedRun.ai_consent_event_id ?? null,
+      initiatingGuestSessionId: claimedRun.initiating_guest_session_id,
+      authorizedGuestInstructionsSessionId,
       clientPlatform: claimedRun.client_platform,
       clientOsName: claimedRun.client_os_name,
       clientDeviceType: claimedRun.client_device_type,

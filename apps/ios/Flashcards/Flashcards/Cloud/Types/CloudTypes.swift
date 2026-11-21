@@ -201,6 +201,8 @@ struct CloudLinkedSession: Hashable, Sendable {
     let configurationMode: CloudServiceConfigurationMode
     let apiBaseUrl: String
     let authorization: CloudAuthorization
+    // Carried on the session copy sent to AI so late chat envelopes retain their request context.
+    var aiRequestSyncGeneration: UUID? = nil
 
     var authorizationHeaderValue: String {
         self.authorization.headerValue

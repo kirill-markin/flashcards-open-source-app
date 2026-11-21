@@ -130,6 +130,16 @@ class CloudGuestSessionCoordinator(
         }
     }
 
+    internal suspend fun loadWorkspaceGuestSession(workspaceId: String): StoredGuestAiSession? = withContext(Dispatchers.IO) {
+        if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
+            return@withContext null
+        }
+        guestSessionStore.loadSession(
+            localWorkspaceId = workspaceId,
+            configuration = preferencesStore.currentServerConfiguration()
+        )
+    }
+
     internal suspend fun reconcilePersistedCloudState(): CloudIdentityReconciliationResult {
         return operationCoordinator.runExclusive {
             reconcilePersistedCloudStateLocked()

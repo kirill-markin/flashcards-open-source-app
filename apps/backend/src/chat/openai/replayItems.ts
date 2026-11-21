@@ -244,19 +244,19 @@ export function normalizeStoredOpenAIReplayItems(
 }
 
 /**
- * Drops the reasoning and compaction items of earlier turns that the other key produced. Their encrypted_content
- * belongs to the OpenAI organization that produced it, and a session can switch between the platform key and the
- * person's own key from one turn to the next. The turns' messages and tool calls are kept, as when normalization
- * drops a reasoning item it cannot replay, so replay then starts at an earlier compaction item of this key or none.
+ * Encrypted items belong to the OpenAI organization that produced them. Replay may also need to drop all
+ * encrypted context when no key is authorized. The turns' messages and tool calls are kept.
  */
-export function dropHistoryEncryptedItemsFromOtherKey(
+export function filterEncryptedHistoryForKey(
   messages: ReadonlyArray<ServerChatMessage>,
-  userSuppliedKey: boolean,
+  allowedUserSuppliedKey: boolean | null,
 ): Readonly<{
   messages: ReadonlyArray<ServerChatMessage>;
+  hasEncryptedItems: boolean;
   droppedReasoningItems: number;
   droppedCompactionItems: number;
 }> {
+  let hasEncryptedItems = false;
   let droppedReasoningItems = 0;
   let droppedCompactionItems = 0;
   const keptMessages = messages.map((message) => {
@@ -267,7 +267,8 @@ export function dropHistoryEncryptedItemsFromOtherKey(
       if (item.type !== "reasoning" && item.type !== "compaction") {
         return true;
       }
-      if ((item.user_supplied_key === true) === userSuppliedKey) {
+      if ((item.user_supplied_key === true) === allowedUserSuppliedKey) {
+        hasEncryptedItems = true;
         return true;
       }
       if (item.type === "reasoning") {
@@ -279,7 +280,7 @@ export function dropHistoryEncryptedItemsFromOtherKey(
     });
     return { ...message, openaiItems };
   });
-  return { messages: keptMessages, droppedReasoningItems, droppedCompactionItems };
+  return { messages: keptMessages, hasEncryptedItems, droppedReasoningItems, droppedCompactionItems };
 }
 
 function findLatestCompactionItemIndex(

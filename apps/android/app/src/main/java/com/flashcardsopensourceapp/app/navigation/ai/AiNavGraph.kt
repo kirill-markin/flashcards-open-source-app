@@ -20,7 +20,6 @@ import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
@@ -37,6 +36,7 @@ import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryReaderState
 import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryRoute
 import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryViewModel
 import com.flashcardsopensourceapp.feature.ai.history.createAiChatHistoryViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.ai.AiChatCustomInstructionsLoadState
 import com.flashcardsopensourceapp.feature.settings.ai.AiChatCustomInstructionsRoute
 import com.flashcardsopensourceapp.feature.settings.ai.AiChatCustomInstructionsViewModel
 import com.flashcardsopensourceapp.feature.settings.ai.createAiChatCustomInstructionsViewModelFactory
@@ -67,10 +67,13 @@ internal fun NavGraphBuilder.registerAiChatCustomInstructionsDestination(
     destination: AiChatCustomInstructionsDestination
 ) {
     composable(route = destination.route) { backStackEntry ->
-        val cloudSettingsFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeCloudSettings() }
-        val cloudSettings by cloudSettingsFlow.collectAsStateWithLifecycle(initialValue = null)
-        val settings = cloudSettings ?: return@composable
-        if (settings.cloudState != CloudAccountState.LINKED) {
+        val customInstructionsViewModel = viewModel<AiChatCustomInstructionsViewModel>(
+            factory = createAiChatCustomInstructionsViewModelFactory(
+                aiChatRepository = appGraph.aiChatRepository
+            )
+        )
+        val uiState by customInstructionsViewModel.uiState.collectAsStateWithLifecycle()
+        if (uiState.loadState == AiChatCustomInstructionsLoadState.Unavailable) {
             LaunchedEffect(backStackEntry) {
                 if (navController.currentBackStackEntry == backStackEntry) {
                     navController.popBackStack()
@@ -78,13 +81,6 @@ internal fun NavGraphBuilder.registerAiChatCustomInstructionsDestination(
             }
             return@composable
         }
-
-        val customInstructionsViewModel = viewModel<AiChatCustomInstructionsViewModel>(
-            factory = createAiChatCustomInstructionsViewModelFactory(
-                aiChatRepository = appGraph.aiChatRepository
-            )
-        )
-        val uiState by customInstructionsViewModel.uiState.collectAsStateWithLifecycle()
 
         AiChatCustomInstructionsRoute(
             uiState = uiState,
@@ -124,6 +120,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
         val cloudSettings by cloudSettingsFlow.collectAsStateWithLifecycle(initialValue = null)
         val configurationFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeServerConfiguration() }
         val configuration by configurationFlow.collectAsStateWithLifecycle(initialValue = null)
+        val instructionsScopeFlow = remember(appGraph) { appGraph.aiChatRepository.observeCustomInstructionsScope() }
+        val instructionsScope by instructionsScopeFlow.collectAsStateWithLifecycle(initialValue = null)
         LaunchedEffect(
             importRequest?.requestId,
             cloudSettings?.installationId,
@@ -241,14 +239,12 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                     launchSingleTop = true
                 }
             },
-            onOpenCustomInstructions = if (cloudSettings?.cloudState == CloudAccountState.LINKED) {
+            onOpenCustomInstructions = instructionsScope?.takeIf { it.workspaceId == uiState.workspaceId }?.let {
                 {
                     navController.navigate(route = AiChatCustomInstructionsDestination.AI.route) {
                         launchSingleTop = true
                     }
                 }
-            } else {
-                null
             },
             onOpenAccountStatus = {
                 navController.navigate(

@@ -69,6 +69,8 @@ export type ChatRunDiagnostics = Readonly<{
 export type ClaimedChatRun = Readonly<{
   browserGuestAiTrial?: boolean;
   aiConsentId?: string | null;
+  initiatingGuestSessionId: string | null;
+  authorizedGuestInstructionsSessionId: string | null;
   runId: string;
   claimToken: ChatRunClaimToken;
   sessionId: string;

@@ -3,6 +3,7 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../database";
+import { isEligibleChatGuestInExecutor, type ChatGuestCredential } from "../customInstructions";
 import {
   recoverStaleRunWithExecutor,
 } from "./finalization";
@@ -50,12 +51,15 @@ async function readRecoveredChatSessionSnapshotWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string | undefined,
+  guestCredential: ChatGuestCredential | undefined,
 ): Promise<ChatSessionSnapshot> {
+  const includeCustomInstructions = guestCredential === undefined
+    || await isEligibleChatGuestInExecutor(executor, scope.userId, guestCredential);
   const session = sessionId === undefined
     ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
     : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionId);
   if (session.status !== "running") {
-    const snapshot = await getChatSessionSnapshotWithExecutor(executor, scope, session.session_id);
+    const snapshot = await getChatSessionSnapshotWithExecutor(executor, scope, session.session_id, includeCustomInstructions);
     if (snapshot.runState !== "running") {
       return snapshot;
     }
@@ -63,15 +67,16 @@ async function readRecoveredChatSessionSnapshotWithExecutor(
 
   const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, session.session_id);
   await recoverStaleRunWithExecutor(executor, scope, lockedSession);
-  return getChatSessionSnapshotWithExecutor(executor, scope, session.session_id);
+  return getChatSessionSnapshotWithExecutor(executor, scope, session.session_id, includeCustomInstructions);
 }
 
 async function readRecoveredChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string | undefined,
+  guestCredential: ChatGuestCredential | undefined,
 ): Promise<RecoveredChatSession> {
-  const snapshot = await readRecoveredChatSessionSnapshotWithExecutor(executor, scope, sessionId);
+  const snapshot = await readRecoveredChatSessionSnapshotWithExecutor(executor, scope, sessionId, guestCredential);
   return {
     snapshot,
     latestMessagesPage: snapshot.runState === "running"
@@ -87,9 +92,10 @@ export async function getRecoveredChatSessionSnapshot(
   userId: string,
   workspaceId: string,
   sessionId?: string,
+  guestCredential?: ChatGuestCredential,
 ): Promise<ChatSessionSnapshot> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    readRecoveredChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId));
+    readRecoveredChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId, guestCredential));
 }
 
 /**
@@ -99,9 +105,10 @@ export async function getRecoveredChatSession(
   userId: string,
   workspaceId: string,
   sessionId: string | undefined,
+  guestCredential?: ChatGuestCredential,
 ): Promise<RecoveredChatSession> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    readRecoveredChatSessionWithExecutor(executor, { userId, workspaceId }, sessionId));
+    readRecoveredChatSessionWithExecutor(executor, { userId, workspaceId }, sessionId, guestCredential));
 }
 
 /**
@@ -113,10 +120,11 @@ export async function getRecoveredPaginatedSession(
   sessionId: string | undefined,
   limit: number,
   beforeCursor: number | undefined,
+  guestCredential?: ChatGuestCredential,
 ): Promise<RecoveredPaginatedSession> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
-    const recoveredSession = await readRecoveredChatSessionWithExecutor(executor, scope, sessionId);
+    const recoveredSession = await readRecoveredChatSessionWithExecutor(executor, scope, sessionId, guestCredential);
     const resolvedSessionId = recoveredSession.snapshot.sessionId;
     const page = beforeCursor === undefined
       ? await listChatMessagesLatestWithExecutor(executor, scope, resolvedSessionId, limit)

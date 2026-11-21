@@ -2,85 +2,118 @@ import Foundation
 
 extension AIChatStore {
     var currentCustomInstructionsScope: AIChatCustomInstructionsScope? {
-        guard self.flashcardsStore.cloudSettings?.cloudState == .linked,
-              let userId = self.flashcardsStore.cloudSettings?.linkedUserId,
-              let workspaceId = self.flashcardsStore.workspace?.workspaceId else {
+        guard let settings = self.flashcardsStore.cloudSettings,
+              settings.cloudState == .linked || settings.cloudState == .guest,
+              let userId = settings.linkedUserId, userId.isEmpty == false,
+              let workspaceId = settings.activeWorkspaceId ?? settings.linkedWorkspaceId,
+              self.flashcardsStore.workspace?.workspaceId == workspaceId else {
             return nil
         }
-        return AIChatCustomInstructionsScope(userId: userId, workspaceId: workspaceId)
+        let isGuest = settings.cloudState == .guest
+        let generation = self.flashcardsStore.cloudRuntime.syncGeneration
+        guard self.flashcardsStore.cloudRuntime.isCurrentSyncGeneration(generation),
+              isGuest == false || (self.flashcardsStore.isGuestUpgradeBlockingLocalOutboxMutations == false
+                  && self.flashcardsStore.isCloudCredentialRecoveryRequired == false) else {
+            return nil
+        }
+        return AIChatCustomInstructionsScope(
+            userId: userId,
+            workspaceId: workspaceId,
+            isGuest: isGuest,
+            syncGeneration: generation
+        )
     }
 
-    /// Nil while the current account and workspace have no known value yet.
     var currentCustomInstructionsReading: AIChatCustomInstructionsReading? {
-        guard let scope = self.currentCustomInstructionsScope else {
+        guard let reading = self.customInstructionsReading,
+              reading.scope == self.currentCustomInstructionsScope else {
             return nil
         }
-        return self.customInstructionsReadings[scope]
+        return reading
     }
 
-    /// Keeps the newest reading per scope, so a late response for an older request or workspace changes nothing current.
     func applyCustomInstructionsReading(_ reading: AIChatCustomInstructionsReading?) {
-        guard let reading else {
+        guard let reading, reading.scope == self.currentCustomInstructionsScope else {
             return
         }
-        if let current = self.customInstructionsReadings[reading.scope], current.observedAt >= reading.observedAt {
+        if let current = self.customInstructionsReading,
+           current.scope == reading.scope, current.observedAt >= reading.observedAt {
             return
         }
-        self.customInstructionsReadings[reading.scope] = reading
+        self.customInstructionsReading = reading
     }
 
-    func loadCustomInstructions() async throws -> (
-        response: AIChatCustomInstructionsResponse,
-        scope: AIChatCustomInstructionsScope
-    ) {
-        guard let scope = self.currentCustomInstructionsScope else {
-            throw CancellationError()
-        }
+    func loadCustomInstructions(scope: AIChatCustomInstructionsScope) async throws -> AIChatCustomInstructionsResponse {
         let session = try await self.customInstructionsSession(for: scope)
+        try self.checkCustomInstructionsSession(session, scope: scope)
         let requestedAt = ContinuousClock.now
         let response = try await self.chatService.loadCustomInstructions(session: session)
-        let reading = AIChatCustomInstructionsReading(
-            session: session,
+        try self.checkCustomInstructionsSession(session, scope: scope)
+        self.applyCustomInstructionsReading(AIChatCustomInstructionsReading(
+            scope: scope,
             text: response.customInstructions,
             observedAt: requestedAt
-        )
-        self.applyCustomInstructionsReading(reading)
-        return (response, reading.scope)
+        ))
+        return response
     }
 
-    /// Blank text clears the value. A draft loaded for another account or workspace is never saved over the
-    /// current one: the save is cancelled and the editor reloads for the new scope.
     func saveCustomInstructions(
         text: String,
         loadedScope: AIChatCustomInstructionsScope
-    ) async throws -> AIChatCustomInstructionsResponse {
+    ) async throws {
         let session = try await self.customInstructionsSession(for: loadedScope)
+        try self.checkCustomInstructionsSession(session, scope: loadedScope)
         let isBlank = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let response = try await self.chatService.saveCustomInstructions(
             session: session,
             customInstructions: isBlank ? nil : text
         )
+        try self.checkCustomInstructionsSession(session, scope: loadedScope)
         self.applyCustomInstructionsReading(AIChatCustomInstructionsReading(
-            session: session,
+            scope: loadedScope,
             text: response.customInstructions,
             observedAt: ContinuousClock.now
         ))
-        return response
     }
 
     private func customInstructionsSession(for scope: AIChatCustomInstructionsScope) async throws -> CloudLinkedSession {
+        try Task.checkCancellation()
         guard self.currentCustomInstructionsScope == scope else {
             throw CancellationError()
         }
         if case .blocked(let message) = self.flashcardsStore.syncStatus {
             throw LocalStoreError.validation(message)
         }
-        let session = try await self.flashcardsStore.prepareAuthenticatedCloudSessionForAI()
-        guard self.currentCustomInstructionsScope == scope,
-              session.userId == scope.userId,
-              session.workspaceId == scope.workspaceId else {
-            throw CancellationError()
+        let session: CloudLinkedSession
+        if scope.isGuest {
+            try self.flashcardsStore.throwIfCloudCredentialRecoveryRequired()
+            try self.flashcardsStore.throwIfCustomGuestWorkspacePaused()
+            guard let guest = try self.flashcardsStore.loadUsableGuestSessionForCurrentConfiguration(),
+                  guest.userId == scope.userId,
+                  guest.workspaceId == scope.workspaceId else {
+                throw LocalStoreError.uninitialized("Guest cloud session is unavailable for the current workspace")
+            }
+            guard let existingSession = try await self.flashcardsStore.cloudSessionForAccountContextRefresh() else {
+                throw CancellationError()
+            }
+            session = existingSession
+        } else {
+            session = try await self.flashcardsStore.cloudSessionForAI()
         }
         return session
+    }
+
+    private func checkCustomInstructionsSession(
+        _ session: CloudLinkedSession,
+        scope: AIChatCustomInstructionsScope
+    ) throws {
+        try self.flashcardsStore.cloudRuntime.checkSyncGeneration(scope.syncGeneration)
+        try self.flashcardsStore.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: session)
+        guard self.currentCustomInstructionsScope == scope,
+              session.userId == scope.userId,
+              session.workspaceId == scope.workspaceId,
+              session.authorization.isGuest == scope.isGuest else {
+            throw CancellationError()
+        }
     }
 }

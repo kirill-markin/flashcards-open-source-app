@@ -11,10 +11,12 @@ import { insertProductAnalyticsIdentityLinkInExecutor } from "../../productAnaly
 import { HttpError } from "../../shared/errors";
 import {
   guestOwnsUpgradeTransferableDataInExecutor,
+  guestOwnsWorkspaceChatInstructionsInExecutor,
   loadGuestSessionRecordWithUserSettingsLockInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
+  tryLockGuestAccountWriterFenceInExecutor,
 } from "../store/index";
 
 function createGuestOwnsTransferableDataError(): HttpError {
@@ -103,6 +105,11 @@ export async function linkGuestAnalyticsIdentityInExecutor(
   }
   const accountMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   if (accountMapping === null) throw createGuestIdentityLinkAccountRequiredError();
+  if (accountMapping.userId !== unlockedGuestSession.userId
+      && !await tryLockGuestAccountWriterFenceInExecutor(executor, unlockedGuestSession.userId)) {
+    throw new HttpError(409, "Guest writes are still active. Retry linking after they finish.",
+      "GUEST_IDENTITY_LINK_GUEST_BUSY");
+  }
   await lockAccountLifecyclesInExecutor(executor, [accountMapping.userId, unlockedGuestSession.userId]);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const guestSession = await loadGuestSessionRecordWithUserSettingsLockInExecutor(executor, guestToken);
@@ -153,6 +160,9 @@ export async function linkGuestAnalyticsIdentityInExecutor(
   // moves that data onto the account. Revoking its session here would leave the rows behind a user
   // no credential can reach any more, and no path recovers them. Web guests and analytics-only
   // mobile guests own nothing, so this costs nothing on the paths that call this route.
+  if (await guestOwnsWorkspaceChatInstructionsInExecutor(executor, guestSession.userId)) {
+    throw createGuestOwnsTransferableDataError();
+  }
   const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.userId);
   if (await guestOwnsUpgradeTransferableDataInExecutor(executor, guestSession.userId, guestWorkspaceId)) {
     throw createGuestOwnsTransferableDataError();

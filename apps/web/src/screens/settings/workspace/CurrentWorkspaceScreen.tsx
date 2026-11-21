@@ -12,7 +12,7 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../../appError/AppErrorContext";
-import { getWorkspaceChatInstructionsAccountId } from "../../../chat/customInstructions/workspaceChatInstructionsStore";
+import { useWorkspaceChatInstructionsScope } from "../../../chat/customInstructions/workspaceChatInstructionsStore";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { addWebBreadcrumb } from "../../../observability/webObservability";
@@ -58,7 +58,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
-  const canOpenChatInstructions = getWorkspaceChatInstructionsAccountId(session, sessionVerificationState) !== null;
+  const instructionsScope = useWorkspaceChatInstructionsScope(session, sessionVerificationState, activeWorkspace?.workspaceId ?? null);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const workspaceManagementState = isWorkspaceLocked ? "locked" : "ready";
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
@@ -372,7 +372,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
             />
           </div>
         </SettingsGroup>
-        {canOpenChatInstructions ? (
+        {instructionsScope !== null ? (
           <SettingsGroup>
             <div className="settings-nav-list">
               <SettingsNavigationCard

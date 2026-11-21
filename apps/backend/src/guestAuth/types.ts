@@ -83,6 +83,7 @@ export type GuestUpgradeHistoryWrite = Readonly<{
   targetUserId: string;
   targetWorkspaceId: string;
   selectionType: GuestUpgradeSelectionType;
+  requestedExistingWorkspaceId: string | null;
   droppedEntities?: GuestUpgradeDroppedEntities;
   replicaIdMap: ReadonlyMap<string, string>;
 }>;

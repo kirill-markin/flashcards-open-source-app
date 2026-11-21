@@ -8,6 +8,12 @@ export const guestSessionBindingExpiredSql = `EXISTS (
     AND user_identities.created_at < now() - interval '7 days'
 )`;
 
+export const guestSessionBoundToAccountSql = `(auth.canonical_account_id(guest_sessions.user_id) <> guest_sessions.user_id
+  OR EXISTS (
+    SELECT 1 FROM auth.user_identities WHERE provider_type = 'cognito'
+      AND (original_client_user_id = guest_sessions.user_id OR user_id = guest_sessions.user_id)
+  ))`;
+
 // $1 is the credential session; $2 is its trusted owner under the current survivor scope.
 export const activeGuestSessionOwnerPredicateSql = `session_id = $1::uuid
   AND auth.canonical_account_id(guest_sessions.user_id) = $2

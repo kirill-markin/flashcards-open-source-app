@@ -167,6 +167,7 @@ export type GuestUpgradeHistoryState = Readonly<{
   target_user_id: string;
   target_workspace_id: string;
   selection_type: string;
+  requested_existing_workspace_id?: string | null;
   dropped_entities: Readonly<{
     cardIds: ReadonlyArray<string>;
     deckIds: ReadonlyArray<string>;

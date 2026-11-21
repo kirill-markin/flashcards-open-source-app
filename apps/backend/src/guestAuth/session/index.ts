@@ -16,7 +16,7 @@ import {
 } from "../../workspaces/state";
 import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analyticsConsentColumn";
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
-import { guestSessionBindingExpiredSql, hashGuestToken } from "../shared";
+import { guestSessionBindingExpiredSql, guestSessionBoundToAccountSql, hashGuestToken } from "../shared";
 import { loadGuestWorkspaceIdInExecutor } from "../store/index";
 import type { GuestSessionCreation, GuestSessionPlatform, GuestSessionPurpose, GuestSessionSnapshot } from "../types";
 
@@ -89,10 +89,7 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
         [
           "SELECT session_id, user_id, platform, purpose, analytics_consent, product_analytics_enabled,",
           "revoked_at,",
-          "(auth.canonical_account_id(user_id) <> user_id OR EXISTS (",
-          "SELECT 1 FROM auth.user_identities WHERE provider_type = 'cognito'",
-          "AND (original_client_user_id = guest_sessions.user_id OR user_id = guest_sessions.user_id)",
-          ")) AS bound_to_account,",
+          `${guestSessionBoundToAccountSql} AS bound_to_account,`,
           `${guestSessionBindingExpiredSql} AS bound_past_grace_period`,
           "FROM auth.guest_sessions",
           "WHERE session_secret_hash = $1",

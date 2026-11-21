@@ -14,6 +14,7 @@ type GuestUpgradeHistoryReplayRow = Readonly<{
   canonical_target_user_id: string;
   target_workspace_id: string;
   selection_type: GuestUpgradeSelectionType;
+  requested_existing_workspace_id: string | null;
   dropped_entities: GuestUpgradeDroppedEntities | null;
 }>;
 
@@ -25,6 +26,7 @@ export type GuestUpgradeReplayRecord = Readonly<{
   canonicalTargetUserId: string;
   targetWorkspaceId: string;
   selectionType: GuestUpgradeSelectionType;
+  requestedExistingWorkspaceId: string | null;
   droppedEntities?: GuestUpgradeDroppedEntities;
 }>;
 
@@ -37,6 +39,8 @@ function mapGuestUpgradeReplayRecord(row: GuestUpgradeHistoryReplayRow): GuestUp
     canonicalTargetUserId: row.canonical_target_user_id,
     targetWorkspaceId: row.target_workspace_id,
     selectionType: row.selection_type,
+    requestedExistingWorkspaceId: row.selection_type === "existing"
+      ? row.requested_existing_workspace_id ?? row.target_workspace_id : null,
     ...(row.dropped_entities === null
       ? {}
       : { droppedEntities: row.dropped_entities }),
@@ -50,7 +54,8 @@ export async function loadGuestUpgradeReplayInExecutor(
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
       "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
-      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, selection_type, dropped_entities",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id,",
+      "selection_type, requested_existing_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_id = $1",
       "LIMIT 1",
@@ -69,7 +74,8 @@ export async function loadGuestUpgradeReplayByGuestTokenInExecutor(
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
       "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
-      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, selection_type, dropped_entities",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id,",
+      "selection_type, requested_existing_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_secret_hash = $1",
       "LIMIT 1",
@@ -91,9 +97,9 @@ export async function recordGuestUpgradeHistoryInExecutor(
       "(",
       "upgrade_id, source_guest_user_id, source_guest_workspace_id, source_guest_session_id,",
       "source_guest_session_secret_hash, target_subject_user_id, target_user_id, target_workspace_id,",
-      "selection_type, dropped_entities",
+      "selection_type, requested_existing_workspace_id, dropped_entities",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)",
     ].join(" "),
     [
       history.upgradeId,
@@ -105,6 +111,7 @@ export async function recordGuestUpgradeHistoryInExecutor(
       history.targetUserId,
       history.targetWorkspaceId,
       history.selectionType,
+      history.requestedExistingWorkspaceId,
       history.droppedEntities === undefined
         ? null
         : JSON.stringify(history.droppedEntities),

@@ -13,7 +13,7 @@ import {
   readActiveOwnOpenAIKey,
 } from "../../chat/preferences/ownOpenAIKeyStorage";
 import {
-  beginWorkspaceChatInstructionsRequest,
+  beginChatSnapshotInstructionsRequest,
   recordWorkspaceChatInstructions,
 } from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import { webAppVersion } from "../../clientIdentity";
@@ -37,8 +37,8 @@ import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
-  getCachedSessionAccountId,
   requestJson,
+  type RequestOptions,
 } from "../transport/transport";
 
 type ChatResumeRequestDiagnostics = Readonly<{
@@ -56,13 +56,16 @@ function buildOwnOpenAIKeyHeaders(): Record<string, string> {
 async function recordingCustomInstructions<Response extends Readonly<{ customInstructions: string | null }>>(
   workspaceId: string | undefined,
   expectedAccountId: string | null,
-  request: () => Promise<Response>,
+  request: (options: RequestOptions) => Promise<Response>,
 ): Promise<Response> {
-  const token = workspaceId === undefined || expectedAccountId === null
-    ? null
-    : beginWorkspaceChatInstructionsRequest(expectedAccountId, workspaceId);
-  const response = await request();
-  if (token !== null && getCachedSessionAccountId() === expectedAccountId) {
+  const token = beginChatSnapshotInstructionsRequest(expectedAccountId, workspaceId);
+  const options = token === null ? allowAuthRecoveryWithTransientNetworkRetry : {
+    ...allowAuthRecoveryWithTransientNetworkRetry,
+    expectedUserId: token.scope.userId,
+    expectedAuth: token.scope.auth,
+  };
+  const response = await request(options);
+  if (token !== null) {
     recordWorkspaceChatInstructions(token, response.customInstructions, "read");
   }
   return response;
@@ -82,10 +85,10 @@ export async function getCurrentChatSnapshot(
   expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async (options) => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
+  }, options, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getChatSnapshot(
@@ -94,10 +97,10 @@ export async function getChatSnapshot(
   signal: AbortSignal,
   expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
-  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async (options) => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
+  }, options, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 function buildChatResumeDiagnosticsHeaders(diagnostics: ChatResumeRequestDiagnostics): Record<string, string> {
@@ -115,11 +118,11 @@ export async function getChatSnapshotWithResumeDiagnostics(
   signal: AbortSignal,
   expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
-  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async (options) => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
+  }, options, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getCurrentChatSnapshotWithResumeDiagnostics(
@@ -129,11 +132,11 @@ export async function getCurrentChatSnapshotWithResumeDiagnostics(
   expectedAccountId: string | null,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async (options) => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
+  }, options, expectedAccountId), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function listChatSessions(
@@ -192,6 +195,7 @@ export async function archiveChatSession(
 async function requestStartChatRun(
   body: StartChatRunRequestBody,
   expectedAccountId: string | null,
+  options: RequestOptions,
 ): Promise<StartChatRunResponse> {
   return parseContractResponse(await requestJson("/chat", {
     method: "POST",
@@ -200,7 +204,7 @@ async function requestStartChatRun(
       ...buildOwnOpenAIKeyHeaders(),
     },
     body: JSON.stringify(body),
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "POST /chat", parseStartChatRunResponse);
+  }, options, expectedAccountId), "POST /chat", parseStartChatRunResponse);
 }
 
 /**
@@ -211,10 +215,10 @@ export async function startChatRun(
   body: StartChatRunRequestBody,
   expectedAccountId: string | null,
 ): Promise<StartChatRunResponse> {
-  return recordingCustomInstructions(body.workspaceId, expectedAccountId, async () => {
+  return recordingCustomInstructions(body.workspaceId, expectedAccountId, async (options) => {
     for (let attemptCount = 1; ; attemptCount += 1) {
       try {
-        return await requestStartChatRun(body, expectedAccountId);
+        return await requestStartChatRun(body, expectedAccountId, options);
       } catch (error) {
         if (
           error instanceof ApiError === false
@@ -246,10 +250,10 @@ export async function createNewChatSession(
     uiLocale,
   };
 
-  return recordingCustomInstructions(workspaceId, expectedAccountId, async () => parseContractResponse(await requestJson("/chat/new", {
+  return recordingCustomInstructions(workspaceId, expectedAccountId, async (options) => parseContractResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecoveryWithTransientNetworkRetry, expectedAccountId), "POST /chat/new", parseNewChatSessionResponse));
+  }, options, expectedAccountId), "POST /chat/new", parseNewChatSessionResponse));
 }
 
 export async function stopChatRun(

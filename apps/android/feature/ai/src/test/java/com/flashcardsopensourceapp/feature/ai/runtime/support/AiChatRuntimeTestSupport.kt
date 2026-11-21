@@ -462,7 +462,14 @@ internal class FakeAiChatRepository : AiChatRepository {
         return AiChatPreparedRemoteSession(
             workspaceId = workspaceId ?: "",
             apiBaseUrl = "https://api.example.test",
-            authorizationHeader = "Guest test-token"
+            authorizationHeader = "Guest test-token",
+            instructionsScope = AiChatCustomInstructionsScope(
+                workspaceId = workspaceId ?: "",
+                scopeId = "guest::test-user::${workspaceId.orEmpty()}",
+                userId = "test-user",
+                cloudState = CloudAccountState.GUEST,
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
         )
     }
 
@@ -784,7 +791,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         return flowOf(value = null)
     }
 
-    override suspend fun loadCurrentCustomInstructions(): Pair<AiChatCustomInstructionsScope, AiChatCustomInstructions> {
+    override suspend fun loadCustomInstructions(scope: AiChatCustomInstructionsScope): AiChatCustomInstructions {
         throw UnsupportedOperationException("Custom instructions are not used by the AI chat runtime tests.")
     }
 

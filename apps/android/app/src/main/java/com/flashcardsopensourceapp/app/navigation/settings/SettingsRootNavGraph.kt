@@ -555,8 +555,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsCurrentWorkspaceDestination.route) {
         val context = LocalContext.current
-        val workspaceFlow = remember(appGraph) { appGraph.workspaceRepository.observeWorkspace() }
-        val workspace by workspaceFlow.collectAsStateWithLifecycle(initialValue = null)
+        val instructionsScopeFlow = remember(appGraph) { appGraph.aiChatRepository.observeCustomInstructionsScope() }
+        val instructionsScope by instructionsScopeFlow.collectAsStateWithLifecycle(initialValue = null)
         val manageSignInMessage = stringResource(
             id = com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
         )
@@ -605,7 +605,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onRetryLastWorkspaceAction = {
                 currentWorkspaceViewModel.retryLastWorkspaceActionAsync()
             },
-            onOpenChatInstructions = workspace?.takeIf { uiState.isLinked }?.let {
+            onOpenChatInstructions = instructionsScope?.let {
                 {
                     navController.navigate(route = AiChatCustomInstructionsDestination.SETTINGS.route) {
                         launchSingleTop = true

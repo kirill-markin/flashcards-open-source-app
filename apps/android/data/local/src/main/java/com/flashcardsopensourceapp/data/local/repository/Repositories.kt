@@ -376,7 +376,8 @@ interface CloudAccountRepository {
 data class AiChatPreparedRemoteSession(
     val workspaceId: String,
     val apiBaseUrl: String,
-    val authorizationHeader: String
+    val authorizationHeader: String,
+    val instructionsScope: AiChatCustomInstructionsScope
 )
 
 data class AiChatPreparedImport(
@@ -490,8 +491,7 @@ interface AiChatRepository {
     fun observeCustomInstructions(workspaceId: String): Flow<String?>
     /** Changes whenever the account or the current workspace changes; null while no workspace is resolved. */
     fun observeCustomInstructionsScope(): Flow<AiChatCustomInstructionsScope?>
-    /** Authorizes first, so a fresh guest is provisioned and its workspace moved, then loads for the resulting current workspace and returns that scope. */
-    suspend fun loadCurrentCustomInstructions(): Pair<AiChatCustomInstructionsScope, AiChatCustomInstructions>
+    suspend fun loadCustomInstructions(scope: AiChatCustomInstructionsScope): AiChatCustomInstructions
     /** Blank text clears the instructions; throws [AiChatCustomInstructionsScopeChangedException] once [scope] is no longer current. */
     suspend fun saveCustomInstructions(
         scope: AiChatCustomInstructionsScope,

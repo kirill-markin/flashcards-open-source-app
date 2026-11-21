@@ -10,7 +10,6 @@ private enum AIChatCustomInstructionsLoadPhase: Equatable {
     case loaded(AIChatCustomInstructionsResponse, scope: AIChatCustomInstructionsScope)
 }
 
-/// Edits the current workspace's standing preferences for the in-app AI chat; saved online only.
 struct AIChatCustomInstructionsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
@@ -21,7 +20,7 @@ struct AIChatCustomInstructionsView: View {
     @State private var text: String
     @State private var savedText: String
     @State private var loadPhase: AIChatCustomInstructionsLoadPhase = .loading
-    @State private var isSaving: Bool = false
+    @State private var savingScope: AIChatCustomInstructionsScope? = nil
     @State private var saveErrorMessage: String? = nil
     @FocusState private var isFieldFocused: Bool
 
@@ -47,6 +46,11 @@ struct AIChatCustomInstructionsView: View {
         self.settings?.canEdit == true
     }
 
+    private var isSaving: Bool {
+        guard let savingScope = self.savingScope else { return false }
+        return savingScope == self.store.aiChatStore.currentCustomInstructionsScope
+    }
+
     private var isOverLimit: Bool {
         guard let maxLength = self.settings?.maxLength else {
             return false
@@ -68,6 +72,7 @@ struct AIChatCustomInstructionsView: View {
     }
 
     var body: some View {
+        let scope = self.store.aiChatStore.currentCustomInstructionsScope
         Form {
             Section {
                 if self.canEdit {
@@ -117,7 +122,7 @@ struct AIChatCustomInstructionsView: View {
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                     Button(aiSettingsLocalized("common.retry", "Retry")) {
-                        Task { await self.load() }
+                        Task { await self.load(scope: scope) }
                     }
                 }
             }
@@ -170,8 +175,8 @@ struct AIChatCustomInstructionsView: View {
             }
         }
         #endif
-        .task(id: self.store.aiChatStore.currentCustomInstructionsScope) {
-            await self.load()
+        .task(id: scope) {
+            await self.load(scope: scope)
         }
     }
 
@@ -194,16 +199,18 @@ struct AIChatCustomInstructionsView: View {
         }
     }
 
-    private func load() async {
+    private func load(scope: AIChatCustomInstructionsScope?) async {
+        guard Task.isCancelled == false,
+              scope == self.store.aiChatStore.currentCustomInstructionsScope else { return }
         self.loadPhase = .loading
         self.saveErrorMessage = nil
         self.isFieldFocused = false
-        guard self.store.aiChatStore.currentCustomInstructionsScope != nil else {
+        guard let scope else {
             self.dismiss()
             return
         }
         do {
-            let (response, scope) = try await self.store.aiChatStore.loadCustomInstructions()
+            let response = try await self.store.aiChatStore.loadCustomInstructions(scope: scope)
             try Task.checkCancellation()
             guard scope == self.store.aiChatStore.currentCustomInstructionsScope else {
                 return
@@ -214,10 +221,13 @@ struct AIChatCustomInstructionsView: View {
             if response.canEdit {
                 // The field appears on this update, so focus it on the next one.
                 await Task.yield()
-                self.isFieldFocused = self.canEdit && Task.isCancelled == false
+                if scope == self.store.aiChatStore.currentCustomInstructionsScope, Task.isCancelled == false {
+                    self.isFieldFocused = self.canEdit
+                }
             }
         } catch {
-            guard isRequestCancellationError(error: error) == false else {
+            guard Task.isCancelled == false,
+                  scope == self.store.aiChatStore.currentCustomInstructionsScope else {
                 return
             }
             captureAIChatHistoryFailure(
@@ -238,19 +248,22 @@ struct AIChatCustomInstructionsView: View {
             return
         }
 
-        self.isSaving = true
+        self.savingScope = loadedScope
         self.saveErrorMessage = nil
         self.isFieldFocused = false
         Task { @MainActor in
-            defer { self.isSaving = false }
+            defer {
+                if self.savingScope == loadedScope {
+                    self.savingScope = nil
+                }
+            }
             do {
-                _ = try await self.store.aiChatStore.saveCustomInstructions(text: text, loadedScope: loadedScope)
+                try await self.store.aiChatStore.saveCustomInstructions(text: text, loadedScope: loadedScope)
                 if loadedScope == self.store.aiChatStore.currentCustomInstructionsScope {
                     self.dismiss()
                 }
             } catch {
-                guard isRequestCancellationError(error: error) == false,
-                      loadedScope == self.store.aiChatStore.currentCustomInstructionsScope else {
+                guard loadedScope == self.store.aiChatStore.currentCustomInstructionsScope else {
                     return
                 }
                 captureAIChatHistoryFailure(

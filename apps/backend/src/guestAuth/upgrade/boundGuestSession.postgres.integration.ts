@@ -3,18 +3,25 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { unsafeTransaction } from "../../database/unsafe";
-import { applyWorkspaceDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
+import { applyWorkspaceDatabaseScopeInExecutor, transactionWithUserScope, transactionWithWorkspaceScope, type DatabaseExecutor, type SqlValue } from "../../database";
 import { upsertCardSnapshotInExecutor, submitReview, type CardSnapshotInput } from "../../cards";
 import { ensureWorkspaceReplicaInExecutor } from "../../sync/identity/replica";
-import { createBrowserGuestSession } from "../browser/session";
+import { loadUserProgressSeries, loadUserProgressSummary } from "../../progress";
+import { createBrowserGuestSession, loadBrowserGuestSession } from "../browser/session";
 import { linkProvedCognitoPrincipalInExecutor } from "../../auth/userIdentities";
 import { ensureCognitoUserProfile } from "../../auth/ensureUser";
 import { createWorkspaceInExecutor } from "../../workspaces/create";
+import { lockWorkspaceMembershipLifecyclesInExecutor } from "../../workspaces/accessLocks";
+import { loadWorkspaceChatInstructionsForUser, saveWorkspaceChatInstructionsForUser } from "../../chat/customInstructions";
 import { createFreshChatSessionWithExecutor } from "../../chat/store/sessionService";
 import {
   loadDemoOnlyDestinationWorkspaceIdInExecutor,
   loadGuestDemoOnlyCardInExecutor,
 } from "../store/demoOnly";
+import { linkGuestAnalyticsIdentityInExecutor } from "../identityLink";
+import { reapWebGuestInExecutor } from "../reaper";
+import { deleteGuestSessionInExecutor } from "../delete";
+import { hashGuestToken } from "../shared";
 import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
 import { parseAccountPreferencesInput } from "../../routes/system/support";
 import { HttpError } from "../../shared/errors";
@@ -23,6 +30,7 @@ import { loadPaywallState, recordPaywallShown, type PaywallShownInput } from "..
 import {
   authenticateGuestSession,
   completeGuestUpgrade,
+  completeGuestUpgradeInExecutor,
   completeBrowserGuestUpgrade,
   prepareBrowserGuestUpgrade,
   createGuestSession,
@@ -430,6 +438,8 @@ type DemoUpgradeFixture = Readonly<{
   targetWorkspaceId: string;
   replicaId: string;
   snapshot: CardSnapshotInput;
+  userIds: string[];
+  workspaceIds: string[];
 }>;
 
 async function withGuestUpgradeFixture(
@@ -478,7 +488,7 @@ async function withGuestUpgradeFixture(
     });
     await callback({
       ownerPool, guest, subject, targetUserId: target.userId,
-      targetWorkspaceId: target.selectedWorkspaceId, replicaId, snapshot,
+      targetWorkspaceId: target.selectedWorkspaceId, replicaId, snapshot, userIds, workspaceIds,
     });
   } finally {
     try {
@@ -845,6 +855,404 @@ test("browser demo-only disposal and lost-response preparation replay the same s
     await assert.rejects(
       completeBrowserGuestUpgrade(guest.guestToken, subject, { ...selection, workspaceId: randomUUID() }, UPGRADE_CAPABILITIES),
       (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_SELECTION_MISMATCH",
+    );
+  });
+});
+
+test("conflicting instructions preserve both destinations and transfer additional workspace access, sync, and progress", async () => {
+  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID(), null), async (fixture) => {
+    const { ownerPool, guest, subject, targetUserId, targetWorkspaceId, userIds, workspaceIds } = fixture;
+    const additionalId = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Guest archive", cause: "explicit" }));
+    const privateId = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Solo guest workspace", cause: "explicit" }));
+    workspaceIds.push(additionalId, privateId);
+    await saveWorkspaceChatInstructionsForUser(guest.userId, privateId, "A private workspace rule.");
+    const other = await ensureCognitoUserProfile(randomUUID(), null);
+    userIds.push(other.userId);
+    assert.ok(other.selectedWorkspaceId);
+    workspaceIds.push(other.selectedWorkspaceId);
+    await ownerPool.query(
+      "INSERT INTO org.workspace_memberships(workspace_id, user_id, role) VALUES ($1, $2, 'member'), ($1, $3, 'member')",
+      [additionalId, targetUserId, other.userId],
+    );
+    const installation = {
+      workspaceId: additionalId, installationId: randomUUID(), platform: "web", appVersion: null,
+      osName: null, deviceType: null, isAutomation: true, isTestDistribution: false,
+    } as const;
+    const card = { ...fixture.snapshot, cardId: randomUUID() };
+    const replicaId = await unsafeTransaction(async (executor) => {
+      const replica = await ensureWorkspaceReplicaInExecutor(executor, { ...installation, userId: guest.userId });
+      await upsertCardSnapshotInExecutor(executor, additionalId, card, {
+        clientUpdatedAt: card.createdAt, lastModifiedByReplicaId: replica, lastOperationId: randomUUID(),
+      });
+      return replica;
+    });
+    const timeZone = "UTC";
+    const reviewDay = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    async function addReview(userId: string, reviewReplicaId: string, rating: 0 | 1 | 2, reviewedAtClient: string): Promise<string> {
+      const reviewEventId = randomUUID();
+      await submitReview(userId, additionalId, reviewReplicaId, {
+        cardId: card.cardId, rating, reviewedAtClient, reviewedTimeZone: timeZone,
+        reviewEventId, clientEventId: randomUUID(),
+      }, { clientUpdatedAt: reviewedAtClient, lastModifiedByReplicaId: reviewReplicaId, lastOperationId: randomUUID() });
+      return reviewEventId;
+    }
+    const reviewId = await addReview(guest.userId, replicaId, 2, reviewDay + "T12:00:00.000Z");
+    const targetReplicaId = await unsafeTransaction((executor) => ensureWorkspaceReplicaInExecutor(
+      executor, { ...installation, userId: targetUserId, installationId: randomUUID() },
+    ));
+    const targetReviewId = await addReview(targetUserId, targetReplicaId, 1, reviewDay + "T13:00:00.000Z");
+    const otherReplicaId = await unsafeTransaction((executor) => ensureWorkspaceReplicaInExecutor(
+      executor, { ...installation, userId: other.userId, installationId: randomUUID() },
+    ));
+    const otherReviewId = await addReview(other.userId, otherReplicaId, 0, reviewDay + "T14:00:00.000Z");
+    await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, "Answer in Spanish.");
+    await saveWorkspaceChatInstructionsForUser(guest.userId, additionalId, "Answer in French.");
+    await saveWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId, "Answer in German.");
+
+    assert.deepEqual(await prepareBrowserGuestUpgrade(guest.guestToken, subject, null), { mode: "merge_required" });
+    const selection = { type: "existing", workspaceId: targetWorkspaceId.toUpperCase() } as const;
+    const completion = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+    const resolvedId = completion.workspace.workspaceId;
+    workspaceIds.push(resolvedId);
+    assert.notEqual(resolvedId, targetWorkspaceId);
+    assert.notEqual(resolvedId, guest.workspaceId);
+    assert.equal((await ensureCognitoUserProfile(subject, null)).selectedWorkspaceId, resolvedId);
+    const durable = await ownerPool.query(
+      "SELECT selection_type, requested_existing_workspace_id, target_workspace_id FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1",
+      [guest.userId],
+    );
+    assert.deepEqual(durable.rows, [{
+      selection_type: "existing", requested_existing_workspace_id: targetWorkspaceId, target_workspace_id: resolvedId,
+    }]);
+    assert.deepEqual(await prepareBrowserGuestUpgrade(guest.guestToken, subject, null), {
+      mode: "merge_required", demoOnlyDestinationWorkspaceId: targetWorkspaceId,
+    });
+    const replay = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+    assert.equal(replay.outcome, "idempotent_replay");
+    assert.deepEqual(replay.workspace, completion.workspace);
+    const canonicalReplay = await completeBrowserGuestUpgrade(
+      guest.guestToken, subject, { ...selection, workspaceId: targetWorkspaceId }, UPGRADE_CAPABILITIES,
+    );
+    assert.deepEqual(canonicalReplay, replay);
+    await assert.rejects(
+      completeBrowserGuestUpgrade(guest.guestToken, subject, { ...selection, workspaceId: resolvedId }, UPGRADE_CAPABILITIES),
+      (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_SELECTION_MISMATCH",
+    );
+    await assert.rejects(
+      completeBrowserGuestUpgrade(guest.guestToken, subject, { type: "create_new" }, UPGRADE_CAPABILITIES),
+      (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_SELECTION_MISMATCH",
+    );
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId)).customInstructions, "Answer in German.");
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, resolvedId)).customInstructions, "Answer in Spanish.");
+    assert.deepEqual(await loadWorkspaceChatInstructionsForUser(targetUserId, additionalId), {
+      customInstructions: "Answer in French.", maxLength: 1500, canEdit: true,
+    });
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, privateId)).canEdit, true);
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, privateId)).customInstructions, "A private workspace rule.");
+    await assert.rejects(authenticateGuestSession(guest.guestToken), isGuestAuthInvalid);
+    await assert.rejects(loadWorkspaceChatInstructionsForUser(guest.userId, additionalId), { code: "WORKSPACE_NOT_FOUND" });
+    const activeCard = await transactionWithWorkspaceScope({ userId: targetUserId, workspaceId: resolvedId },
+      async (executor) => executor.query("SELECT card_id FROM content.cards WHERE card_id = $1", [fixture.snapshot.cardId]));
+    assert.deepEqual(activeCard.rows, [{ card_id: fixture.snapshot.cardId }]);
+    await transactionWithWorkspaceScope({ userId: targetUserId, workspaceId: additionalId }, async (executor) => {
+      assert.equal(await ensureWorkspaceReplicaInExecutor(executor, { ...installation, userId: targetUserId }), replicaId);
+      const cards = await executor.query("SELECT card_id FROM content.cards WHERE card_id = $1", [card.cardId]);
+      const reviews = await executor.query(
+        "SELECT review_event_id, reviewed_by_user_id FROM content.review_events WHERE card_id = $1 ORDER BY reviewed_at_client",
+        [card.cardId],
+      );
+      assert.deepEqual(cards.rows, [{ card_id: card.cardId }]);
+      assert.deepEqual(reviews.rows, [
+        { review_event_id: reviewId, reviewed_by_user_id: targetUserId },
+        { review_event_id: targetReviewId, reviewed_by_user_id: targetUserId },
+        { review_event_id: otherReviewId, reviewed_by_user_id: other.userId },
+      ]);
+    });
+    const facts = await ownerPool.query(
+      [
+        "SELECT facts.review_event_id, facts.reviewed_by_user_id, profiles.user_id AS profile_owner,",
+        "facts.is_countable, facts.exclusion_reason FROM community.public_review_activity_facts AS facts",
+        "JOIN community.public_profiles AS profiles USING (public_profile_id)",
+        "WHERE facts.review_event_id = ANY($1::uuid[]) ORDER BY facts.reviewed_at_client",
+      ].join(" "),
+      [[reviewId, targetReviewId, otherReviewId]],
+    );
+    assert.deepEqual(facts.rows, [
+      { review_event_id: reviewId, reviewed_by_user_id: targetUserId, profile_owner: targetUserId, is_countable: true, exclusion_reason: null },
+      { review_event_id: targetReviewId, reviewed_by_user_id: targetUserId, profile_owner: targetUserId, is_countable: true, exclusion_reason: null },
+      { review_event_id: otherReviewId, reviewed_by_user_id: other.userId, profile_owner: other.userId, is_countable: false, exclusion_reason: "again" },
+    ]);
+    const activeDays = await ownerPool.query<Readonly<{ reviewed_by_user_id: string; review_count: number }>>(
+      "SELECT reviewed_by_user_id, review_count FROM progress.user_active_review_days WHERE reviewed_by_user_id = ANY($1::text[]) AND local_date = $2",
+      [[guest.userId, targetUserId, other.userId], reviewDay],
+    );
+    assert.deepEqual(new Map(activeDays.rows.map((row) => [row.reviewed_by_user_id, row.review_count])), new Map([
+      [targetUserId, 2],
+      [other.userId, 1],
+    ]));
+    const { summary } = await loadUserProgressSummary({ userId: targetUserId, timeZone });
+    assert.equal(summary.activeReviewDays, 1);
+    assert.equal(summary.lastReviewedOn, reviewDay);
+    const series = await loadUserProgressSeries({ userId: targetUserId, timeZone, from: reviewDay, to: reviewDay });
+    assert.deepEqual(series.dailyReviews, [
+      { date: reviewDay, reviewCount: 2, againCount: 0, hardCount: 1, goodCount: 1, easyCount: 0 },
+    ]);
+    assert.deepEqual(series.streakDays, [{ date: reviewDay, state: "reviewed" }]);
+  });
+});
+
+test("retained workspace transfer requires the source guest scope and live receipt credential", async () => {
+  await withDemoUpgradeFixture(async ({ ownerPool, guest, subject, targetUserId, targetWorkspaceId, workspaceIds }) => {
+    const additionalId = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Guest archive", cause: "explicit" }));
+    workspaceIds.push(additionalId);
+    const upgradeId = randomUUID();
+    const secretHash = hashGuestToken(guest.guestToken);
+    const receipt = await ownerPool.query(
+      [
+        "INSERT INTO auth.guest_upgrade_history (upgrade_id, source_guest_user_id, source_guest_workspace_id,",
+        "source_guest_session_id, source_guest_session_secret_hash, target_subject_user_id, target_user_id,",
+        "target_workspace_id, selection_type)",
+        "SELECT $1, user_id, $2, session_id, session_secret_hash, $3, $4, $5, 'existing'",
+        "FROM auth.guest_sessions WHERE user_id = $6",
+      ].join(" "),
+      [upgradeId, guest.workspaceId, subject, targetUserId, targetWorkspaceId, guest.userId],
+    );
+    assert.equal(receipt.rowCount, 1);
+    const transfer = (userId: string, receiptHash: string) => transactionWithUserScope({ userId }, (executor) =>
+      executor.query("SELECT auth.transfer_guest_owned_workspaces($1, $2)", [upgradeId, receiptHash]));
+    await assert.rejects(transfer(targetUserId, secretHash), { code: "42501" });
+    await assert.rejects(transfer(guest.userId, hashGuestToken(randomUUID())), { code: "42501" });
+    await ownerPool.query("UPDATE auth.guest_sessions SET revoked_at = now() WHERE user_id = $1", [guest.userId]);
+    await assert.rejects(transfer(guest.userId, secretHash), { code: "42501" });
+    await assert.rejects(loadWorkspaceChatInstructionsForUser(targetUserId, additionalId), { code: "WORKSPACE_NOT_FOUND" });
+  });
+});
+
+test("guest instruction transfer observes target ownership, empty settings, and identical values", async (t) => {
+  const scenarios = [
+    { title: "owner fills empty target", role: "owner", source: "Guest rule.", destination: null, separate: false },
+    { title: "owner merges identical text", role: "owner", source: "Same rule.", destination: "Same rule.", separate: false },
+    { title: "member preserves existing target", role: "member", source: null, destination: "Account rule.", separate: false },
+    { title: "member merges identical text", role: "member", source: "Same rule.", destination: "Same rule.", separate: false },
+    { title: "member cannot fill empty target", role: "member", source: "Guest rule.", destination: null, separate: true },
+    { title: "explicit new workspace preserves guest text", role: "new", source: "Guest rule.", destination: null, separate: true },
+  ] as const;
+  for (const scenario of scenarios) {
+    await t.test(scenario.title, async () => withDemoUpgradeFixture(async (fixture) => {
+      const { ownerPool, guest, subject, targetUserId, targetWorkspaceId, workspaceIds } = fixture;
+      if (scenario.source !== null) await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, scenario.source);
+      if (scenario.destination !== null) await saveWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId, scenario.destination);
+      if (scenario.role === "member") {
+        await ownerPool.query("UPDATE org.workspace_memberships SET role = 'member' WHERE workspace_id = $1 AND user_id = $2",
+          [targetWorkspaceId, targetUserId]);
+      }
+      const selection = scenario.role === "new"
+        ? { type: "create_new", name: "Guest study" } as const
+        : { type: "existing", workspaceId: targetWorkspaceId } as const;
+      const first = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+      const resolvedId = first.workspace.workspaceId;
+      workspaceIds.push(resolvedId);
+      assert.equal(resolvedId !== targetWorkspaceId, scenario.separate);
+      if (scenario.role === "new") assert.equal(first.workspace.name, "Guest study");
+      assert.deepEqual(await loadWorkspaceChatInstructionsForUser(targetUserId, resolvedId), {
+        customInstructions: scenario.source ?? scenario.destination,
+        maxLength: 1500,
+        canEdit: scenario.separate || scenario.role === "owner",
+      });
+      if (scenario.separate) {
+        assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId)).customInstructions, scenario.destination);
+      }
+      if (scenario.role === "owner" && scenario.destination === null) {
+        await ownerPool.query("UPDATE auth.guest_upgrade_history SET requested_existing_workspace_id = NULL WHERE source_guest_user_id = $1", [guest.userId]);
+      }
+      assert.deepEqual((await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES)).workspace, first.workspace);
+      if (scenario.separate && scenario.role === "member") {
+        await assert.rejects(
+          completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: resolvedId }, UPGRADE_CAPABILITIES),
+          { code: "GUEST_UPGRADE_SELECTION_MISMATCH" },
+        );
+      }
+    }));
+  }
+});
+
+test("a stale demo-only shortcut aborts and leaves guest and target access intact", async () => {
+  await withDemoUpgradeFixture(async ({ guest, subject, targetUserId, targetWorkspaceId, ownerPool }) => {
+    assert.deepEqual(await prepareGuestUpgrade(guest.guestToken, subject, null), {
+      mode: "merge_required", demoOnlyDestinationWorkspaceId: targetWorkspaceId,
+    });
+    await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, "Keep this text.");
+    assert.deepEqual(await prepareGuestUpgrade(guest.guestToken, subject, null), { mode: "merge_required" });
+    await assert.rejects(
+      completeGuestUpgrade(guest.guestToken, subject, {
+        type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true,
+      }, UPGRADE_CAPABILITIES),
+      { code: "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE" },
+    );
+    assert.equal((await authenticateGuestSession(guest.guestToken)).userId, guest.userId);
+    assert.equal((await loadWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId)).customInstructions, "Keep this text.");
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId)).customInstructions, null);
+    assert.equal((await ensureCognitoUserProfile(subject, null)).selectedWorkspaceId, targetWorkspaceId);
+    assert.equal((await ownerPool.query("SELECT 1 FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1", [guest.userId])).rowCount, 0);
+  });
+});
+
+test("first sign-in keeps the same workspace owner and instructions", async () => {
+  await withDemoUpgradeFixture(async ({ ownerPool, guest, workspaceIds }) => {
+    const other = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Guest archive", cause: "explicit" }));
+    workspaceIds.push(other);
+    for (const id of [guest.workspaceId, other]) await saveWorkspaceChatInstructionsForUser(guest.userId, id, "Keep both.");
+    const subject = randomUUID();
+    assert.deepEqual(await prepareGuestUpgrade(guest.guestToken, subject, null), { mode: "bound" });
+    const completion = await completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: guest.workspaceId }, UPGRADE_CAPABILITIES);
+    assert.equal(completion.targetUserId, guest.userId);
+    assert.equal(completion.workspace.workspaceId, guest.workspaceId);
+    assert.equal((await ownerPool.query("SELECT count(*)::int AS count FROM org.workspace_memberships WHERE user_id = $1 AND role = 'owner'", [guest.userId])).rows[0].count, 2);
+    for (const id of [guest.workspaceId, other]) {
+      assert.equal((await loadWorkspaceChatInstructionsForUser(guest.userId, id)).customInstructions, "Keep both.");
+    }
+  });
+});
+
+test("analytics retirement and reaping protect instructions on an additional guest workspace during a save", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const userIds: string[] = [];
+  const workspaceIds: string[] = [];
+  try {
+    const guest = await createGuestSession("web", null);
+    const emptyGuest = await createGuestSession("web", null);
+    const subject = randomUUID();
+    const target = await ensureCognitoUserProfile(subject, null);
+    assert.ok(target.selectedWorkspaceId);
+    userIds.push(guest.userId, emptyGuest.userId, target.userId);
+    workspaceIds.push(guest.workspaceId, emptyGuest.workspaceId, target.selectedWorkspaceId);
+    const other = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Guest archive", cause: "explicit" }));
+    workspaceIds.push(other);
+    await ownerPool.query("UPDATE auth.guest_sessions SET created_at = now() - interval '120 days' WHERE user_id = ANY($1)", [
+      [guest.userId, emptyGuest.userId],
+    ]);
+    const reap = (userId: string) => unsafeTransaction((executor) => reapWebGuestInExecutor(executor, {
+      guestUserId: userId, analyticsUserId: userId, latestSessionCreatedAt: new Date(0).toISOString(),
+      lastActiveAt: new Date(0).toISOString(),
+    }, new Date(Date.now() - 90 * 86_400_000)));
+    const link = () => unsafeTransaction((executor) => linkGuestAnalyticsIdentityInExecutor(executor, guest.guestToken, subject));
+    await transactionWithWorkspaceScope({ userId: guest.userId, workspaceId: other }, async (executor) => {
+      await executor.query("INSERT INTO ai.workspace_chat_instructions (workspace_id, custom_instructions) VALUES ($1, $2)", [
+        other, "Keep this while saving.",
+      ]);
+      await assert.rejects(link(), { code: "GUEST_IDENTITY_LINK_GUEST_BUSY" });
+      assert.deepEqual(await reap(guest.userId), { outcome: "skipped", workspaceId: null, reason: "no_longer_a_candidate" });
+    });
+    await assert.rejects(link(), { code: "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED" });
+    assert.deepEqual(await reap(guest.userId), { outcome: "skipped", workspaceId: guest.workspaceId, reason: "workspace_has_content" });
+    assert.equal((await loadWorkspaceChatInstructionsForUser(guest.userId, other)).customInstructions, "Keep this while saving.");
+    assert.equal((await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId)).liveGuestSessionRows, 1);
+    assert.deepEqual(await reap(emptyGuest.userId), { outcome: "deleted", workspaceId: emptyGuest.workspaceId });
+    await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, "Remove with explicit deletion.");
+    await unsafeTransaction((executor) => deleteGuestSessionInExecutor(executor, guest.guestToken));
+    assert.equal((await ownerPool.query("SELECT 1 FROM ai.workspace_chat_instructions WHERE workspace_id = $1", [guest.workspaceId])).rowCount, 0);
+  } finally {
+    try { await removeAccounts(ownerPool, userIds, workspaceIds); } finally { await ownerPool.end(); }
+  }
+});
+
+test("a failed source cleanup rolls back the target instruction and additional membership writes", async () => {
+  await withDemoUpgradeFixture(async ({ ownerPool, guest, subject, targetUserId, targetWorkspaceId, workspaceIds, snapshot }) => {
+    const additionalId = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, guest.userId, { name: "Guest archive", cause: "explicit" }));
+    workspaceIds.push(additionalId);
+    await ownerPool.query(
+      "INSERT INTO org.workspace_memberships(workspace_id, user_id, role) VALUES ($1, $2, 'member')",
+      [guest.workspaceId, targetUserId],
+    );
+    await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, "Restore on rollback.");
+    await saveWorkspaceChatInstructionsForUser(guest.userId, additionalId, "Keep guest ownership.");
+    await assert.rejects(
+      completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: targetWorkspaceId }, UPGRADE_CAPABILITIES),
+      { code: "WORKSPACE_DELETE_SHARED" },
+    );
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId)).customInstructions, null);
+    assert.equal((await ensureCognitoUserProfile(subject, null)).selectedWorkspaceId, targetWorkspaceId);
+    assert.equal((await loadWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId)).customInstructions, "Restore on rollback.");
+    assert.equal((await loadWorkspaceChatInstructionsForUser(guest.userId, additionalId)).customInstructions, "Keep guest ownership.");
+    await assert.rejects(loadWorkspaceChatInstructionsForUser(targetUserId, additionalId), { code: "WORKSPACE_NOT_FOUND" });
+    assert.equal((await authenticateGuestSession(guest.guestToken)).userId, guest.userId);
+    assert.deepEqual((await ownerPool.query("SELECT workspace_id FROM content.cards WHERE card_id = $1", [snapshot.cardId])).rows, [
+      { workspace_id: guest.workspaceId },
+    ]);
+    assert.equal((await ownerPool.query("SELECT 1 FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1", [guest.userId])).rowCount, 0);
+  });
+});
+
+test("conversion with an uppercase destination waits for a target owner's workspace lock", async () => {
+  await withDemoUpgradeFixture(async ({ guest, subject, targetUserId, targetWorkspaceId, workspaceIds }) => {
+    await saveWorkspaceChatInstructionsForUser(guest.userId, guest.workspaceId, "Guest rule.");
+    await assert.rejects(completeGuestUpgrade(
+      guest.guestToken, subject, { type: "existing", workspaceId: guest.workspaceId.toUpperCase() }, UPGRADE_CAPABILITIES,
+    ), { code: "GUEST_UPGRADE_TARGET_SAME_AS_SOURCE" });
+    await assert.rejects(completeGuestUpgrade(
+      guest.guestToken, subject, { type: "existing", workspaceId: targetWorkspaceId.replaceAll("-", "") }, UPGRADE_CAPABILITIES,
+    ), { code: "WORKSPACE_NOT_FOUND" });
+    let notifyTargetLock = (): void => {};
+    const reachedTargetLock = new Promise<void>((resolve) => { notifyTargetLock = resolve; });
+    const { completion } = await transactionWithWorkspaceScope({ userId: targetUserId, workspaceId: targetWorkspaceId }, async (writer) => {
+      await lockWorkspaceMembershipLifecyclesInExecutor(writer, [targetWorkspaceId]);
+      const completion = unsafeTransaction((executor) => completeGuestUpgradeInExecutor({
+        query<Row extends pg.QueryResultRow>(sql: string, params: ReadonlyArray<SqlValue>): Promise<pg.QueryResult<Row>> {
+          const result = executor.query<Row>(sql, params);
+          if (sql === "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 1::bigint))" && params[0] === targetWorkspaceId) {
+            notifyTargetLock();
+          }
+          return result;
+        },
+      }, guest.guestToken, subject, { type: "existing", workspaceId: targetWorkspaceId.toUpperCase() }, UPGRADE_CAPABILITIES));
+      await Promise.race([reachedTargetLock, completion.then(() => assert.fail("Completion did not wait for the target lock."))]);
+      await writer.query("INSERT INTO ai.workspace_chat_instructions (workspace_id, custom_instructions) VALUES ($1, $2)", [
+        targetWorkspaceId, "Concurrent owner rule.",
+      ]);
+      return { completion };
+    });
+    const result = await completion;
+    workspaceIds.push(result.targetWorkspaceId);
+    assert.notEqual(result.targetWorkspaceId, targetWorkspaceId);
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, targetWorkspaceId)).customInstructions, "Concurrent owner rule.");
+    assert.equal((await loadWorkspaceChatInstructionsForUser(targetUserId, result.targetWorkspaceId)).customInstructions, "Guest rule.");
+  });
+});
+
+test("revoked-session replay uses the original requested workspace and the durable resolved workspace", async () => {
+  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID(), null), async ({ ownerPool, guest, subject, targetUserId, targetWorkspaceId, workspaceIds }) => {
+    const resolvedId = await unsafeTransaction((executor) =>
+      createWorkspaceInExecutor(executor, targetUserId, { name: "Recovered guest", cause: "explicit" }));
+    workspaceIds.push(resolvedId);
+    const session = await ownerPool.query<Readonly<{ session_id: string }>>(
+      "UPDATE auth.guest_sessions SET revoked_at = now() WHERE user_id = $1 RETURNING session_id",
+      [guest.userId],
+    );
+    const sessionId = session.rows[0]?.session_id;
+    assert.ok(sessionId);
+    await ownerPool.query(
+      "INSERT INTO auth.guest_upgrade_history (upgrade_id, source_guest_user_id, source_guest_workspace_id, source_guest_session_id, source_guest_session_secret_hash, target_subject_user_id, target_user_id, target_workspace_id, selection_type, requested_existing_workspace_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'existing',$9)",
+      [randomUUID(), guest.userId, guest.workspaceId, sessionId, hashGuestToken(guest.guestToken), subject, targetUserId, resolvedId, targetWorkspaceId],
+    );
+    assert.deepEqual(await loadBrowserGuestSession(guest.guestToken), {
+      status: "pending_upgrade", sessionId, userId: guest.userId, workspaceId: null, purpose: null, platform: null, replayOnly: true,
+    });
+    assert.deepEqual(await prepareBrowserGuestUpgrade(guest.guestToken, subject, null), {
+      mode: "merge_required", demoOnlyDestinationWorkspaceId: targetWorkspaceId,
+    });
+    const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
+    const replay = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+    assert.equal(replay.outcome, "idempotent_replay");
+    assert.equal(replay.workspace.workspaceId, resolvedId);
+    await assert.rejects(
+      completeBrowserGuestUpgrade(guest.guestToken, subject, { ...selection, workspaceId: resolvedId }, UPGRADE_CAPABILITIES),
+      { code: "GUEST_UPGRADE_SELECTION_MISMATCH" },
     );
   });
 });

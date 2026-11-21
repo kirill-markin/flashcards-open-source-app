@@ -77,6 +77,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.CacheControl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -89,6 +90,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -100,6 +102,7 @@ internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 private const val requestIdHeaderName: String = "X-Request-Id"
 private const val ownOpenAiKeyHeaderName: String = "x-openai-api-key"
 private const val guestSessionClientPlatform: String = "android"
+private const val aiChatCustomInstructionsSaveTimeoutMillis: Long = 30_000L
 private val officialAiApiHosts: Set<String> = setOf(
     "api.nibomo.com",
     "api.flashcards-open-source-app.com"
@@ -772,20 +775,22 @@ class AiChatRemoteService private constructor(
         workspaceId: String,
         customInstructions: String?
     ): AiChatCustomInstructions = withContext(dispatchers.io) {
-        val responseBody = readResponseBody(
-            request = buildRequest(
-                apiBaseUrl = apiBaseUrl,
-                path = buildCustomInstructionsPath(workspaceId = workspaceId),
-                method = "POST",
-                authorizationHeader = authorizationHeader,
-                requestBody = JSONObject()
-                    .put("customInstructions", customInstructions ?: JSONObject.NULL)
-                    .toString()
-                    .toRequestBody(aiJsonMediaType),
-                extraHeaders = emptyMap()
-            ),
-            expectedStatusCodes = emptySet()
-        )
+        val responseBody = withTimeoutOrNull(aiChatCustomInstructionsSaveTimeoutMillis) {
+            readResponseBody(
+                request = buildRequest(
+                    apiBaseUrl = apiBaseUrl,
+                    path = buildCustomInstructionsPath(workspaceId = workspaceId),
+                    method = "POST",
+                    authorizationHeader = authorizationHeader,
+                    requestBody = JSONObject()
+                        .put("customInstructions", customInstructions ?: JSONObject.NULL)
+                        .toString()
+                        .toRequestBody(aiJsonMediaType),
+                    extraHeaders = emptyMap()
+                ),
+                expectedStatusCodes = emptySet()
+            )
+        } ?: throw SocketTimeoutException("Saving chat instructions timed out. Try saving again.")
         return@withContext decodeAiChatCustomInstructions(payload = responseBody)
     }
 

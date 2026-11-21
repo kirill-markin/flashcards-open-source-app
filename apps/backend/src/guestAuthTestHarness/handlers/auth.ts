@@ -1,5 +1,7 @@
 import type pg from "pg";
 import {
+  addWorkspaceMembership,
+  membershipKey,
   type GuestUpgradeExecutorParam,
   type GuestUpgradeHandlerContext,
 } from "../models";
@@ -30,6 +32,10 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       === "SELECT pg_advisory_xact_lock(hashtextextended('auth.cognito_identity:' || $1::text, 2::bigint))"
   ) {
     return createQueryResult<Row>([]);
+  }
+
+  if (text === "SELECT pg_try_advisory_xact_lock(hashtextextended('auth.account_writer:' || $1::text, 2::bigint)) AS locked") {
+    return createQueryResult<Row>([{ locked: true } as unknown as Row]);
   }
 
   if (text.includes("FROM auth.deleted_subjects") && text.includes("subject_sha256 = $1")) {
@@ -104,6 +110,8 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       target_user_id: guestUpgradeHistory.target_user_id,
       canonical_target_user_id: guestUpgradeHistory.target_user_id,
       target_workspace_id: guestUpgradeHistory.target_workspace_id,
+      selection_type: guestUpgradeHistory.selection_type,
+      requested_existing_workspace_id: guestUpgradeHistory.requested_existing_workspace_id ?? null,
       dropped_entities: guestUpgradeHistory.dropped_entities,
     } as unknown as Row];
     return createQueryResult<Row>(rows);
@@ -124,6 +132,8 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       target_user_id: guestUpgradeHistory.target_user_id,
       canonical_target_user_id: guestUpgradeHistory.target_user_id,
       target_workspace_id: guestUpgradeHistory.target_workspace_id,
+      selection_type: guestUpgradeHistory.selection_type,
+      requested_existing_workspace_id: guestUpgradeHistory.requested_existing_workspace_id ?? null,
       dropped_entities: guestUpgradeHistory.dropped_entities,
     } as unknown as Row];
     return createQueryResult<Row>(rows);
@@ -171,10 +181,23 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       target_user_id: String(params[6]),
       target_workspace_id: String(params[7]),
       selection_type: String(params[8]),
-      dropped_entities: params[9] === null
+      requested_existing_workspace_id: params[9] === null ? null : String(params[9]),
+      dropped_entities: params[10] === null
         ? null
-        : parseGuestUpgradeDroppedEntitiesState(String(params[9])),
+        : parseGuestUpgradeDroppedEntitiesState(String(params[10])),
     });
+    return createQueryResult<Row>([]);
+  }
+
+  if (text === "SELECT auth.transfer_guest_owned_workspaces($1, $2)") {
+    const receipt = state.guestUpgradeHistory.find((row) => row.upgrade_id === params[0]);
+    if (receipt === undefined) throw new Error("Workspace transfer requires a guest upgrade receipt.");
+    for (const workspaceId of state.workspaces.keys()) {
+      if (workspaceId !== receipt.source_guest_workspace_id
+          && state.workspaceMembershipRoles.get(membershipKey(receipt.source_guest_user_id, workspaceId)) === "owner") {
+        addWorkspaceMembership(state, receipt.target_user_id, workspaceId, "owner");
+      }
+    }
     return createQueryResult<Row>([]);
   }
 

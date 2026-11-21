@@ -1,4 +1,3 @@
-import type { AuthTransport } from "../../auth";
 import { createBrowserGuestChatOperation, reserveNewBrowserGuestTrialOperation, resolveFundedBrowserGuestTrial } from "../../aiUsage/browserGuestTrial/admission";
 import type { Handler } from "hono";
 import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
@@ -64,7 +63,7 @@ import {
 import {
   loadAccountBoundChatRequestContext,
   loadSupportedRequestContext,
-  loadWorkspaceChatInstructionsRequestContext,
+  readChatGuestCredential,
   type ChatRouteDependencies,
 } from "./dependencies";
 import {
@@ -92,15 +91,6 @@ type ChatNewResponse = Readonly<{
   chatConfig: ReturnType<typeof getChatConfig>;
   customInstructions: string | null;
 }>;
-
-function chatSnapshotForTransport(
-  snapshot: ChatSessionSnapshot,
-  transport: AuthTransport,
-): ChatSessionSnapshot {
-  return resolveAccountKindForTransport(transport) === "guest"
-    ? { ...snapshot, customInstructions: null }
-    : snapshot;
-}
 
 function buildChatNewResponse(
   snapshot: ChatSessionSnapshot,
@@ -143,9 +133,10 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
           sessionId,
           pageQuery.limit,
           pageQuery.beforeCursor,
+          readChatGuestCredential(requestContext),
         );
         return context.json(await buildPaginatedConversationEnvelopeWithActiveRun(
-          { ...result, snapshot: chatSnapshotForTransport(result.snapshot, requestContext.transport) },
+          result,
           requestContext.userId,
           workspaceId,
           requestId,
@@ -164,6 +155,7 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
         requestContext.userId,
         workspaceId,
         sessionId,
+        readChatGuestCredential(requestContext),
       );
       assertRunningSnapshotInvariant(
         context.req.raw,
@@ -174,7 +166,7 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
         workspaceId,
       );
       return context.json(await buildConversationEnvelopeWithActiveRun(
-        { ...session, snapshot: chatSnapshotForTransport(session.snapshot, requestContext.transport) },
+        session,
         requestContext.userId,
         workspaceId,
         requestId,
@@ -296,6 +288,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         },
         aiConsentId,
         browserGuestTrial,
+        readChatGuestCredential(requestContext),
       ));
     } catch (error) {
       // Recorded here, outside the run transaction, and before the refusal reaches the client unchanged.
@@ -384,11 +377,12 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         requestContext.userId,
         workspaceId,
         preparedRun.sessionId,
+        readChatGuestCredential(requestContext),
       );
 
       return context.json(await buildStartConversationEnvelope({
         preparedRun,
-        session: { ...session, snapshot: chatSnapshotForTransport(session.snapshot, requestContext.transport) },
+        session,
         userId: requestContext.userId,
         workspaceId,
         requestId,
@@ -431,8 +425,9 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
     const workspaceId = await dependencies.resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
 
+    const guestCredential = readChatGuestCredential(requestContext);
     const respondWithSession = (snapshot: ChatSessionSnapshot): Response => context.json(
-      buildChatNewResponse(chatSnapshotForTransport(snapshot, requestContext.transport), body.uiLocale),
+      buildChatNewResponse(snapshot, body.uiLocale),
     );
 
     // Preferred modern flow: clients send an explicit client-generated
@@ -466,6 +461,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
             requestContext.userId,
             workspaceId,
             createdSessionId,
+            guestCredential,
           );
 
           return respondWithSession(createdSnapshot);
@@ -479,6 +475,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
           requestContext.userId,
           workspaceId,
           existingSessionId,
+          guestCredential,
         );
 
         return respondWithSession(existingSnapshot);
@@ -493,6 +490,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
         requestContext.userId,
         workspaceId,
         body.sessionId,
+        guestCredential,
       );
     } catch (error) {
       return mapStoreError(error);
@@ -514,6 +512,7 @@ export function createPostChatNewHandler(dependencies: ChatRouteDependencies): H
         requestContext.userId,
         workspaceId,
         newSessionId,
+        guestCredential,
       );
     } catch (error) {
       return mapStoreError(error);
@@ -647,9 +646,11 @@ export function createPostChatSessionArchiveHandler(dependencies: ChatRouteDepen
 
 export function createGetWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
-    const requestContext = await loadWorkspaceChatInstructionsRequestContext(context.req.raw, dependencies);
+    const requestContext = await loadAccountBoundChatRequestContext(context.req.raw, dependencies);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    return context.json(await loadWorkspaceChatInstructionsForUser(requestContext.userId, workspaceId));
+    return context.json(await loadWorkspaceChatInstructionsForUser(
+      requestContext.userId, workspaceId, readChatGuestCredential(requestContext),
+    ));
   };
 }
 
@@ -657,13 +658,14 @@ export function createGetWorkspaceChatInstructionsHandler(dependencies: ChatRout
 // entity_type would break shipped clients that pull it.
 export function createPostWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
   return async (context) => {
-    const requestContext = await loadWorkspaceChatInstructionsRequestContext(context.req.raw, dependencies);
+    const requestContext = await loadAccountBoundChatRequestContext(context.req.raw, dependencies);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const customInstructions = parseChatCustomInstructionsBody(expectRecord(await parseJsonBody(context.req.raw)));
     return context.json(await saveWorkspaceChatInstructionsForUser(
       requestContext.userId,
       workspaceId,
       customInstructions,
+      readChatGuestCredential(requestContext),
     ));
   };
 }

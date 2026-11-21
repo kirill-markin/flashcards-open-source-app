@@ -7,6 +7,8 @@ import {
   parseWorkspacesEnvelopeResponse,
 } from "../../apiContracts/account";
 import { parseWorkspaceChatInstructionsResponse } from "../../apiContracts/chat";
+import { requireBrowserGuestWritesReady, runWithBrowserGuestLock } from "../../appData/session/guest/browserGuestStorage";
+import type { WorkspaceChatInstructionsScope } from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import type {
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
@@ -76,28 +78,36 @@ export async function renameWorkspace(workspaceId: string, name: string): Promis
 }
 
 export async function loadWorkspaceChatInstructions(
-  expectedUserId: string,
-  expectedAccountId: string,
-  workspaceId: string,
+  scope: WorkspaceChatInstructionsScope,
   signal: AbortSignal,
 ): Promise<WorkspaceChatInstructions> {
+  const { userId, accountId, workspaceId, auth } = scope;
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/chat-instructions`, {
     method: "GET",
     signal,
-  }, { ...allowAuthRecoveryWithTransientNetworkRetry, expectedUserId }, expectedAccountId), `GET /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
+  }, { ...allowAuthRecoveryWithTransientNetworkRetry, expectedUserId: userId, expectedAuth: auth }, accountId),
+  `GET /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
 }
 
-/** Null or blank text clears the instructions. */
 export async function saveWorkspaceChatInstructions(
-  expectedUserId: string,
-  expectedAccountId: string,
-  workspaceId: string,
+  scope: WorkspaceChatInstructionsScope,
   customInstructions: string | null,
 ): Promise<WorkspaceChatInstructions> {
-  return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/chat-instructions`, {
+  const { userId, accountId, workspaceId, auth } = scope;
+  const persist = async (): Promise<WorkspaceChatInstructions> => parseContractResponse(await requestJson(`/workspaces/${workspaceId}/chat-instructions`, {
     method: "POST",
     body: JSON.stringify({ customInstructions }),
-  }, { ...allowAuthRecovery, expectedUserId }, expectedAccountId), `POST /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
+  }, { ...allowAuthRecovery, expectedUserId: userId, expectedAuth: auth }, accountId),
+  `POST /workspaces/${workspaceId}/chat-instructions`, parseWorkspaceChatInstructionsResponse);
+
+  if (auth.kind === "registered") {
+    return persist();
+  }
+  // Sign-in takes the exclusive lock before freezing guest writes.
+  return runWithBrowserGuestLock("shared", () => {
+    requireBrowserGuestWritesReady(userId);
+    return persist();
+  });
 }
 
 export async function loadWorkspaceDeletePreview(workspaceId: string): Promise<WorkspaceDeletePreview> {
