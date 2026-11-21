@@ -4,23 +4,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionUiState
@@ -172,8 +171,13 @@ fun SettingsRoute(
             }
 
             item {
-                SettingsInviteFriendButton(
+                SettingsRootRow(
+                    title = stringResource(FriendInviteR.string.friend_invite_button),
+                    summary = null,
+                    attentionCount = null,
+                    testTag = settingsInviteFriendButtonTag,
                     isEnabled = uiState.friendInviteAvailability != SettingsFriendInviteAvailability.LOADING,
+                    role = Role.Button,
                     onClick = onOpenFriendInvite
                 )
             }
@@ -517,27 +521,6 @@ fun SettingsRoute(
 }
 
 @Composable
-private fun SettingsInviteFriendButton(
-    isEnabled: Boolean,
-    onClick: () -> Unit
-) {
-    FilledTonalButton(
-        enabled = isEnabled,
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(tag = settingsInviteFriendButtonTag)
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.PersonAdd,
-            contentDescription = null
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-        Text(stringResource(FriendInviteR.string.friend_invite_button))
-    }
-}
-
-@Composable
 private fun SettingsRootSectionTitle(title: String, testTag: String) {
     Box(modifier = Modifier.testTag(tag = testTag)) {
         SectionTitle(text = title)
@@ -550,6 +533,27 @@ private fun SettingsRootRow(
     summary: String?,
     attentionCount: Int?,
     testTag: String,
+    onClick: () -> Unit
+) {
+    SettingsRootRow(
+        title = title,
+        summary = summary,
+        attentionCount = attentionCount,
+        testTag = testTag,
+        isEnabled = true,
+        role = null,
+        onClick = onClick
+    )
+}
+
+@Composable
+private fun SettingsRootRow(
+    title: String,
+    summary: String?,
+    attentionCount: Int?,
+    testTag: String,
+    isEnabled: Boolean,
+    role: Role?,
     onClick: () -> Unit
 ) {
     val supportingContent: (@Composable () -> Unit)? = summary?.let { rowSummary ->
@@ -566,19 +570,28 @@ private fun SettingsRootRow(
             SettingsAttentionBadge(count = badgeCount)
         }
     }
+    val colors: ListItemColors = ListItemDefaults.colors()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(tag = testTag)
-            .clickable(onClick = onClick)
+            .clickable(enabled = isEnabled, role = role, onClick = onClick)
     ) {
         ListItem(
             headlineContent = {
                 Text(title)
             },
             supportingContent = supportingContent,
-            trailingContent = trailingContent
+            trailingContent = trailingContent,
+            colors = if (isEnabled) {
+                colors
+            } else {
+                colors.copy(
+                    headlineColor = colors.disabledHeadlineColor,
+                    supportingTextColor = colors.disabledHeadlineColor
+                )
+            }
         )
     }
 }

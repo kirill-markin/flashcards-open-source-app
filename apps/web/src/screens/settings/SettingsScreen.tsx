@@ -224,17 +224,14 @@ export function SettingsScreen(): ReactElement {
 
       <SettingsGroup title={t("settingsHome.groups.share")}>
         <div className="settings-nav-list">
-          <div className="settings-invite-row">
-            <button
-              className="primary-btn settings-invite-btn"
-              type="button"
-              aria-label={t("settingsHome.inviteFriend.ariaLabel")}
-              onClick={openInviteDialog}
-              data-testid="settings-invite-open"
-            >
-              {t("settingsHome.inviteFriend.actionText")}
-            </button>
-          </div>
+          <SettingsActionCard
+            title={t("settingsHome.inviteFriend.actionText")}
+            description={null}
+            value={null}
+            ariaLabel={t("settingsHome.inviteFriend.ariaLabel")}
+            onClick={openInviteDialog}
+            testId="settings-invite-open"
+          />
           <SettingsActionCard
             title={t("settingsHome.shareApp.title")}
             description={t("settingsHome.shareApp.description")}
