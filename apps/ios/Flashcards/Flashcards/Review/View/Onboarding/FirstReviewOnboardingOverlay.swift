@@ -17,15 +17,16 @@ struct FirstReviewOnboardingAnchors: PreferenceKey {
     }
 }
 
-private struct FirstReviewOnboardingDrawingKey: Equatable {
+private struct FirstReviewOnboardingDrawingKey: Equatable, Sendable {
     let target: CGRect
     let size: CGSize
     let accent: AccountAccentColor
     let colorScheme: ColorScheme
     let displayScale: CGFloat
+    let animates: Bool
 }
 
-private struct FirstReviewOnboardingDrawing {
+private struct FirstReviewOnboardingDrawing: Sendable {
     let image: UIImage
     let bounds: CGRect
 }
@@ -37,17 +38,20 @@ struct FirstReviewOnboardingOverlay: View {
     let size: CGSize
     let accent: AccountAccentColor
     let animates: Bool
-    @State private var drawings: [FirstReviewOnboardingDrawing] = []
-    private let drawingBleed: CGFloat = 40
+    @State private var rendered: (key: FirstReviewOnboardingDrawingKey, drawings: [FirstReviewOnboardingDrawing])?
 
     var body: some View {
-        let drawings = self.drawings
-        return TimelineView(.animation(minimumInterval: 0.235, paused: self.animates == false)) { timeline in
-            let frame = self.animates
+        let key = FirstReviewOnboardingDrawingKey(
+            target: self.target, size: self.size, accent: self.accent,
+            colorScheme: self.colorScheme, displayScale: self.displayScale, animates: self.animates
+        )
+        let rendered = self.rendered
+        return TimelineView(.animation(minimumInterval: 0.235, paused: key.animates == false)) { timeline in
+            let frame = key.animates
                 ? Int(timeline.date.timeIntervalSinceReferenceDate / 0.235) % 2 : 0
             Color.clear.overlay(alignment: .topLeading) {
-                if drawings.indices.contains(frame) {
-                    let drawing = drawings[frame]
+                if let rendered, rendered.key == key, rendered.drawings.indices.contains(frame) {
+                    let drawing = rendered.drawings[frame]
                     Image(uiImage: drawing.image)
                         .renderingMode(.original)
                         .resizable()
@@ -56,27 +60,43 @@ struct FirstReviewOnboardingOverlay: View {
                 }
             }
         }
-        .onChange(of: FirstReviewOnboardingDrawingKey(
-            target: self.target, size: self.size, accent: self.accent,
-            colorScheme: self.colorScheme, displayScale: self.displayScale
-        ), initial: true) { _, key in
-            self.drawings = (0..<2).map {
-                makeFirstReviewOnboardingImage(
-                    key: key, frame: $0, drawingBleed: self.drawingBleed
-                )
+        .task(id: key) {
+            guard let drawings = await makeFirstReviewOnboardingDrawings(key: key),
+                  Task.isCancelled == false else {
+                return
             }
+            self.rendered = (key, drawings)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
 
-@MainActor
+@concurrent
+private func makeFirstReviewOnboardingDrawings(
+    key: FirstReviewOnboardingDrawingKey
+) async -> [FirstReviewOnboardingDrawing]? {
+    let frameCount = key.animates ? 2 : 1
+    var drawings: [FirstReviewOnboardingDrawing] = []
+    for frame in 0..<frameCount {
+        guard Task.isCancelled == false,
+              let drawing = makeFirstReviewOnboardingImage(key: key, frame: frame) else {
+            return nil
+        }
+        drawings.append(drawing)
+    }
+    return drawings
+}
+
 private func makeFirstReviewOnboardingImage(
-    key: FirstReviewOnboardingDrawingKey, frame: Int, drawingBleed: CGFloat
-) -> FirstReviewOnboardingDrawing {
+    key: FirstReviewOnboardingDrawingKey, frame: Int
+) -> FirstReviewOnboardingDrawing? {
     let marks = makeFirstReviewOnboardingDrawing(target: key.target, size: key.size, frame: frame)
+    let drawingBleed: CGFloat = 40
     let bounds = firstReviewPencilMarksBounds(marks).insetBy(dx: -drawingBleed, dy: -drawingBleed).integral
+    guard Task.isCancelled == false else {
+        return nil
+    }
     let format = UIGraphicsImageRendererFormat.preferred()
     format.opaque = false
     format.scale = key.displayScale
@@ -88,6 +108,9 @@ private func makeFirstReviewOnboardingImage(
             marks: marks, context: context, color: UIColor.black.cgColor,
             opacity: 0.85, lineWidth: 6, offset: CGSize(width: 2, height: 3)
         )
+        guard Task.isCancelled == false else {
+            return
+        }
         drawFirstReviewPencilBacking(
             marks: marks, context: context,
             color: (key.colorScheme == .dark ? UIColor.white : UIColor.black).cgColor,
@@ -97,6 +120,9 @@ private func makeFirstReviewOnboardingImage(
         context.setFillColor(accent)
         context.setStrokeColor(accent)
         for mark in marks {
+            guard Task.isCancelled == false else {
+                return
+            }
             context.setAlpha(CGFloat(mark.opacity))
             context.addPath(mark.path.cgPath)
             if let width = mark.lineWidth {
@@ -106,6 +132,9 @@ private func makeFirstReviewOnboardingImage(
                 context.fillPath()
             }
         }
+    }
+    guard Task.isCancelled == false else {
+        return nil
     }
     return FirstReviewOnboardingDrawing(image: image, bounds: bounds)
 }
@@ -123,6 +152,9 @@ private func drawFirstReviewPencilBacking(
     context.setLineCap(.round)
     context.setLineJoin(.round)
     for mark in marks {
+        guard Task.isCancelled == false else {
+            break
+        }
         if mark.lineWidth == nil {
             context.addPath(mark.path.cgPath)
             context.fillPath()
