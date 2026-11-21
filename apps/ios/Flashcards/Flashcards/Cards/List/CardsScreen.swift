@@ -88,6 +88,7 @@ struct CardsScreen: View {
     @Environment(CardsScreenModel.self) private var cardsModel: CardsScreenModel
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.showsAICompanionBarBackground) private var isBesideCompanion
     @Environment(\.tabBarPlacement) private var tabBarPlacement
 
     @State private var editorPresentation: CardEditorPresentation? = nil
@@ -132,6 +133,12 @@ struct CardsScreen: View {
 
     private var usesTopTabNavigation: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && self.tabBarPlacement == .topBar
+    }
+
+    /// A floating tab bar or the side chat shares the bar's row, so Cards keeps a native title and a compact search
+    /// instead of its sidebar column's own title and full search field.
+    private var sharesBarRow: Bool {
+        self.usesTopTabNavigation || self.isBesideCompanion
     }
 
     private var cardsColumnTitle: some View {
@@ -370,7 +377,7 @@ struct CardsScreen: View {
         #if targetEnvironment(macCatalyst)
         .nativeNavigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
         #else
-        .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
+        .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad && self.sharesBarRow == false ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
         #endif
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)
@@ -379,12 +386,12 @@ struct CardsScreen: View {
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
-        .nativeSearchToolbar(horizontalSizeClass: self.usesTopTabNavigation ? .compact : self.horizontalSizeClass)
+        .nativeSearchToolbar(horizontalSizeClass: self.sharesBarRow ? .compact : self.horizontalSizeClass)
         #endif
         .toolbar {
             #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
-            if UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false {
+            if UIDevice.current.userInterfaceIdiom == .pad && self.sharesBarRow == false {
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) {
                         self.cardsColumnTitle
