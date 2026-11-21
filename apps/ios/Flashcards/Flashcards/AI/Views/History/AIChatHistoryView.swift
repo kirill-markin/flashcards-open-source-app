@@ -179,28 +179,20 @@ struct AIChatHistoryView: View {
         }
     }
 
-    /// The pane's search, beside its heading: a drawer would attach to the section's bar.
+    /// The pane's search, under its heading. `.searchable` would attach its drawer to the section's bar, which the pane
+    /// shares on iPad, so the pane hosts a system search bar of its own.
     @ViewBuilder
     private var paneSearchField: some View {
+        #if !targetEnvironment(macCatalyst)
         if self.sharesSectionBar {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                TextField(
-                    aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
-                    text: self.searchQueryBinding
-                )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .disabled(self.canSearch == false)
-                .accessibilityIdentifier(UITestIdentifier.aiHistorySearchField)
-            }
-            .padding(.horizontal, 10)
-            .frame(minHeight: 36)
-            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
+            AIChatHistoryPaneSearchBar(
+                text: self.searchQueryBinding,
+                placeholder: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
+                isEnabled: self.canSearch
+            )
+            .accessibilityIdentifier(UITestIdentifier.aiHistorySearchField)
         }
+        #endif
     }
 
     private var searchableSessionList: some View {
@@ -500,3 +492,47 @@ private struct AIChatHistoryRowContent: View {
         }
     }
 }
+
+#if !targetEnvironment(macCatalyst)
+/// A minimal system search bar: its clear button, keyboard search key and accessibility come from UIKit.
+private struct AIChatHistoryPaneSearchBar: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let isEnabled: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: self.$text) }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let searchBar = UISearchBar()
+        searchBar.searchBarStyle = .minimal
+        searchBar.autocapitalizationType = .none
+        searchBar.autocorrectionType = .no
+        searchBar.delegate = context.coordinator
+        searchBar.setContentHuggingPriority(.required, for: .vertical)
+        return searchBar
+    }
+
+    func updateUIView(_ searchBar: UISearchBar, context: Context) {
+        context.coordinator.text = self.$text
+        if searchBar.text != self.text { searchBar.text = self.text }
+        searchBar.placeholder = self.placeholder
+        searchBar.isUserInteractionEnabled = self.isEnabled
+        searchBar.searchTextField.isEnabled = self.isEnabled
+    }
+
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) { self.text = text }
+
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            self.text.wrappedValue = searchText
+        }
+
+        /// The query already applies as it is typed; the search key only puts the keyboard away.
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            searchBar.resignFirstResponder()
+        }
+    }
+}
+#endif
