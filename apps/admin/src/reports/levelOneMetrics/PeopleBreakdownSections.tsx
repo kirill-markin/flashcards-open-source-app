@@ -79,6 +79,7 @@ export function PeopleBreakdownSections(props: Readonly<{
   metricTitle: string;
   testIdPrefix: string;
   breakdowns: ReadonlyArray<PeopleBreakdown>;
+  platformCompanion?: ReactNode;
   /** The `<li>` saying how the App version filter narrows and places these people. */
   appVersionFilterNote: ReactNode;
 }>): JSX.Element {
@@ -98,34 +99,39 @@ export function PeopleBreakdownSections(props: Readonly<{
   })), [props.breakdowns, props.eventPlatforms, props.eventDeviceTypes, props.appVersions]);
   return (
     <>
-      {loadedBreakdowns.map(({ breakdown, loadReport }) => (
-        <BreakdownSection
-          key={breakdown.dimension}
-          config={props.config}
-          dateRange={props.dateRange}
-          period={props.period}
-          onTerminalAdminError={props.onTerminalAdminError}
-          title={breakdown.title}
-          testId={`${props.testIdPrefix}-by-${breakdown.dimension}-section`}
-          explanationId={`${props.testIdPrefix}-by-${breakdown.dimension}-explanation`}
-          explanation={<>
-            <li>The people of {props.metricTitle}, so each bar adds up to that chart’s bar for the same day, week or month.</li>
-            {breakdown.placement}
-            <li>The Platform filter narrows these people as it narrows {props.metricTitle}, and only their events on a selected platform place them.</li>
-            <li>The Device filter narrows and places these people the same way, by the device class of their events.</li>
-            {props.appVersionFilterNote}
-            <li>The five values with the most people over the available bars get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
-            <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
-          </>}
-          countLabel="Unique people"
-          unavailableBarText="Unavailable: retained source history does not cover all of its days."
-          noAvailableBarText="Retained source history does not cover this range."
-          loadReport={loadReport}
-          formatValue={breakdown.formatValue}
-          buildExtraNotes={null}
-          keyLink={null}
-        />
-      ))}
+      {loadedBreakdowns.map(({ breakdown, loadReport }) => {
+        const section = (
+          <BreakdownSection
+            key={breakdown.dimension}
+            config={props.config}
+            dateRange={props.dateRange}
+            period={props.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+            title={breakdown.title}
+            testId={`${props.testIdPrefix}-by-${breakdown.dimension}-section`}
+            explanationId={`${props.testIdPrefix}-by-${breakdown.dimension}-explanation`}
+            explanation={<>
+              <li>The people of {props.metricTitle}, so each bar adds up to that chart’s bar for the same day, week or month.</li>
+              {breakdown.placement}
+              <li>The Platform filter narrows these people as it narrows {props.metricTitle}, and only their events on a selected platform place them.</li>
+              <li>The Device filter narrows and places these people the same way, by the device class of their events.</li>
+              {props.appVersionFilterNote}
+              <li>The five values with the most people over the available bars get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
+              <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
+            </>}
+            countLabel="Unique people"
+            unavailableBarText="Unavailable: retained source history does not cover all of its days."
+            noAvailableBarText="Retained source history does not cover this range."
+            loadReport={loadReport}
+            formatValue={breakdown.formatValue}
+            buildExtraNotes={null}
+            keyLink={null}
+          />
+        );
+        return breakdown.dimension === "platform" && props.platformCompanion !== undefined
+          ? <div key={breakdown.dimension}>{section}{props.platformCompanion}</div>
+          : section;
+      })}
     </>
   );
 }
