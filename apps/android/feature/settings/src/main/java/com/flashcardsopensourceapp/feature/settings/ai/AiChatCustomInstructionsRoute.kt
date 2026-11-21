@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -63,16 +64,12 @@ fun AiChatCustomInstructionsRoute(
     onBack: () -> Unit
 ) {
     val loaded = uiState.loadState as? AiChatCustomInstructionsLoadState.Loaded
-    // The field owns its text so keystrokes never wait on a flow; it restarts from the saved text once loaded.
-    // The saved-state key carries the scope, so a draft restored on return never lands in another workspace.
-    var draft by rememberSaveable(
-        loaded?.scopeId,
-        loaded?.canEdit,
-        stateSaver = TextFieldValue.Saver,
-        key = "ai_chat_custom_instructions_draft::${loaded?.scopeId}"
-    ) {
-        val savedText = loaded?.savedText.orEmpty()
-        mutableStateOf(value = TextFieldValue(text = savedText, selection = TextRange(index = savedText.length)))
+    // Keep restored drafts scoped to the workspace that owns them.
+    var draft by key(loaded?.scopeId) {
+        rememberSaveable(loaded?.canEdit, stateSaver = TextFieldValue.Saver) {
+            val savedText = loaded?.savedText.orEmpty()
+            mutableStateOf(value = TextFieldValue(text = savedText, selection = TextRange(index = savedText.length)))
+        }
     }
     val editedText = draft.text.trim()
     val characterCount = editedText.codePointCount(0, editedText.length)

@@ -281,6 +281,22 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             )
         }
 
+        fun seedRestoredSignInViewModel(controller: NavHostController) {
+            val authEntry = controller.getBackStackEntry(SettingsAccountAuthGraph.route)
+            val factory = createCloudSignInViewModelFactory(
+                cloudAccountRepository = account,
+                cloudSocialSignInRepository = socialSignIn,
+                syncRepository = appGraph.syncRepository,
+                messageController = TransientMessageController {},
+                analytics = NoOpAnalytics,
+                pendingSignOutReport = appGraph.pendingSignOutReport,
+                originSurface = null,
+                signInStepSurface = AnalyticsSurface.SIGNIN,
+                applicationContext = activity.applicationContext
+            )
+            ViewModelProvider.create(authEntry, factory)[CloudSignInViewModel::class]
+        }
+
         lateinit var restoredController: NavHostController
         lateinit var savedPostAuthEntryId: String
         composeRule.setContent {
@@ -299,19 +315,7 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     val restored = authController(owner.viewModelStore)
                     restored.restoreState(savedNavigation)
                     restored.graph = restored.authGraph(scope)
-                    val authEntry = restored.getBackStackEntry(SettingsAccountAuthGraph.route)
-                    val factory = createCloudSignInViewModelFactory(
-                        cloudAccountRepository = account,
-                        cloudSocialSignInRepository = socialSignIn,
-                        syncRepository = appGraph.syncRepository,
-                        messageController = TransientMessageController {},
-                        analytics = NoOpAnalytics,
-                        pendingSignOutReport = appGraph.pendingSignOutReport,
-                        originSurface = null,
-                        signInStepSurface = AnalyticsSurface.SIGNIN,
-                        applicationContext = activity.applicationContext
-                    )
-                    ViewModelProvider.create(authEntry, factory)[CloudSignInViewModel::class]
+                    seedRestoredSignInViewModel(restored)
                     restoredController = restored
                     restored
                 }
