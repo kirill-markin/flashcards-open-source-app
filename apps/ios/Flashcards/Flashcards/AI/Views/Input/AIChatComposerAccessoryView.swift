@@ -171,11 +171,7 @@ extension AIChatView {
                                     #if targetEnvironment(macCatalyst)
                                     MathContentText(text: suggestion.text, textStyle: .footnote)
                                     #else
-                                    MathContentText(
-                                        text: suggestion.text,
-                                        textStyle: .subheadline,
-                                        color: UIColor(self.flashcardsStore.displayedAccountAccentColor.color)
-                                    )
+                                    MathContentText(text: suggestion.text, textStyle: .subheadline)
                                     #endif
                                 }
                                 .buttonStyle(.bordered)
