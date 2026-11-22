@@ -446,8 +446,8 @@ Keep input and output outside tracked release history in the operator release
 record, with the ledger pointing to both. Reports contain expected/recorded
 identities, named pass/fail/skip/pending results, missing counts, warning and
 exclusion evidence references and required counterpart IDs, bounded equivalences, limits, and the input
-SHA-256 and the manifest's `schemaVersion`. Keep them with the referenced durable
-native evidence; a temporary signed URL is not a durable reference. Reason/notice text and unrelated extra
+SHA-256 and the manifest's `schemaVersion`. Keep them with the referenced
+native evidence for its [lifetime](evidence.md#evidence-lifetime); a temporary signed URL is not a stable reference. Reason/notice text and unrelated extra
 input fields are not echoed. A report is only current for that exact manifest;
 rerun when evidence, source, artifact, selected attempt, or adjudication changes.
 

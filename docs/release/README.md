@@ -73,6 +73,8 @@ for a new release and follow exception/legacy references only when applicable.
    [development safeguards](versioning.md#release-closeout-and-development).
 7. Report channel states, public links, both Releases/source SHAs, the
    retained version and remaining actions from the [ledger](evidence.md#release-ledger).
+8. Once every channel of the version has its final outcome, clean its release
+   record under the [evidence lifetime](evidence.md#evidence-lifetime) rule.
 
 ### Early preflight
 
