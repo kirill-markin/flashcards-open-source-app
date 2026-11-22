@@ -5,8 +5,9 @@ required reading. These common gates apply to the linked platform procedures und
 
 ## Release Ledger
 
-Keep a separate release ledger in the operator's chat or release record, not a
-historical status table in these permanent docs. Use one small row per channel:
+Keep a separate release ledger in `ledger.md` of the operator's
+[release record](#evidence-lifetime) (chat may mirror it), not a historical
+status table in these permanent docs. Use one small row per channel:
 
 | Channel / target | Source and artifact | Gate evidence | Required operator actions | Provider/store state and publishing mode | Observed public availability | Remaining action |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -47,10 +48,30 @@ when its marketing version and app ID match iOS.
 
 Before a new mobile submission/publication, follow the [recorded mobile readiness procedure](readiness.md)
 and retain its manifest and JSON report alongside the ledger in the operator's
-release record, outside tracked release history. Preserve the referenced native
-evidence durably. Its offline result covers recorded build/test gates only;
+release record, outside tracked release history, with the referenced native
+evidence. Its offline result covers recorded build/test gates only;
 manual diagnostics, store checks and completion remain governed by the platform
 procedures and canonical boundaries above.
+
+### Evidence lifetime
+
+The operator release record is the git-ignored folder
+`.local/releases/<version>/` in the main checkout, never in a disposable
+worktree; its ledger is short text in `ledger.md`. Working evidence (logs,
+`.xcresult` bundles, archives, screenshots, manifests and reports, downloaded
+Cloud artifacts, notes) lives there only while that version is open: every
+instruction to retain, keep or preserve evidence in the release record means
+until the version closes. A version closes when every channel has its final
+recorded outcome: public or live at the intended scope, or explicitly abandoned
+or excluded. Then delete everything in the folder except `ledger.md`. The
+stores, Xcode Cloud, GitHub Actions and Releases, and Sentry remain the
+long-term records; a later resume relies on
+[published artifacts](#reuse-existing-artifacts), not on deleted evidence.
+
+Never put build caches such as Xcode DerivedData or Gradle caches in the
+folder; local Apple builds use the [repo-local derived data path](../ios-local-setup.md#local-testing-rules).
+Read Xcode Cloud results through [Xcode Cloud data access](../xcode-cloud-data-access.md)
+instead of downloading whole bundles, unless diagnosing a failure.
 
 ## Independent Client Sync Check
 
@@ -96,7 +117,7 @@ records keep their original plan. Keep any
 [targeted recovery](#targeted-recovery) and bounded source comparisons.
 Preserve historical failed Cloud actions and Keychain diagnoses separately.
 Include the reviewer, inspection time and submission/publication decision
-with durable private evidence references.
+with private evidence references.
 
 ## Validation Activities
 
