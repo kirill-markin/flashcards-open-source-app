@@ -30,10 +30,30 @@ jobs:
           persist-credentials: false
       - name: Clone public companion source without credentials
         run: git -c credential.helper= clone https://github.com/kirill-markin/nibomo-plugins.git "$RUNNER_TEMP/nibomo-plugins"
+      - name: Check for a matching companion release tag
+        id: companion
+        if: github.event_name == 'release'
+        env:
+          CORE_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if tag_check="$(git -C "$RUNNER_TEMP/nibomo-plugins" show-ref --exists "refs/tags/$CORE_RELEASE_TAG" 2>&1)"; then
+            echo "has_tag=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [[ "$status" != 2 ]]; then
+              printf '%s\n' "$tag_check" >&2
+              exit "$status"
+            fi
+            echo "has_tag=false" >> "$GITHUB_OUTPUT"
+            echo "No companion tag for this core release. Executor publication skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/setup-python@v7
+        if: github.event_name == 'workflow_dispatch' || steps.companion.outputs.has_tag == 'true'
         with:
           python-version: '3.15'
       - name: Publish reviewed release to the existing Executor app
+        if: github.event_name == 'workflow_dispatch' || steps.companion.outputs.has_tag == 'true'
         env:
           PLUGIN_SOURCE_DIR: ${{ runner.temp }}/nibomo-plugins
           EXECUTOR_API_TOKEN: ${{ secrets.EXECUTOR_API_TOKEN }}

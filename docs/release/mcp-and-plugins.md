@@ -12,7 +12,7 @@ following this procedure.
 | iOS | Verify the exact submission and saved release mode, or matching existing publication; [iOS procedure](ios.md#ios). |
 | macOS | Verify the separate `MAC_OS` build, exact submission and saved release mode, or matching existing Mac publication; [macOS procedure](macos.md). |
 | Android | Verify the matching production version and rollout on Google Play; [Android procedure](android.md#android). |
-| Official MCP Registry | Verify `com.nibomo/flashcards` at the target manifest version; [MCP procedure](mcp-and-plugins.md#mcp). |
+| Official MCP Registry | Verify the existing or updated `com.nibomo/flashcards` entry under the [MCP procedure](mcp-and-plugins.md#mcp). |
 | Claude connector and plugin | Verify runtime and accepted updates to the [connector](https://claude.ai/directory/nibomo) and separate plugin; record each public state under the [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
@@ -57,8 +57,9 @@ a directory button based only on a submission or approval.
 
 The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json).
 Core owns the validator and credential-reading publisher. During
-[release preparation](versioning.md#release-preparation),
-align its manifest and plugin versions with the selected core release version.
+[release preparation](versioning.md#mcp-and-plugin-release-decisions),
+compare the intended manifest with the last published registry entry.
+If the content matches, record the existing version and end the registry flow.
 Require successful [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
 for changed release inputs and **Plugin packages** cloud CI for the intended
 companion source.
@@ -109,14 +110,16 @@ Use the existing [Nibomo plugin listing](https://cursor.directory/plugins/nibomo
 
 Follow the [canonical procedure and credential setup](../plugin-publishing.md#executor).
 
-1. Complete the companion's required exact-source **Plugin packages** cloud CI,
-   including **Executor typecheck**, and applicable focused workflow checks.
+1. When publishing a new companion Release, complete exact-source
+   **Plugin packages** cloud CI, including **Executor typecheck**, and
+   applicable focused workflow checks.
    Publish its prepared stable companion Release before the coordinated core
    `vX.Y.Z` GitHub Release. The latter triggers core **Executor Publish**
    (`.github/workflows/executor-publish.yml`, `release.published`), which resolves
    the exact Executor source from the matching immutable companion tag using the
    [canonical source selection](../plugin-publishing.md#executor).
-   Development pushes and Mac-only Releases never publish Executor.
+   Core releases without a matching companion tag skip the publisher and
+   retain the existing Executor publication.
 2. Inspect the workflow result. To retry an existing stable release after
    resolving a failure, dispatch **Executor Publish** from core `main` with
    `release_tag=vX.Y.Z`, selecting the intended immutable companion tag. Manual
@@ -153,15 +156,15 @@ in the [ledger](evidence.md#release-ledger); never silently skip OpenAI.
   Preserve compatibility with approved schemas while updates are held.
   `initialize.serverInfo.version` is the server identity, not the package version
   or evidence of the deployed app SHA.
-- **Package:** align the companion version to the selected coordinated release
-  under [release preparation](versioning.md#release-preparation). For a required
-  package update, use the complete exact-source OpenAI CI ZIP from the companion's
+- **Package:** apply the [release decision](versioning.md#mcp-and-plugin-release-decisions)
+  to the last submitted OpenAI package. For a changed package, use the complete
+  exact-source OpenAI CI ZIP from the companion's
   [durable package procedure](../plugin-publishing.md#release-source-and-durable-packages),
   with successful `packages` and **Executor typecheck** for that SHA; retain its
   version, run and digest. Inspect selected draft, required metadata/skill scans,
   review materials and accepted submission/publication requests under the
-  canonical procedure. Package metadata, assets, skills and coordinated package
-  versions use ZIP review/publication; merge or backend deploy alone does not
+  canonical procedure. Changed package metadata, assets and skills use ZIP
+  review/publication; merge or backend deploy alone does not
   publish them. The public legacy `1.29.0` MCP listing does not establish the
   companion's current `1.33.0` package or three bundled skills. Reconcile its
   downloaded release ZIP and actual installed copy against maintained source;
@@ -201,17 +204,15 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    directory version field. Follow Anthropic's
    [server update instructions](https://claude.com/docs/connectors/building/after-publishing#mcp-server-changes)
    and [listing edit procedure](https://claude.com/docs/connectors/building/managing-your-listing#edit-your-listing).
-3. **Plugin source:** verify the [plugin version surfaces](versioning.md#anthropic-plugin-version-sources)
-   were aligned to the selected target during [release preparation](versioning.md#release-preparation),
-   even when only the product version changed. Follow
+3. **Plugin source:** apply the [release decision](versioning.md#mcp-and-plugin-release-decisions)
+   to the last requested or published Claude plugin. For a changed payload, follow
    the [packaging and verification instructions](../plugin-publishing.md)
    and require its **Plugin packages** cloud CI for the exact source commit.
    Record the merged preparation commit and artifact/run link; apply the
    [publication settings and source safeguards](versioning.md#release-closeout-and-development)
-   before any further merge to tracked `main`. Keep Anthropic automatic
-   publication and the GitHub push webhook enabled; passing pushes may publish
-   under the applied reviewer policy. Package validation alone does not verify OAuth or study flows.
-4. **Plugin update:** after the aligned manifest version and plugin changes
+   before any further merge to tracked `main`. Package validation alone does
+   not verify OAuth or study flows.
+4. **Plugin update:** when the Claude changes for the selected companion release
    reach `kirill-markin/nibomo-plugins` `main`, the connected GitHub push webhook
    notifies Anthropic and triggers validation/security scans automatically.
    Confirm the new version and source commit in the existing submission,
@@ -219,13 +220,7 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    is only needed if delivery/detection failed or to retry after fixes.
    Follow [Update a published plugin](https://claude.com/docs/plugins/submit#update-a-published-plugin)
    and [Publish a passing version](https://claude.com/docs/plugins/submit#publish-a-passing-version).
-   Verify the GitHub push webhook remains enabled and the saved
-   **Settings → Publish new versions automatically** setting remains on. Check
-   the applied reviewer policy in **Overview → Auto-publish**. Passing updates publish
-   automatically only when Anthropic's applied policy allows it, the toggle is
-   on, and no reviewer hold applies. Inspect the actual policy and version status
-   on every run: a matching version may already have published automatically.
-   Otherwise select an enabled **Publish** / **Publish update** as offered and verify
+   For the changed, passing version, select **Publish** / **Publish update** and verify
    whether it went live or created a reviewer request; do not assume every
    version requires reviewer approval. If reviewer policy disables the action,
    follow [Reviewer-Disabled Plugin Publication](#reviewer-disabled-plugin-publication).

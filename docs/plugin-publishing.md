@@ -16,7 +16,9 @@ applicable manual reviewer/publication action after the source scan passes.
 ## Shared source and package formats
 
 The companion root is one plugin with one skills directory. Portable, Claude,
-Gemini and registry versions stay aligned with the selected core version.
+Gemini and registry manifests share the companion version. Follow the
+[per-destination release decisions](release/versioning.md#mcp-and-plugin-release-decisions)
+to determine where that version needs publication.
 All formats use https://mcp.nibomo.com/mcp; Antigravity metadata is derived.
 
 | Format | Manifest and MCP configuration |
@@ -37,9 +39,9 @@ approval, account connection or real workflows.
 
 ## Release source and durable packages
 
-Complete [release preparation](release/versioning.md#release-preparation) and pin
-both repositories' SHAs. Development retains the last coordinated version; a
-version string alone does not identify source.
+Use this procedure when the
+[companion release decision](release/versioning.md#mcp-and-plugin-release-decisions)
+calls for a new companion Release. Pin its source SHA.
 
 The companion's `core-source.json` contains one `commit` field with the full
 lowercase SHA of a core `main` commit. Companion CI runs the package and registry
@@ -209,16 +211,15 @@ Authenticate the CLI with the old domain/key to deprecate that record.
 
 Use submission d8c1028d-4318-4da5-8514-1ed3e0b9a09e in the owning organization's
 [developer portal](https://claude.ai/directory/manage). Preserve
-kirill-markin/nibomo-plugins, root path, tracked main, connector pairing,
-**Publish new versions automatically** and the GitHub push webhook.
+kirill-markin/nibomo-plugins, root path, tracked main and connector pairing.
+Follow the [publication settings and source safeguards](release/versioning.md#release-closeout-and-development).
 
 Compare target SHA/version with **Versions** and validation/security results after
 each source change. The webhook handles detection; **Check for new commits** is for
 detection failure/retry. Require applicable scans and [workflow checks](#real-workflow-verification).
 Inspect saved settings, **Overview → Auto-publish** reviewer policy and actual
-version status: a clean scan does not establish automatic approval or an accepted
-publication request. Complete the offered **Publish** / **Publish update** or
-reviewer request when required. If disabled, follow the
+version status. For a changed payload with a passing scan, complete the offered
+**Publish** / **Publish update** or reviewer request. If disabled, follow the
 [reviewer-held action procedure](release/mcp-and-plugins.md#reviewer-disabled-plugin-publication);
 preserve accepted pending requests and exact source, without bypassing the hold
 through ref/settings changes. Never create another plugin or MCP submission.
@@ -269,9 +270,10 @@ OpenAI extension. Keep copy within [submission limits](https://developers.openai
    definition** where offered, plus tool availability. Preserve approved-schema
    compatibility while held. Compatible result changes need no ZIP; a changed
    MCP URL requires support.
-3. For metadata, assets, skills or a coordinated package version, use the complete
-   [exact-source durable ZIP](#release-source-and-durable-packages). With no active
-   review, select **Upload plugin to make changes** on the same plugin. Inspect
+3. For changed metadata, assets or skills under the
+   [release decision](release/versioning.md#mcp-and-plugin-release-decisions), use
+   the complete [exact-source durable ZIP](#release-source-and-durable-packages).
+   With no active review, select **Upload plugin to make changes** on the same plugin. Inspect
    **Metadata & Skills**, resolve findings and require safety/security scans.
    Keep managed fields in source under extensions.com.openai; use the
    [metadata mapping](openai-plugin-metadata.md) and [official import reference](https://developers.openai.com/plugins/deploy/submission#automatically-provide-submission-and-review-information).
@@ -304,11 +306,9 @@ Releases do not trigger Executor.
 
 ## Executor
 
-Core's [Executor Publish](../.github/workflows/executor-publish.yml) runs for a
-published stable coordinated core vX.Y.Z Release. Publish the matching companion
-Release and pass exact-source main **Plugin packages**, including **Executor
-typecheck**, **before** the core Release. The publisher resolves Executor source
-from the immutable companion tag. A tag with `core-source.json` selects
+Core's [Executor Publish](../.github/workflows/executor-publish.yml) publishes
+from the matching immutable companion tag when a stable core vX.Y.Z Release
+has one. A tag with `core-source.json` selects
 `apps/executor/` at the pinned core commit on `main`. A tag without the marker
 selects `executor/` at the companion tag. Development pushes, OpenAI-only
 companion Releases and macos-v... core Releases do not publish Executor.
