@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.progress
 
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
