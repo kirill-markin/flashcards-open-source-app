@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.wire
 
 import com.flashcardsopensourceapp.data.local.model.cloud.parseIsoTimestamp
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -232,6 +234,39 @@ internal fun parseCloudIsoTimestamp(value: String, fieldPath: String): Long {
             error
         )
     }
+}
+
+internal fun parseCloudLocalDate(
+    value: String,
+    fieldPath: String
+): LocalDate {
+    return try {
+        LocalDate.parse(value)
+    } catch (error: DateTimeParseException) {
+        throw CloudContractMismatchException("$fieldPath must be a YYYY-MM-DD date.", error)
+    }
+}
+
+internal fun requireCloudNonNegativeInt(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 0) {
+        throw CloudContractMismatchException("$fieldPath must not be negative.")
+    }
+
+    return value
+}
+
+internal fun requireCloudPositiveRank(
+    value: Int,
+    fieldPath: String
+): Int {
+    if (value < 1) {
+        throw CloudContractMismatchException("$fieldPath must be at least 1.")
+    }
+
+    return value
 }
 
 private fun JSONObject.requireCloudValue(key: String, fieldPath: String): Any {
