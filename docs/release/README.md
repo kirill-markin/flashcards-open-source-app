@@ -51,9 +51,9 @@ for a new release and follow exception/legacy references only when applicable.
    Open the [ledger](evidence.md#release-ledger), resume the recorded version
    and [reuse matching artifacts](evidence.md#reuse-existing-artifacts).
 2. Complete [early preflight](#early-preflight) for the remaining work.
-3. For a new release, align app and companion versions through normal PR/CI,
-   [verify version surfaces](versioning.md#verify-the-release-version), pin
-   both SHAs and prepare [store notes and GitHub changelog](release-notes.md).
+3. For a new release, record the [MCP and plugin release decisions](versioning.md#mcp-and-plugin-release-decisions).
+   Align and [verify the applicable versions](versioning.md#verify-the-release-version),
+   pin their source and prepare [store notes and GitHub changelog](release-notes.md).
 4. Run the [platform flows](#required-reading) in parallel.
    After saved-workflow preflight, dispatch only **iOS Release Build**
    and **macOS Release Build** alongside their respective local acceptance.
@@ -71,8 +71,9 @@ for a new release and follow exception/legacy references only when applicable.
    Preserve and verify app/companion [tags, Releases and package assets](versioning.md#github-tag-and-release)
    when required by a channel or at closeout. Apply the
    [development safeguards](versioning.md#release-closeout-and-development).
-7. Report channel states, public links, both Releases/source SHAs, the
-   retained version and remaining actions from the [ledger](evidence.md#release-ledger).
+7. Report channel states, public links, release versions and source SHAs,
+   including reused publications, and remaining actions from the
+   [ledger](evidence.md#release-ledger).
 8. Once every channel of the version has its final outcome, clean its release
    record under the [evidence lifetime](evidence.md#evidence-lifetime) rule.
 

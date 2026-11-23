@@ -6,8 +6,8 @@ following this procedure.
 
 ## Release Preparation
 
-Development retains the last coordinated release version in app and companion
-sources. Select a new version only when preparing a new release. First inspect
+Development retains each repository's last release version. Select a new app
+version only when preparing a new release. First inspect
 the ledger, source versions, tags, and store/provider state: resume a prepared or
 partly published release at its recorded target without another bump.
 
@@ -19,43 +19,65 @@ publishing. If this session already explicitly supplies the bump choice or exact
 target, use it without asking again. Record the decision and target in the ledger.
 Do not infer a choice from a generic release request or select minor by default.
 
-Update all [app and companion sources](#source-of-truth-by-platform) to that
-target through each repository's normal PR/cloud-CI gates. Keep product and
-plugin versions equal; record any concrete user-approved exception. A bump is
-complete only when all sources and runtime wiring align. Apply the
-[publication settings and source safeguards](#release-closeout-and-development)
-before merging preparation changes to tracked plugin `main`. Authorized merges
-may publish passing Anthropic updates under the preserved automatic-publication
-policy; verify the resulting exact version and source.
+Update the [app version sources](#source-of-truth-by-platform) to the selected
+target through normal PR/cloud-CI gates. Apply the [MCP and plugin release
+decisions](#mcp-and-plugin-release-decisions) before touching companion versions
+and the [source safeguards](#release-closeout-and-development) before merging to
+tracked companion `main`.
 
-[Verify the release version](#verify-the-release-version) and pin the resulting
-app and companion source SHAs before signed builds, registry publication,
-provider packages, and release metadata. Retain successful **Plugin packages**
-CI artifacts for the exact aligned companion SHA; packaging CI may run as part
-of preparation, but publishing its assets belongs to the authorized release.
-A version-only request stops after source alignment and CI; its authorized
-tracked-`main` merge may trigger Anthropic automatic publication under the
-preserved policy. It does not authorize additional release dispatches or manual
-distribution actions. Full releases still require every local/cloud and publication gate.
+[Verify the release version](#verify-the-release-version) and pin the app SHA
+and the source SHA of any new companion release. A version-only request ends
+after the applicable source alignment and CI. Release dispatches and
+publication belong to the authorized release and follow each channel's gates.
 
 Do not change `/v1` API paths, API Gateway stage names, or MCP `SERVER_VERSION = "v1"` as part of an app release bump. These identify the API contract, not app semver.
 
+## MCP and Plugin Release Decisions
+
+Before bumping versions, compare each destination's intended payload with its
+last submitted artifact or exact source, including a submission awaiting
+review. Use the last published version for channels with no submission step.
+Record the baseline, change and decision per destination in the
+[ledger](evidence.md#release-ledger).
+
+| Destination | Compare |
+| --- | --- |
+| MCP Registry | The published `server.json` manifest against the intended registry metadata. Hosted MCP changes deploy separately through [Web and Backend](web-backend.md). |
+| OpenAI plugin | The generated ZIP contents and reviewable listing metadata. Hosted MCP scans and live tools are tracked [separately](mcp-and-plugins.md#openai). |
+| Anthropic plugin | Claude plugin contents and directory listing fields at the tracked source, against the latest requested or published version. Compare connector listing edits separately. |
+| `nibomo-plugins` GitHub Release | The shipped companion manifests, installable packages and resolved Executor source against the last companion Release. |
+
+Compare unpacked contents. Ignore changes limited to version labels, versioned
+filenames, archive timestamps or a new commit or pin that resolves to identical
+shipped content. A source or package change matters only to the destinations
+whose submitted contents or listing metadata it changes.
+
+When a destination has no relevant changes, retain its submitted or published
+version and verify that state. Resume any authorized publication step for the
+matching submission using its recorded source. If the companion payload is
+unchanged, reuse its version, tag, Release and assets. If it changed, use the
+selected app release version for the new companion Release and align its
+internal manifests for CI. Use the new or retained companion artifact that
+matches the intended payload for each destination requiring an update.
+For example, an OpenAI-only listing translation can require a companion Release
+and a new OpenAI submission while Claude and the MCP Registry keep their
+existing versions.
+
 ## GitHub Tag and Release
 
-Tags and GitHub Releases are mandatory controlled release actions. Once the
-applicable source/artifact gates pass, create or verify immutable current-version
-tags in both app and companion repositories at their exact recorded release commits,
-whose manifests still report that version. Prefer annotated tags and existing
-naming conventions. Record any artifact-SHA comparison under the reuse rules.
-Publish GitHub Releases with the English notes and
-[contributor thanks](release-notes.md#github-release-thanks), and preserve the companion's
-exact successful **Plugin packages** CI assets under its
-[publishing procedure](../plugin-publishing.md#release-source-and-durable-packages).
-Publish the companion Release and complete its exact-source package/typecheck CI
-before publishing the coordinated core Release: core's stable release event
-publishes the matching companion tag to Executor. Mac-only Releases do not trigger
-that publisher. Record asset identity/checksums and provenance; an expiring
-Actions artifact alone is not durable release preservation. Complete this before release closeout.
+After applicable source/artifact gates pass, create or verify the immutable
+core version tag and GitHub Release at the exact recorded commit. Prefer
+annotated tags and existing naming conventions. Publish English notes and
+[contributor thanks](release-notes.md#github-release-thanks).
+
+When the [companion release decision](#mcp-and-plugin-release-decisions) calls
+for a new Release, complete its exact-source package/typecheck CI and publish
+its matching immutable tag, Release and original
+[package assets](../plugin-publishing.md#release-source-and-durable-packages)
+before the core Release. The core release event only runs the Executor
+publisher when its matching companion tag exists. Record the asset
+checksums and provenance before closeout.
+
 Do not wait for external review or propagation, or reconstruct historical mobile
 logs for already-published matching artifacts, before this checkpoint. Apply the
 [reuse rules](evidence.md#reuse-existing-artifacts); artifact/source identity and
@@ -69,9 +91,9 @@ a matching version string alone is insufficient to identify released source.
 
 ### Mac-only source and tags
 
-A coordinated release retains the core and companion `vX.Y.Z` tags/Releases
-and exact package provenance above; record Mac archive/test SHAs and any bounded
-comparison to the coordinated core tag. A Mac-only release resumes the recorded
+A coordinated release retains its core `vX.Y.Z` tag/Release and the applicable
+companion Release and package provenance above. Record Mac archive/test SHAs
+and any bounded comparison to the coordinated core tag. A Mac-only release resumes the recorded
 shared Apple version unless a new version was explicitly chosen. It does not
 authorize another platform's dispatch, submission replacement or companion publication.
 Preserve existing core/companion tags, Releases, assets and pending submissions.
@@ -95,20 +117,16 @@ Close the release after the [operator completion boundaries](README.md#release-i
 For Mac-only scope, apply [its tag and preservation rules](#mac-only-source-and-tags)
 to the existing coordinated publications and any required platform tag/Release;
 do not create another companion release just to close the Mac channel.
-Verify both release tags, GitHub Releases, and preserved package assets; record
+Verify the core Release and the new or reused companion Release and assets. Record
 external review/propagation and any later manual publication action as follow-up
-without calling pending channels live. Keep the selected version across app and companion
-sources after completion and throughout subsequent development; do not pre-bump
-the next minor or create development release packages.
+without calling pending channels live. Keep each repository's selected version
+throughout subsequent development.
 
-Keep Anthropic **Publish new versions automatically** and the connected GitHub
-push webhook enabled during development and release preparation. Verify the
-saved settings and applied **Overview → Auto-publish** reviewer policy before
-merging to tracked `main`. Passing tracked-`main` pushes may publish automatically
-under that policy, including with unchanged manifest versions; this publication
-behavior is explicitly authorized. Record each release's exact published or
-pending version and source commit, and complete any available manual **Publish**
-action during an authorized release when provider policy holds the update.
+Keep Anthropic's GitHub push webhook enabled for scans. Before merging to
+tracked `main`, verify **Settings → Publish new versions automatically** is
+off and confirm the applied policy in **Overview → Auto-publish**. Use the
+[Anthropic procedure](mcp-and-plugins.md#anthropic-connector-and-plugin) to
+request publication for a changed Claude payload during an authorized release.
 Preserve accepted pending requests and their source commits; changing the tracked
 ref can cancel a pending request, so do not use it to bypass review. If
 preservation is blocked, stop the affected merge and report it.
@@ -130,7 +148,8 @@ record deployment/build SHAs under [Web and Backend](web-backend.md).
 
 ## Source Of Truth By Platform
 
-Even though we usually ship one shared project version, each platform still has its own checked-in source of truth and runtime wiring. Keep those sources aligned instead of introducing copied fallback literals.
+Keep the app version sources aligned and read each platform's version from its
+existing source of truth.
 
 ### Backend, admin, and backend-adjacent packages
 
@@ -150,22 +169,13 @@ change so the documented minimum-compatible client behavior stays accurate.
 ### MCP Registry manifest
 
 The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
-and its `version`. Align it with the selected shared product and plugin version
-during [release preparation](#release-preparation); there is no adjacent lockfile.
-Core CI checks core version surfaces, and companion **Plugin packages** CI checks
-manifest/plugin alignment using companion files. Release preparation verifies
-alignment across both repositories without a network-dependent core PR check.
-
-Require [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
-for changed release inputs. Publish an absent version from its immutable
-companion release tag through core [MCP Registry Publish](https://github.com/kirill-markin/flashcards-open-source-app/actions/workflows/mcp-registry-publish.yml)
-during the platform release stage, before closeout, following the
-[explicit repository dispatch command](mcp-and-plugins.md#mcp).
-Registry versions are immutable; reuse a matching publication and its evidence.
+and its `version`. Companion **Plugin packages** CI checks its alignment with
+the companion package manifests. Follow the [registry procedure](mcp-and-plugins.md#mcp)
+when a registry update qualifies.
 
 ### Anthropic plugin version sources
 
-For every shared-version update, align these files in the separate
+For a qualifying companion release, align these files in the separate
 [`nibomo-plugins`](https://github.com/kirill-markin/nibomo-plugins) repository:
 
 - `.claude-plugin/plugin.json` — Anthropic plugin `version`.
@@ -173,14 +183,7 @@ For every shared-version update, align these files in the separate
 - `gemini-extension.json` — shared extension `version` required by packaging CI.
 - Versioned archive names in `README.md`, when present.
 
-Keep the packaging script's derived archive versions and Antigravity metadata
-derived from the manifests; do not add another version literal. An authorized
-tracked-`main` merge may trigger Anthropic automatic publication under the
-[publication settings and source safeguards](#release-closeout-and-development).
-A full release includes the existing channels in the
-[inventory](mcp-and-plugins.md#release-inventory) and requires the
-[completion](README.md#release-inventory-and-completion) rules; a standalone
-version bump ends after source alignment and CI with any automatic publication recorded.
+Archive versions and Antigravity metadata are derived from the manifests.
 
 ### Web
 
@@ -269,14 +272,15 @@ Versioned metadata examples, when present, include:
 
 ## Verify the Release Version
 
-Search for the old version across both repositories before editing and again
-after the bump. Confirm manifests, lockfile top-level versions, runtime readers,
+Search for the old app version before editing and after the bump. When the
+companion qualifies for a release, repeat the check for its old version in that
+repository. Confirm manifests, lockfile top-level versions, runtime readers,
 compatibility comments, and any versioned metadata agree. Leave frozen test
 fixtures and platform build-number handling as documented above.
 
-Use both repositories' normal cloud CI gates, including **Plugin packages**;
-do not run local builds or broad test suites for a version-only change. Report
-both merged preparation commits and pin each source SHA separately from
-Anthropic's published/pending version and source.
+Use normal cloud CI for each changed repository, including **Plugin packages**
+for a changed companion. Keep version-only verification to source inspection
+and CI. Report the app preparation commit and the new or reused companion
+source separately from each provider's submitted or published version and source.
 Inspect iOS version wiring directly. Monitor automatic
 AWS/web and Android workflows according to [Release Gates](../release-gates.md).
