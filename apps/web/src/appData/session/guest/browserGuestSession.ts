@@ -1,5 +1,9 @@
 import { probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
-import { BrowserGuestSessionInvalidatedError, getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
+import {
+  BrowserGuestSessionInvalidatedError, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession,
+  loadVerifiedRegisteredBrowserSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration,
+  recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession,
+} from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
@@ -83,15 +87,15 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
         pauseBrowserGuestSession();
       }
       if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
-        const destination = await getOptionalSession();
-        if (destination?.userId !== pending.destinationUserId) throw new Error("The signed-in account differs from the completed conversion destination.");
+        const destination = await loadVerifiedRegisteredBrowserSession();
+        if (destination.userId !== pending.destinationUserId) throw new Error("The signed-in account differs from the completed conversion destination.");
         return resumeVerifiedBrowserSession(destination);
       }
       if (pending !== null || guest.status === "pending_upgrade"
-        || (probe.registeredSession.present && (guest.status === "active" || persisted?.cloudState === "guest" || saved !== null))) {
+        || (probe.registeredSession.present && (guest.status === "active" || hasSavedGuestState))) {
         throw new GuestConversionRequiredError(probe, pending);
       }
-      if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await getSession());
+      if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await loadVerifiedRegisteredBrowserSession());
       let verifyCreationIdentity = captureBrowserGuestCreationVerifier();
       if (guest.status === "absent") {
         if (saved?.status === "owned" || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
@@ -99,8 +103,16 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
           if (saved === null && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
             await recoverRegisteredCredentialForProbe();
             const refreshed = await probeBrowserGuestSession();
-            if (refreshed.guestSession.status === "active" || refreshed.guestSession.status === "pending_upgrade") throw new GuestConversionRequiredError(refreshed, null);
-            return resumeVerifiedBrowserSession(await getSession());
+            if (refreshed.guestSession.status === "active" || refreshed.guestSession.status === "pending_upgrade") {
+              throw new GuestConversionRequiredError(refreshed, null);
+            }
+            // Registered /me can provision the account before a later guest conversion can bind it.
+            if (hasSavedGuestState === false) {
+              if (!refreshed.registeredSession.present) {
+                throw new Error("The registered browser session is missing after refresh. Sign in again to continue.");
+              }
+              return resumeVerifiedBrowserSession(await loadVerifiedRegisteredBrowserSession());
+            }
           }
           throw new Error("Browser credential is missing while local ownership exists. Local data has been preserved; restore the original session.");
         }

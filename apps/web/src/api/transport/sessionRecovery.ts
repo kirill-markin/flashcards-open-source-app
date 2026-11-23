@@ -59,6 +59,7 @@ export type SessionRecovery = Readonly<{
   getCachedSessionAuthKind: () => ExpectedAuth["kind"] | null;
   getOptionalSession: () => Promise<SessionInfo | null>;
   loadVerifiedBrowserGuestSession: (userId: string, workspaceId: string) => Promise<SessionInfo>;
+  loadVerifiedRegisteredBrowserSession: () => Promise<SessionInfo>;
   isBrowserGuestSessionVerified: (userId: string, workspaceId: string) => boolean;
   subscribeToBrowserGuestVerification: (listener: (change: BrowserGuestVerificationChange) => void) => () => void;
   getSession: () => Promise<SessionInfo>;
@@ -858,6 +859,15 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       if (session.browserGuestCapabilities?.isGuest !== true || session.userId !== userId
         || session.selectedWorkspaceId !== workspaceId) {
         throw new Error("Browser guest account does not match the verified cookie workspace. Local data has been preserved.");
+      }
+      return session;
+    },
+    loadVerifiedRegisteredBrowserSession: async (): Promise<SessionInfo> => {
+      const signal = identityController.signal;
+      const session = await loadSessionInfo(browserSessionVerificationOptions, signal);
+      throwIfRequestAborted(signal);
+      if (session.authTransport !== "session" || session.browserGuestCapabilities !== null) {
+        throw new Error("The browser session did not verify as a signed-in account.");
       }
       return session;
     },
