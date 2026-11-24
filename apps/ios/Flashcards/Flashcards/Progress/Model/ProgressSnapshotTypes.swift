@@ -60,6 +60,28 @@ struct ProgressSnapshot: Hashable, Sendable {
     let generatedAt: String?
 }
 
+struct ProgressScreenSnapshot: Sendable {
+    let progress: ProgressSnapshot
+    let reviewPages: [ProgressReviewChartPage]
+
+    init(progress: ProgressSnapshot, previousSnapshot: ProgressScreenSnapshot?) {
+        self.progress = progress
+        if let previousSnapshot,
+           previousSnapshot.progress.presentationCalendar == progress.presentationCalendar,
+           previousSnapshot.progress.chartData == progress.chartData {
+            self.reviewPages = previousSnapshot.reviewPages
+            return
+        }
+
+        let chartDays = progress.chartData.chartDays
+        self.reviewPages = makeProgressReviewChartPages(
+            chartDays: chartDays,
+            calendar: progress.presentationCalendar,
+            today: chartDays.last?.date
+        )
+    }
+}
+
 struct ReviewScheduleSnapshot: Hashable, Sendable {
     let scopeKey: ReviewScheduleScopeKey
     let schedule: UserReviewSchedule

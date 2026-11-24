@@ -273,7 +273,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             cloudState: .guest
         )
         defer { context.tearDown() }
-        context.store.progressSnapshot = nil
+        context.store.applyProgressSnapshot(snapshot: nil)
         context.store.progressObservedScopeKey = nil
 
         context.store.handleProgressLocalMutation(
