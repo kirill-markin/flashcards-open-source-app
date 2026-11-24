@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import type { BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../apiContracts/guestAuth";
 import { parseBrowserGuestUpgradeResult } from "../../../apiContracts/guestAuth";
 import { ApiContractError, parseBoolean, parseEnum, parseNullableString, parseObject, parseString } from "../../../apiContracts/core";
@@ -86,7 +87,7 @@ export function readBrowserGuestOwnershipGeneration(): string | null {
 }
 
 export function invalidateBrowserGuestOwnership(): void {
-  window.localStorage.setItem(browserGuestOwnershipGenerationKey, crypto.randomUUID());
+  window.localStorage.setItem(browserGuestOwnershipGenerationKey, createBrowserUuidV4());
   window.dispatchEvent(new Event(browserGuestStorageKey));
 }
 

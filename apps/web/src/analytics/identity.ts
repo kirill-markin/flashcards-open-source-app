@@ -11,6 +11,7 @@
  * Sessions are deliberately not in that cookie: every client rotates its own under the shared
  * 30-minute rule, which is what this module still owns locally.
  */
+import { createBrowserUuidV4 } from "../browserUuid";
 import { getAppConfig } from "../config";
 import type { AnalyticsConsentChoice } from "../types";
 
@@ -168,7 +169,7 @@ export function readAnalyticsAnonymousId(): string | null {
     return visitorId;
   }
 
-  const nextAnonymousId = inMemoryAnonymousId ?? crypto.randomUUID().toLowerCase();
+  const nextAnonymousId = inMemoryAnonymousId ?? createBrowserUuidV4();
   inMemoryAnonymousId = nextAnonymousId;
   return nextAnonymousId;
 }
@@ -308,7 +309,7 @@ export function readAnalyticsSessionId(nowMs: number): string {
     return sessionState.sessionId;
   }
 
-  const sessionId = crypto.randomUUID().toLowerCase();
+  const sessionId = createBrowserUuidV4();
   writeSessionState({ sessionId, lastEventAtMs: nowMs }, true);
   return sessionId;
 }

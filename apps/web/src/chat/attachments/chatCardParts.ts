@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { makeCardPreviewSegments, type CardPreviewSegment } from "../../components/cardPreviewMarkdown";
 import type { Card, ContentPart } from "../../types";
 
@@ -29,7 +30,7 @@ export function toChatCardSnapshot(card: Card): ChatCardSnapshot {
 export function makeCardPendingAttachment(card: ChatCardSnapshot): CardPendingAttachment {
   return {
     type: "card",
-    attachmentId: crypto.randomUUID(),
+    attachmentId: createBrowserUuidV4(),
     cardId: card.cardId,
     frontText: card.frontText,
     backText: card.backText,

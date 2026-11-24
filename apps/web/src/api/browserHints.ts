@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 import { getAppConfig } from "../config";
 
 export const browserHintsBridgePath = "/browser-hints";
@@ -50,7 +51,7 @@ function decodeReply(value: unknown, requestId: string): BridgeReply {
 
 function requestBridge(operation: BridgeOperation): Promise<BridgeReply> {
   const authOrigin = bridgeOrigin();
-  const requestId = window.crypto.randomUUID();
+  const requestId = createBrowserUuidV4();
   const iframe = document.createElement("iframe");
   iframe.hidden = true;
   iframe.title = "Browser sign-in information";

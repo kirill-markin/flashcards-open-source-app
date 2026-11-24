@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 import { useCallback, useSyncExternalStore } from "react";
 import { ApiContractError } from "../apiContracts/core";
 import { parseEntitlementSnapshot } from "../apiContracts/entitlement";
@@ -87,7 +88,7 @@ export function clearEntitlementState(): void {
   resetEntitlementIdentity();
   try {
     // A pending first pull has no snapshot key whose removal could notify another tab.
-    window.localStorage.setItem(resetStorageKey, crypto.randomUUID());
+    window.localStorage.setItem(resetStorageKey, createBrowserUuidV4());
   } catch (error) {
     reportCacheError(error, previousUserId, "broadcast_reset");
   }

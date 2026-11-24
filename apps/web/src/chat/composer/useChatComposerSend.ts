@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from "react";
 import { isCapturedSyncFailure } from "../../appData/sync/observation/syncErrorObservation";
 import {
@@ -353,7 +354,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
       indexedDbOpenRecoveryState.throwIfFailed();
       const clientRequestId = isDraftSessionBound
         ? getSessionBoundRequestIdForSend(createChatDraftContent(nextText, nextAttachments))
-        : crypto.randomUUID().toLowerCase();
+        : createBrowserUuidV4();
       if (clientRequestId === null) {
         restoreComposerAfterPendingSend(draftPendingAttachmentsRef.current);
         return;

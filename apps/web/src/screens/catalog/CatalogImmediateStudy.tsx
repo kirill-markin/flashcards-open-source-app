@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { ApiContractError, ApiError, confirmCatalogPackageInstall } from "../../api";
@@ -75,7 +76,7 @@ export function CatalogImmediateStudy(props: Readonly<{
             requireCurrentIdentity();
             const replicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
             requireCurrentIdentity();
-            const installId = crypto.randomUUID().toLowerCase();
+            const installId = createBrowserUuidV4();
             const installedAt = new Date().toISOString();
             attempt = {
               userId, packageVersionId: catalogContext.packageVersionId, workspaceId, installationId,

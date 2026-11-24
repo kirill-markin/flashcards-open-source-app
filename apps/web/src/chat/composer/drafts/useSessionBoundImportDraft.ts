@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { useRef, useState } from "react";
 import { hasChatDraftContent } from "../chatComposerState";
 import {
@@ -128,7 +129,7 @@ export function useSessionBoundImportDraft(activeWorkspaceId: string | null, act
       return currentDraft.lastRequest.id;
     }
 
-    const requestId = crypto.randomUUID().toLowerCase();
+    const requestId = createBrowserUuidV4();
     updateDraft({ ...currentDraft, lastRequest: { id: requestId, content: requestContent } });
     return requestId;
   }

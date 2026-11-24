@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { ApiError } from "../../../api";
 import { addWebBreadcrumb, type WebObservationScope } from "../../../observability/webObservability";
 import type {
@@ -291,11 +292,7 @@ export function createChatControllerDebugId(): string {
 }
 
 export function createClientChatSessionId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID().toLowerCase();
-  }
-
-  return `00000000-0000-4000-8000-${String(Date.now()).padStart(12, "0").slice(-12)}`;
+  return createBrowserUuidV4();
 }
 
 export function resolveInitialHydrationSessionId(
