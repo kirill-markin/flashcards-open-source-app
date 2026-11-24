@@ -32,12 +32,10 @@ func makeProgressSnapshot(
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
-    let chartData = ProgressChartData(
-        chartDays: chartDays
-    )
+    let chartData = ProgressChartData(chartDays: chartDays)
     let presentationCalendar = try makeProgressPresentationCalendar(
         timeZoneIdentifier: scopeKey.timeZone,
-        userCalendar: Calendar.autoupdatingCurrent
+        userCalendar: Calendar.current
     )
     let streakWeeks = try makeProgressStreakWeeks(
         chartDays: chartDays,
@@ -756,7 +754,7 @@ func makeProgressPresentationCalendar(
     }
 
     var calendar = Calendar(identifier: .gregorian)
-    calendar.locale = Locale.autoupdatingCurrent
+    calendar.locale = Locale.current
     calendar.timeZone = timeZone
     calendar.firstWeekday = userCalendar.firstWeekday
     calendar.minimumDaysInFirstWeek = userCalendar.minimumDaysInFirstWeek

@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   appendReviewReactionEvent,
@@ -272,7 +273,7 @@ export function useReviewRatingReactions(
 
     const reactionRating = makeReviewReactionRating(rating);
     const totalWeight = reviewReactionVariantTotalWeight(reactionRating);
-    const eventId = crypto.randomUUID();
+    const eventId = createBrowserUuidV4();
     const selectedVariant = selectReviewReactionVariant(
       reactionRating,
       Math.floor(Math.random() * totalWeight),
@@ -317,7 +318,7 @@ export function useReviewRatingReactions(
 
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
     releaseReviewReactionLottieRender(eventId);
-    const fallbackEventId = crypto.randomUUID();
+    const fallbackEventId = createBrowserUuidV4();
     scheduleReactionEventCleanup(fallbackEventId, reviewReactionLottieFallbackVariant);
     setEvents((currentEvents) => {
       const nextEvents = currentEvents.map((activeEvent) => {

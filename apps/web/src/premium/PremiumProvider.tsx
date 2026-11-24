@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { reviewPromptConfig } from "../../../backend/src/reviewPrompts/reviewPromptConfig";
 import { track, type AnalyticsPaywallEntryPoint } from "../analytics";
@@ -102,7 +103,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode; regional: Regiona
       return "granted";
     }
     const isPreview = request.reason !== "feature" && request.isTestPreview === true;
-    const functionalPresentationId = crypto.randomUUID();
+    const functionalPresentationId = createBrowserUuidV4();
     const analytics = isPreview || request.entryPoint === null || !canCollectPaywallAnalytics() ? null
       : request.reason === "offer" && request.presentation !== null && request.presentation !== undefined ? request.presentation
       : { presentationId: functionalPresentationId, entryPoint: request.entryPoint };

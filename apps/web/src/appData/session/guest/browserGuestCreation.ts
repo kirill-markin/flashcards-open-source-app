@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { ApiError } from "../../../api/transport/errors";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
@@ -78,7 +79,7 @@ export async function createAndProbeBrowserGuestSession(): Promise<Readonly<{
   verifyCreationIdentity: VerifyBrowserGuestCreationIdentity;
 }>> {
   const attempt = pendingGuestCreation ?? {
-    attemptId: crypto.randomUUID(),
+    attemptId: createBrowserUuidV4(),
     idempotencyKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join(""),
     identity: null,
   };

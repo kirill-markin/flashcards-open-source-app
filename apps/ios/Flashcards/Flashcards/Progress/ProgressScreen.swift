@@ -74,9 +74,10 @@ struct ProgressScreen: View {
                 LazyVStack(alignment: .leading, spacing: 20) {
                     ProgressErrorBanner(message: self.store.progressErrorMessage)
 
-                    if let progressSnapshot = self.store.progressSnapshot {
+                    if let screenSnapshot = self.store.progressScreenSnapshot {
                         ProgressLoadedSections(
-                            progressSnapshot: progressSnapshot,
+                            progressSnapshot: screenSnapshot.progress,
+                            reviewPages: screenSnapshot.reviewPages,
                             leaderboardSnapshot: self.store.progressLeaderboardSnapshot,
                             streakLeaderboardSnapshot: self.store.progressStreakLeaderboardSnapshot,
                             reviewScheduleSnapshot: self.store.reviewScheduleSnapshot,

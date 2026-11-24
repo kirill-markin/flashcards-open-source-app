@@ -99,7 +99,10 @@ final class FlashcardsStore {
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
     var isReviewQueueChunkLoading: Bool
-    var progressSnapshot: ProgressSnapshot?
+    var progressScreenSnapshot: ProgressScreenSnapshot?
+    var progressSnapshot: ProgressSnapshot? {
+        self.progressScreenSnapshot?.progress
+    }
     #if !targetEnvironment(macCatalyst)
     /// The Progress history the Home Screen widgets show: the Progress screen's snapshot when it publishes, otherwise
     /// one built from the Review streak badge's render, which `progressSnapshot` deliberately skips.
@@ -552,7 +555,7 @@ final class FlashcardsStore {
         self.isReviewHeadLoading = initialReviewPublishedState.isReviewHeadLoading
         self.isReviewCountsLoading = initialReviewPublishedState.isReviewCountsLoading
         self.isReviewQueueChunkLoading = initialReviewPublishedState.isReviewQueueChunkLoading
-        self.progressSnapshot = nil
+        self.progressScreenSnapshot = nil
         self.reviewScheduleSnapshot = nil
         self.progressLeaderboardSnapshot = nil
         self.progressStreakLeaderboardSnapshot = nil

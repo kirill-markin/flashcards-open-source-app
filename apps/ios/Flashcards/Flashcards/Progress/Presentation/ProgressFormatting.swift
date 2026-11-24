@@ -9,7 +9,7 @@ func progressReviewChartPageDateRange(
 ) -> String {
     let formatter = DateIntervalFormatter()
     formatter.calendar = calendar
-    formatter.locale = Locale.autoupdatingCurrent
+    formatter.locale = calendar.locale
     formatter.timeZone = calendar.timeZone
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
@@ -19,7 +19,7 @@ func progressReviewChartPageDateRange(
 func progressReviewChartDateLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
-    formatter.locale = Locale.autoupdatingCurrent
+    formatter.locale = calendar.locale
     formatter.timeZone = calendar.timeZone
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
@@ -29,7 +29,7 @@ func progressReviewChartDateLabel(date: Date, calendar: Calendar) -> String {
 func progressWeekdayLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
-    formatter.locale = Locale.autoupdatingCurrent
+    formatter.locale = calendar.locale
     formatter.timeZone = calendar.timeZone
     formatter.setLocalizedDateFormatFromTemplate("EEEEE")
     return formatter.string(from: date)
@@ -38,7 +38,7 @@ func progressWeekdayLabel(date: Date, calendar: Calendar) -> String {
 func progressCompleteDateLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
-    formatter.locale = Locale.autoupdatingCurrent
+    formatter.locale = calendar.locale
     formatter.timeZone = calendar.timeZone
     formatter.dateStyle = .full
     formatter.timeStyle = .none
@@ -48,7 +48,7 @@ func progressCompleteDateLabel(date: Date, calendar: Calendar) -> String {
 func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
-    formatter.locale = Locale.autoupdatingCurrent
+    formatter.locale = calendar.locale
     formatter.timeZone = calendar.timeZone
     formatter.dateFormat = "d"
     return formatter.string(from: date)

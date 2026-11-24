@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import {
   buildClientWorkspaceReplicaId,
   calculateSha256Hex,
@@ -33,15 +34,6 @@ function requireNonEmptyInput(value: string, fieldName: string): string {
   }
 
   return trimmedValue;
-}
-
-function createLocalMediaId(fieldName: string): string {
-  const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi?.randomUUID !== "function") {
-    throw new Error(`Card image authoring cannot create ${fieldName}: crypto.randomUUID is unavailable`);
-  }
-
-  return cryptoApi.randomUUID().toLowerCase();
 }
 
 function buildLocalMediaAsset(
@@ -118,8 +110,8 @@ async function prepareAndPersistCardImage(
   const sha256 = await calculateSha256Hex(bytes);
   throwIfIndexedDbOpenRecoveryFailed();
   const createdAt = new Date().toISOString();
-  const mediaAssetId = createLocalMediaId("mediaAssetId");
-  const transferId = createLocalMediaId("transferId");
+  const mediaAssetId = createBrowserUuidV4();
+  const transferId = createBrowserUuidV4();
   const lastModifiedByReplicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
   throwIfIndexedDbOpenRecoveryFailed();
   const mediaAsset = buildLocalMediaAsset(

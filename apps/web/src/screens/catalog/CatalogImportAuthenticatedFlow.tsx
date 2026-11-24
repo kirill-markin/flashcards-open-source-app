@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -726,7 +727,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
           return;
         }
 
-        const installId = crypto.randomUUID().toLowerCase();
+        const installId = createBrowserUuidV4();
         const installedAt = new Date().toISOString();
         currentAttempt = {
           identity: requestIdentity,
