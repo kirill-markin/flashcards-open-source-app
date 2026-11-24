@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProgressReviewChartPage: Identifiable {
+struct ProgressReviewChartPage: Identifiable, Sendable {
     let days: [ProgressChartDay]
     let startLocalDate: String
     let startDate: Date

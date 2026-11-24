@@ -7,6 +7,7 @@ import SwiftUI
 // in explicitly instead of read back from the environment.
 struct ProgressLoadedSections: View {
     let progressSnapshot: ProgressSnapshot
+    let reviewPages: [ProgressReviewChartPage]
     let leaderboardSnapshot: ProgressLeaderboardSnapshot?
     let streakLeaderboardSnapshot: ProgressStreakLeaderboardSnapshot?
     let reviewScheduleSnapshot: ReviewScheduleSnapshot?
@@ -41,6 +42,7 @@ struct ProgressLoadedSections: View {
 
         ProgressReviewsCard(
             progressSnapshot: self.progressSnapshot,
+            reviewPages: self.reviewPages,
             pageSelection: self.$reviewChartPageSelection
         )
 
@@ -149,15 +151,21 @@ private struct ProgressStreakLeaderboardCard: View {
 
 private struct ProgressReviewsCard: View {
     private let chartDays: [ProgressChartDay]
+    private let reviewPages: [ProgressReviewChartPage]
     private let pace: ProgressPace
     private let studyMinutes: Int?
     private let selectionResetKey: String
     private let presentationCalendar: Calendar
     @Binding private var pageSelection: ProgressReviewChartPageSelection?
 
-    init(progressSnapshot: ProgressSnapshot, pageSelection: Binding<ProgressReviewChartPageSelection?>) {
+    init(
+        progressSnapshot: ProgressSnapshot,
+        reviewPages: [ProgressReviewChartPage],
+        pageSelection: Binding<ProgressReviewChartPageSelection?>
+    ) {
         self.chartDays = progressSnapshot.chartData.chartDays
-        self.pace = makeProgressPace(dayReviewCounts: progressSnapshot.chartData.chartDays.map(\.reviewCount))
+        self.reviewPages = reviewPages
+        self.pace = makeProgressPace(dayReviewCounts: self.chartDays.map(\.reviewCount))
         self.studyMinutes = progressSnapshot.insights?.studySecondsByDay.flatMap { studyDays in
             makeStudyTimeMinutes(seconds: studyDays.reduce(0) { total, studyDay in total + studyDay.seconds })
         }
@@ -170,6 +178,7 @@ private struct ProgressReviewsCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ProgressReviewsSection(
                 chartDays: self.chartDays,
+                chartPages: self.reviewPages,
                 pace: self.pace,
                 studyMinutes: self.studyMinutes,
                 chartCalendar: self.presentationCalendar,

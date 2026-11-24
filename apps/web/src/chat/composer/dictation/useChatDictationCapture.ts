@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -453,7 +454,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       mediaRecorderRef.current = recorder;
       mediaStreamRef.current = stream;
       guestCaptureRef.current = guestRecordingLimitSeconds === null ? null
-        : { operationId: crypto.randomUUID().toLowerCase(), limitSeconds: guestRecordingLimitSeconds };
+        : { operationId: createBrowserUuidV4(), limitSeconds: guestRecordingLimitSeconds };
       if (guestCaptureRef.current !== null) {
         recordingTimerRef.current = setTimeout(() => { void stopDictation(); }, guestCaptureRef.current.limitSeconds * 1000);
       }

@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 export const deleteAccountConfirmationText: string = "delete my account";
 
 const ACCOUNT_DELETION_PENDING_KEY = "flashcards-account-deletion-pending";
@@ -43,7 +44,7 @@ export function setAccountDeletionPending(isPending: boolean): void {
   }
 
   if (isPending) {
-    browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, crypto.randomUUID());
+    browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, createBrowserUuidV4());
     browserStorage.removeItem(ACCOUNT_DELETION_SERVER_CONFIRMED_KEY);
     browserStorage.removeItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY);
   } else {
@@ -140,7 +141,7 @@ export function beginAccountDeletionRetryAttempt(expectedAttemptId: string): boo
     return false;
   }
 
-  browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, crypto.randomUUID());
+  browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, createBrowserUuidV4());
   browserStorage.removeItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY);
   return true;
 }

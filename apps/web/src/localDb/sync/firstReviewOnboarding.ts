@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { closeDatabaseAfter, getFromStore, runReadwrite } from "../core/database";
 
 export type FirstReviewOnboardingRecord = Readonly<{
@@ -62,7 +63,7 @@ export async function persistFirstReviewOnboardingTransition(
     if (previous?.completed === completed) return previous;
     if (previous === undefined && !completed) return previous;
     changed = previous !== undefined;
-    return { key: recordKey(userId), completed, pendingGeneration: crypto.randomUUID() };
+    return { key: recordKey(userId), completed, pendingGeneration: createBrowserUuidV4() };
   });
   return { record, changed };
 }

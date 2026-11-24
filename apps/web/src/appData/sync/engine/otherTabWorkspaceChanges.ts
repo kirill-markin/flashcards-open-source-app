@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import type { DeferredProgressRefresh } from "../../progress/invalidation/deferredProgressRefresh";
 
 /*
@@ -12,7 +13,7 @@ type WorkspaceLocalDataChangedMessage = Readonly<{
   progressRefresh: DeferredProgressRefresh;
 }>;
 
-const thisTabId = crypto.randomUUID();
+const thisTabId = createBrowserUuidV4();
 
 function workspaceLocalDataChannelName(workspaceId: string): string {
   return `flashcards-workspace-local-data:${workspaceId}`;

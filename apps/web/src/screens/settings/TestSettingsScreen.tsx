@@ -6,6 +6,7 @@ import {
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import {
   settingsTestAnimationsRoute,
@@ -607,7 +608,7 @@ export function TestAnimationsScreen(): ReactElement {
 
     clearReviewReactionTimer(cleanupTimersRef.current, eventId);
     releaseReviewReactionLottieRender(eventId);
-    const fallbackEventId = crypto.randomUUID();
+    const fallbackEventId = createBrowserUuidV4();
     scheduleReviewReactionEventCleanup(fallbackEventId, reviewReactionLottieFallbackVariant);
     setActiveReviewReactionEvents((currentEvents) => {
       const nextEvents = currentEvents.map((activeEvent) => {
@@ -653,7 +654,7 @@ export function TestAnimationsScreen(): ReactElement {
       throw new Error(`Test animation entry ${entry.id} is not a Lottie variant.`);
     }
 
-    const eventId = crypto.randomUUID();
+    const eventId = createBrowserUuidV4();
     await reserveTestAnimationRender(eventId, entry.variant);
     indexedDbOpenRecoveryState.throwIfFailed();
     if (!isMountedRef.current) {

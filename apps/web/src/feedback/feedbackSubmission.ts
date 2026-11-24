@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 import { getStableInstallationId, webAppVersion } from "../clientIdentity";
 import type {
   FeedbackPromptEventRequest,
@@ -47,7 +48,7 @@ export function buildFeedbackSubmissionRequest(
   }
 
   return {
-    feedbackSubmissionId: crypto.randomUUID().toLowerCase(),
+    feedbackSubmissionId: createBrowserUuidV4(),
     workspaceId: input.workspaceId,
     installationId: getStableInstallationId(),
     platform: "web",
@@ -64,7 +65,7 @@ export function buildFeedbackPromptEventRequest(
   input: BuildFeedbackPromptEventRequestInput,
 ): FeedbackPromptEventRequest {
   return {
-    feedbackPromptEventId: crypto.randomUUID().toLowerCase(),
+    feedbackPromptEventId: createBrowserUuidV4(),
     workspaceId: input.workspaceId,
     installationId: getStableInstallationId(),
     platform: "web",
