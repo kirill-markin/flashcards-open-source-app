@@ -30,8 +30,9 @@ configuration and submitted metadata. Use unpacked package contents when
 available. Version labels, rebuilt archives and unrelated commits alone are
 insufficient. Resolve uncertain inputs. Resume active matching submissions,
 including approved versions awaiting release. Preserve and report unmatched
-active submissions unless selected work requires replacement under the provider
-procedure. If the live payload matches, verify its publication and record it
+active submissions unless the selected platform procedure requires replacing a
+version still in review or publishing an approved version, subject to user
+reservations. If the live payload matches, verify its publication and record it
 as unchanged. If the intended changes are still unpublished, recover a matching
 rejected or withdrawn submission under provider rules and reuse its artifact
 when allowed.
