@@ -41,7 +41,9 @@ approval, account connection or real workflows.
 
 Use this procedure when the
 [companion release decision](release/versioning.md#mcp-and-plugin-release-decisions)
-calls for a new companion Release. Pin its source SHA.
+calls for a new companion Release. Pin its source SHA. Move GitHub Latest only
+for an authorized Gemini install/update payload change. For other Releases, use
+`make_latest=false` and verify the retained Latest tag and assets.
 
 The companion's `core-source.json` contains one `commit` field with the full
 lowercase SHA of a core `main` commit. Companion CI runs the package and registry
@@ -58,12 +60,14 @@ files and CI evidence.
    [ledger](release/evidence.md#release-ledger). Antigravity has no manifest version;
    its filename and source mapping identify it.
 3. Reuse an exact matching companion tag/[Release](https://github.com/kirill-markin/nibomo-plugins/releases),
-   or create an immutable annotated vX.Y.Z tag and stable Release at that SHA.
-   Attach all four original CI ZIPs. Conflicting tags, source or digests block
-   publication: never move tags or overwrite assets. Establish the
-   [Gemini asset channel](#public-listings) before advertising installability.
-   The companion Release and exact-source CI must exist **before** publishing
-   the coordinated core GitHub Release, which triggers Executor.
+   or create an immutable annotated vX.Y.Z tag and stable Release at that SHA
+   with all four original CI ZIPs. Use an existing supplemental route for an
+   [OpenAI repair](#openai) or [Executor scope migration](#executor) when its
+   conditions hold. Keep published tags and assets immutable and stop on source
+   or digest conflicts. Follow the [install/update checks](#public-listings) for
+   a Gemini update.
+   Before publishing a core Release with a matching companion tag, verify its
+   [Executor source and CI](release/mcp-and-plugins.md#executor).
 4. Record each provider's existing listing/submission identity, source/version,
    accepted request, dated evidence, live/pending state and next action under the
    [completion policy](release/README.md#release-inventory-and-completion).
@@ -161,7 +165,8 @@ Validation needs no namespace key and never publishes.
 
 Follow the [MCP gate](release/mcp-and-plugins.md#mcp). Inspect the exact public
 version and reuse matching publication. For an authorized, unpublished version,
-dispatch core main with the existing companion release tag:
+dispatch core main with a published stable companion `vX.Y.Z` tag whose
+version matches the manifests:
 
 ~~~sh
 gh workflow run mcp-registry-publish.yml \
@@ -301,7 +306,7 @@ Create an annotated openai-vX.Y.Z-identity-migration,
 openai-vX.Y.Z-connection-metadata or openai-vX.Y.Z-existing-connection tag and stable
 supplemental companion Release with make_latest=false. Attach only that run's
 original OpenAI ZIP. Preserve coordinated assets, Executor remediation source and
-Gemini Latest; upload to the same plugin, never hand-edit an archive. OpenAI-only
+Gemini Latest. Upload the original archive to the same plugin. OpenAI supplemental
 Releases do not trigger Executor.
 
 ## Executor
@@ -310,11 +315,11 @@ Core's [Executor Publish](../.github/workflows/executor-publish.yml) publishes
 from the matching immutable companion tag when a stable core vX.Y.Z Release
 has one. A tag with `core-source.json` selects
 `apps/executor/` at the pinned core commit on `main`. A tag without the marker
-selects `executor/` at the companion tag. Development pushes, OpenAI-only
-companion Releases and macos-v... core Releases do not publish Executor.
+selects `executor/` at the companion tag. Development pushes, OpenAI supplemental
+Releases and macos-v... core Releases do not publish Executor.
 
-For failed/skipped runs or a companion remediation Release, dispatch core main
-with the intended immutable companion tag:
+For a retry or independent Executor publication, dispatch core `main` with
+the intended immutable companion tag:
 
 ~~~sh
 gh workflow run executor-publish.yml \
@@ -324,13 +329,18 @@ gh run list --repo kirill-markin/flashcards-open-source-app --workflow executor-
 gh run watch <run-id> --repo kirill-markin/flashcards-open-source-app --exit-status
 ~~~
 
-Manual dispatch also accepts vX.Y.Z; an older tag intentionally republishes that
-source. Keep coordinated tags/assets immutable, including v1.29.0 at
-41cd84f6f8b947131dbbca36b6f8a577db1f1993. For a scope repair, merge the corrected
-runtime and update the companion pin with versions unchanged. Pass exact-source
-CI and create an annotated executor-vX.Y.Z-scope-migration tag plus stable
-supplemental companion Release with make_latest=false. Preserve Gemini
-Latest/coordinated assets. Remediation publication uses manual core dispatch.
+Use `release_tag=vX.Y.Z` for a stable companion Release. An older tag
+intentionally republishes its source. Keep coordinated tags/assets immutable,
+including v1.29.0 at 41cd84f6f8b947131dbbca36b6f8a577db1f1993.
+
+For a scope repair, merge the corrected runtime and update the companion pin.
+Use an annotated `executor-vX.Y.Z-scope-migration` tag and stable supplemental
+Release only when the retained manifest versions match GitHub Latest's
+`vX.Y.Z` and the repair descends from that tag. Otherwise, use an authorized
+stable companion `vX.Y.Z` Release with matching manifest versions under the
+[durable package procedure](#release-source-and-durable-packages).
+Both routes require exact-source CI before publication and `make_latest=false`.
+Dispatch from core `main` with the selected companion tag.
 
 Preserve organization nibomo, scope nibomo.executor.community, existing app
 app_741c52b8-681c-4e8c-8536-9b278e02d671, public
@@ -383,15 +393,19 @@ and gemini-cli-extension topic. Gallery crawling is separate from installability
 Follow the [release guide](https://geminicli.com/docs/extensions/releasing/).
 For type github-release, unpinned installation follows GitHub Latest; a
 --ref=&lt;verified-release-tag&gt; installation stays on that tag. Git installations
-follow their selected ref or HEAD; local installations compare their source
-manifest version. Before development advances companion main:
+follow their selected ref or HEAD. Local installations compare their source
+manifest version. Compare the intended Gemini install/update payload with the
+payload served by Latest under the
+[release decisions](release/versioning.md#mcp-and-plugin-release-decisions).
+Apply the [source safeguards](release/versioning.md#release-closeout-and-development)
+before advancing companion main. For an authorized Gemini update:
 
 1. Attach byte-identical Gemini CI ZIP copies as darwin.nibomo.zip,
    linux.nibomo.zip and win32.nibomo.zip to the immutable coordinated Release.
    Verify digests and root gemini-extension.json; platform asset names avoid
    ambiguity among the four formats.
-2. Verify Latest points to that Release. Test unpinned and pinned README commands
-   in separate clean profiles. Inspect selected asset/payload and
+2. Set Latest to the Release with the verified assets. Test unpinned and pinned
+   README commands in separate clean profiles. Inspect selected asset/payload and
    ~/.gemini/extensions/nibomo/.gemini-extension-install.json under each profile:
    require type github-release, repository source, expected releaseTag, and no
    ref for Latest or the exact tag for the pinned channel.

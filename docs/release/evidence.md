@@ -9,14 +9,16 @@ Keep a separate release ledger in `ledger.md` of the operator's
 [release record](#evidence-lifetime) (chat may mirror it), not a historical
 status table in these permanent docs. Use one small row per channel:
 
-| Channel / target | Source and artifact | Gate evidence | Required operator actions | Provider/store state and publishing mode | Observed public availability | Remaining action |
-| --- | --- | --- | --- | --- | --- | --- |
-| Name / version | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded at the canonical boundary; accepted or pending submission/request/publication identity, exact source and time | Submitted/review pending/approved/rejected; saved automatic/manual/managed mode, or not applicable | Pending/live/unchanged verified; URL, observed version/time and storefront/rollout scope | External dependency or exact human/operator action, owner, observation time and next condition; future fixes |
+| Channel / target | Baseline, change and decision | Source and artifact | Gate evidence | Required operator actions | Provider/store state and publishing mode | Observed public availability | Remaining action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Name / version | Compared submission or publication and source, relevant input diff, build/update/resume/reuse/exclude | SHA, build/package identity, run | CI, smoke, skip/warning evidence or historical gaps | Complete/pending/blocked/excluded at the canonical boundary, with request identity, source and time | Submitted/review pending/approved/rejected and saved publishing mode, if applicable | Pending/live/unchanged verified, with URL, observed version/time and storefront/rollout scope | Exact action, owner, observation time and next condition |
 
-Keep secrets and reviewer credentials out. Mark operator completion only at the
-[canonical boundary](README.md#release-inventory-and-completion); it does not
-change the observed public state. Record exclusions and their scope.
-Record measured build, test, diagnosis and provider-wait durations here too.
+Keep secrets and reviewer credentials out. Record operator completion at the
+[canonical boundary](README.md#release-inventory-and-completion) and public
+availability as observed. Record submitted and live artifact identities and
+input comparisons separately under [scope selection](README.md#select-release-scope).
+For release notes, use the last version actually released to users.
+Record build, test, diagnosis and provider-wait durations.
 
 For [OpenAI](mcp-and-plugins.md#openai), retain separate hosted MCP and package
 observations on every coordinated release. Record publisher login
@@ -55,18 +57,16 @@ procedures and canonical boundaries above.
 
 ### Evidence lifetime
 
-The operator release record is the git-ignored folder
-`.local/releases/<version>/` in the main checkout, never in a disposable
-worktree; its ledger is short text in `ledger.md`. Working evidence (logs,
-`.xcresult` bundles, archives, screenshots, manifests and reports, downloaded
-Cloud artifacts, notes) lives there only while that version is open: every
-instruction to retain, keep or preserve evidence in the release record means
-until the version closes. A version closes when every channel has its final
-recorded outcome: public or live at the intended scope, or explicitly abandoned
-or excluded. Then delete everything in the folder except `ledger.md`. The
-stores, Xcode Cloud, GitHub Actions and Releases, and Sentry remain the
-long-term records; a later resume relies on
-[published artifacts](#reuse-existing-artifacts), not on deleted evidence.
+Keep `ledger.md` and working evidence in the main checkout's git-ignored
+`.local/releases/<version>/` directory. Use the release version or an existing
+target version for work without a bump. Record actual versions per channel.
+Keep working evidence (logs, bundles, archives, screenshots, manifests,
+reports and notes) until every ledger entry that depends on the directory
+records a final outcome (public or live at the intended scope, verified
+unchanged, explicitly abandoned or excluded). Include entries from other
+scopes that share the directory. Then delete everything except `ledger.md`.
+Use the stores, Xcode Cloud, GitHub Actions and Releases, and Sentry as
+long-term evidence for [later reuse](#reuse-existing-artifacts).
 
 Never put build caches such as Xcode DerivedData or Gradle caches in the
 folder; local Apple builds use the [repo-local derived data path](../ios-local-setup.md#local-testing-rules).
@@ -129,13 +129,10 @@ with private evidence references.
 
 ## Resume and Artifact Reuse
 
-Resume a prepared or partly published release at its recorded target version;
-do not bump again. For a new release, first complete [release preparation](versioning.md#release-preparation).
-Before dispatching or submitting, inspect current source commits and versions,
-store builds/statuses, registry versions, public listings, and successful CI.
-Reuse a matching built, submitted, approved, or live artifact with its gate
-evidence and continue at its next unfinished step. Do not rebuild or resubmit
-an approved/live binary merely because this runbook was restarted.
+Use the [scope decision](README.md#select-release-scope) and recorded targets.
+Resume matching builds, active submissions or approvals awaiting release at
+their next unfinished step with their gate evidence. Verify and record matching
+live publications without rebuilding or resubmitting.
 
 If the final root commit differs from the artifact's SHA after unrelated or
 docs-only merges, explicitly compare all relevant client/build inputs, including
@@ -164,11 +161,8 @@ Tree IDs omit ignored files such as local xcconfig and service values; equal tre
 
 ## Reuse Existing Artifacts
 
-Inspect the current store/registry state before starting the numbered flows.
-Follow the canonical [source comparison and ledger rules](#resume-and-artifact-reuse)
-when reusing an artifact, including when later docs-only or unrelated commits
-changed the root SHA. For a matching artifact, continue at the next unfinished
-step; an approved or live binary does not need another build or submission.
+Follow the [source comparison and ledger rules](#resume-and-artifact-reuse)
+when reusing an artifact, including after unrelated commits.
 
 For an artifact awaiting a new publication/submission, recover the original
 gates and evidence under its recorded contract. Use the [iOS and Android
@@ -240,4 +234,4 @@ the signed AAB and both sequential physical Device Run gates. Generate
 [recorded readiness](readiness.md#generate-the-android-manifest) from the exact
 signed build, native summary and publisher provenance. Record any diagnostic
 execution and its outcome in the ledger. Use [exact-bundle
-recovery](android.md#exact-bundle-upload-recovery) for a publisher-only failure.
+recovery](android.md#exact-bundle-upload-recovery) for a phone publisher failure.
