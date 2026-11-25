@@ -4,14 +4,14 @@ Read the [release entry point](README.md) for authorization, completion, and
 required reading, and the mandatory [shared evidence rules](evidence.md) before
 following this procedure.
 
-Compare each platform's release target with its previous version actually
-released to users. Start with the commit range between that release tag and the
-target; inspect the relevant native implementation when a change's platform or
-user-visible effect is unclear. An App Store version
-[replaced while in review](ios.md#replacing-a-version-still-in-review) never
-reached users, so its changes belong in the new notes.
+Write notes for selected releases that need them. Compare each target with
+the source of its last version actually released to users. Include relevant
+changes from any App Store submission
+[replaced while in review](ios.md#replacing-a-version-still-in-review).
+Inspect the implementation when a change's platform or visible effect is
+unclear.
 
-Prepare separate texts for each destination:
+Prepare separate texts for each destination.
 
 - **iOS/iPadOS and Android:** pre-generate localized mobile store notes for each
   app, filtered to changes users will experience in that native app. Share text
@@ -22,9 +22,8 @@ Prepare separate texts for each destination:
   another platform.
 - **macOS:** prepare separate localized Mac notes for changes available in the
   Catalyst app; do not copy Mac-only UX improvements into mobile notes.
-- **GitHub Release:** prepare a separate, fuller English changelog covering
-  relevant user-visible changes across the repository's products and platforms.
-  Identify platform-specific changes so readers know where they apply.
+- **GitHub Release** gets a fuller English changelog for the selected release
+  scope. Name the platforms where each change is available.
 
 For every destination:
 
