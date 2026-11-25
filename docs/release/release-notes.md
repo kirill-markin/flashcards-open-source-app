@@ -13,13 +13,13 @@ unclear.
 
 Prepare separate texts for each destination.
 
-- **iOS/iPadOS and Android:** pre-generate localized mobile store notes for each
-  app, filtered to changes users will experience in that native app. Share text
-  only when the relevant changes match on both platforms. Exclude web, admin,
-  plugin and Mac-only changes; include backend changes only for their visible
-  effect in the corresponding native app. When a mobile release contains only
-  bug fixes or performance improvements, say so without borrowing features from
-  another platform.
+- For **iOS/iPadOS, Android phone and Wear OS**, pre-generate localized notes
+  for each selected app or track using its own last public version. Cover
+  changes users will experience there and share text only when those changes
+  match. Exclude web, admin, plugin and Mac-only changes. Include backend
+  changes only for their visible effect in the corresponding native app. When
+  a mobile release contains only bug fixes or performance improvements, say so
+  without borrowing features from another platform.
 - **macOS:** prepare separate localized Mac notes for changes available in the
   Catalyst app; do not copy Mac-only UX improvements into mobile notes.
 - **GitHub Release** gets a fuller English changelog for the selected release
@@ -64,9 +64,9 @@ release notes never carry it.
 
 ## Android draft upload input
 
-Prepare the reviewed Android-specific texts above as the optional
-`localized_release_notes` `Android Release` dispatch input: a JSON list of exact
-`{language,text}` records.
+The optional `localized_release_notes` input for `Android Release` applies
+only to the phone draft. Supply its notes as a JSON list of exact
+`{language,text}` records. Enter Wear OS notes directly in its Play Console draft.
 Use the Play codes in [canonical metadata](../google-play-store-metadata.md) and
 [locale mapping](../../apps/android/docs/play-store-localization-runbook.md#1-confirm-the-surface-and-locale-set),
 including `en-US`, `es-419`, and `iw-IL` rather than app language aliases.
@@ -84,7 +84,7 @@ texts for every required locale:
 ]
 ```
 
-Leaving the input empty preserves the flow where notes are entered in Console.
+When the input is empty, enter the phone notes in Console.
 `[]`, duplicate locales, app-only aliases, blank text and oversized texts fail
 preflight before builds/device tests. The exact input is retained in a separate
 `android-release-notes-r<runId>a<attempt>` artifact with target SHA, version name,

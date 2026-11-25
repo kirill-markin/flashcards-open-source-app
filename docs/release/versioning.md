@@ -40,7 +40,7 @@ destination.
 
 | Destination | Compare |
 | --- | --- |
-| MCP Registry | The published `server.json` manifest against the intended registry metadata. Hosted MCP changes deploy separately through [Web and Backend](web-backend.md). |
+| MCP Registry | Published and intended `server.json`, ignoring only the top-level `version` for [release eligibility](mcp-and-plugins.md#mcp). Hosted MCP changes deploy separately through [Web and Backend](web-backend.md). |
 | OpenAI plugin | The generated ZIP contents and reviewable listing metadata. Hosted MCP scans and live tools are tracked [separately](mcp-and-plugins.md#openai). |
 | Anthropic plugin | Claude plugin contents and directory listing fields at the tracked source, against the latest requested or published version. Compare connector listing edits separately. |
 | `nibomo-plugins` GitHub Release | The shipped companion manifests, installable packages and resolved Executor source against the last companion Release. |

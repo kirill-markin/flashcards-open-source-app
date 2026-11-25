@@ -20,19 +20,21 @@ and continue independent work. Honor any narrower release scope the user sets.
 
 Before version preparation, preflight, builds or publication, check each
 [inventory destination](mcp-and-plugins.md#release-inventory) within the request.
-Compare the intended inputs with the latest submitted artifact or exact source,
-including pending review. For destinations without submissions, use the current
-publication or deployment. Record the current public version separately in the
+Compare the intended inputs with submitted artifacts or exact sources for
+resume or recovery, and with the current publication or deployment before
+selecting new work. Record both comparisons when applicable in the
 [ledger](evidence.md#release-ledger).
 
 Compare shipped source, resources, shared dependencies and resolved pins, build
 configuration and submitted metadata. Use unpacked package contents when
 available. Version labels, rebuilt archives and unrelated commits alone are
-insufficient. Resolve uncertain inputs and verify a matching live publication
-before recording an unchanged decision. Resume active matching submissions,
-including approved versions awaiting release. If a matching submission was
-rejected or withdrawn and the intended changes are still unpublished, select it
-for provider recovery and reuse its artifact when allowed.
+insufficient. Resolve uncertain inputs. Resume active matching submissions,
+including approved versions awaiting release. Preserve and report unmatched
+active submissions unless selected work requires replacement under the provider
+procedure. If the live payload matches, verify its publication and record it
+as unchanged. If the intended changes are still unpublished, recover a matching
+rejected or withdrawn submission under provider rules and reuse its artifact
+when allowed.
 
 Select the binary, package or runtime changes and the separate listing or
 subscription metadata changes that each destination needs. When the provider

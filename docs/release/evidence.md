@@ -15,9 +15,10 @@ status table in these permanent docs. Use one small row per channel:
 
 Keep secrets and reviewer credentials out. Record operator completion at the
 [canonical boundary](README.md#release-inventory-and-completion) and public
-availability as observed. For release notes, use the last version actually
-released to users. For duplicate prevention, use the latest submitted artifact,
-including pending review. Record build, test, diagnosis and provider-wait durations.
+availability as observed. Record submitted and live artifact identities and
+input comparisons separately under [scope selection](README.md#select-release-scope).
+For release notes, use the last version actually released to users.
+Record build, test, diagnosis and provider-wait durations.
 
 For [OpenAI](mcp-and-plugins.md#openai), retain separate hosted MCP and package
 observations on every coordinated release. Record publisher login
@@ -233,4 +234,4 @@ the signed AAB and both sequential physical Device Run gates. Generate
 [recorded readiness](readiness.md#generate-the-android-manifest) from the exact
 signed build, native summary and publisher provenance. Record any diagnostic
 execution and its outcome in the ledger. Use [exact-bundle
-recovery](android.md#exact-bundle-upload-recovery) for a publisher-only failure.
+recovery](android.md#exact-bundle-upload-recovery) for a phone publisher failure.

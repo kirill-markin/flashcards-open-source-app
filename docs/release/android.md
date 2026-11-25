@@ -53,7 +53,7 @@ to other unavailable testing.
    it does not isolate other pending changes or guarantee a manual-review hold.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
-   supply the [localized notes JSON](release-notes.md#android-draft-upload-input).
+   supply the [localized phone notes JSON](release-notes.md#android-draft-upload-input).
    Set `include_wear_os=false` for a phone-only upload and select a SHA that
    supports phone-only builds. Enable `include_wear_os` when both uploads are
    intended. Record the target SHA, run/attempt, version codes and release
@@ -69,11 +69,13 @@ to other unavailable testing.
    block publication. Record the release candidate's
    [independent-client card and rating sync check](evidence.md#independent-client-sync-check).
 5. Require green `Android Release` and signed AAB publisher provenance, or
-   [recover an exact bundle](#exact-bundle-upload-recovery) after a publisher-only
+   [recover an exact bundle](#exact-bundle-upload-recovery) after a phone publisher
    failure. If only the Wear OS upload failed after the phone draft committed,
-   dispatch a new release for the selected scope. The Wear publisher downloads
-   its own attempt's bundle, so rerunning failed jobs cannot recover it. Inspect
-   build/lint and native diagnostics under the
+   readiness for that phone draft remains blocked. A fresh combined dispatch
+   assigns a new phone version code and replaces the phone draft first.
+   If the replacement phone upload is outside scope, preserve the draft and keep
+   unfinished work pending. Rerunning failed jobs cannot recover the Wear bundle
+   from the original attempt. Inspect build/lint and native diagnostics under the
    [warning policy](README.md#release-warning-policy), then retain the
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. In Google Play Console, select each draft being advanced by its release
@@ -92,10 +94,11 @@ to other unavailable testing.
    its OS-specific behavior, complete the applicable
    [API 30 walkthrough](#first-release-api-30-walkthrough) checks and retain their evidence.
    Reuse completed first-release evidence when that behavior is unchanged.
-7. Compare the uploaded localized notes with the retained input, or fill them
-   from the chat when the dispatch input was empty. Review the required
-   translations for the pinned drafts. Before advancing a Wear production
-   draft, complete the [Wear OS submission checks](#wear-os-submission).
+7. For a selected phone draft, compare its notes with the retained dispatch
+   input or enter them in Console if the input was empty. For a selected Wear OS
+   draft, enter its notes in Console. Verify saved translations against the
+   [prepared notes](release-notes.md#android-draft-upload-input). Before advancing
+   a Wear production draft, complete the [Wear OS submission checks](#wear-os-submission).
    After the applicable gates pass and any unavailable testing is recorded
    under the standing policy, use **Next** in each intended draft to preview
    and confirm it. In **Publishing overview**, verify the full app-wide change
@@ -209,11 +212,12 @@ Apply step 9 to each intended form factor before calling Android complete.
 Use `Android Release Upload Recovery`
 ([workflow](../../.github/workflows/android-release-upload-recovery.yml)) only
 when the original release's CI, required Device Run sessions, signed build and R8
-checks passed and only its Play publisher failed. This includes a failed
-upload or, with a separate signed-build job, a skipped upload following a
-failed publisher configuration, checkout, artifact/notes download or Play
-authentication step. Resolve the cause, merge any publisher code fix through
-green PR checks and retain the failed run.
+checks passed, the phone publisher failed, and the Wear OS publisher, if
+present, was skipped. This includes a failed upload or, with a separate
+signed-build job, a skipped upload following a failed publisher configuration,
+checkout, artifact/notes download or Play authentication step. Resolve the
+cause, merge any publisher code fix through green PR checks and retain the
+failed run.
 Source changes require the bounded comparisons and affected gates in
 [artifact reuse](evidence.md#resume-and-artifact-reuse).
 

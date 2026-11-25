@@ -59,15 +59,16 @@ a directory button based only on a submission or approval.
 The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json).
 Core owns the validator and credential-reading publisher. During
 [release preparation](versioning.md#mcp-and-plugin-release-decisions),
-compare the intended manifest with the last published registry entry.
-If the content matches, record the existing version and end the registry flow.
+compare the intended manifest with the last published registry manifest,
+ignoring only the top-level `version` field. If the content matches, record the
+existing version and end the registry flow.
 Require successful [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
 for changed release inputs and **Plugin packages** cloud CI for the intended
 companion source.
 
-First inspect the public registry for the target companion `server.json.version`
-and compare its manifest with the intended release. Reuse a matching publication
-and its workflow evidence. Only if that version is absent, dispatch
+For changed metadata, inspect the public registry for the target companion
+`server.json.version`. Reuse the publication and its workflow evidence if the
+full manifest matches, including `version`. If that version is absent, dispatch
 [MCP Registry Publish](https://github.com/kirill-markin/flashcards-open-source-app/actions/workflows/mcp-registry-publish.yml)
 on core `main` with the intended immutable companion release tag:
 
