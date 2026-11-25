@@ -11,12 +11,13 @@ following this procedure.
 | Web, backend, machine API/MCP runtime | Verify deployed components, public web access, machine discovery, and applicable smokes under [Web and Backend](web-backend.md#web-and-backend). |
 | iOS | Verify the exact submission and saved release mode, or matching existing publication; [iOS procedure](ios.md#ios). |
 | macOS | Verify the separate `MAC_OS` build, exact submission and saved release mode, or matching existing Mac publication; [macOS procedure](macos.md). |
-| Android | Verify the matching production version and rollout on Google Play; [Android procedure](android.md#android). |
+| Android phone | Verify the exact version code and rollout on Google Play `production`; [Android procedure](android.md). |
+| Wear OS | Verify the exact version code and rollout on `wear:production`; [Wear submission checks](android.md#wear-os-submission). |
 | Official MCP Registry | Verify the existing or updated `com.nibomo/flashcards` entry under the [MCP procedure](mcp-and-plugins.md#mcp). |
 | Claude connector and plugin | Verify runtime and accepted updates to the [connector](https://claude.ai/directory/nibomo) and separate plugin; record each public state under the [Anthropic gate](mcp-and-plugins.md#anthropic-connector-and-plugin). |
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
-| Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
+| Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and the [released install/update payload and GitHub Latest](../plugin-publishing.md#public-listings). |
 | Executor | Verify/update the [existing public app](https://executor.sh/apps/nibomo.executor.community/nibomo) through core's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
 | OpenAI | Verify/update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` and its [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58); inspect hosted MCP scans/live tools and submitted/published package version/skills separately under the [OpenAI gate](#openai). |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
@@ -24,11 +25,11 @@ following this procedure.
 Provider-specific update, installation, and workflow verification belong in
 [plugin publishing](../plugin-publishing.md), including
 [Executor publishing and access setup](../plugin-publishing.md#executor).
-For established channels, perform concise immediate checks: verify the intended
-endpoint, package/source identity, required CI/scans, and acceptance of any
-required update/submission. Current MCP listings must resolve to
-`https://mcp.nibomo.com/mcp`; compare health, authentication, and discovered
-tools with the [shared contract](../connector-directory-submission.md).
+For established channels, verify public listing metadata, endpoint, package
+or source identity, required CI/scans, and acceptance of required updates.
+Current MCP listings must resolve to `https://mcp.nibomo.com/mcp`. Compare
+health, authentication, and discovered tools with the
+[shared contract](../connector-directory-submission.md).
 Reuse shared runtime smoke evidence and valid unchanged client evidence.
 Run focused real OAuth/create/study/edit checks for affected clients when inputs
 change or required evidence is missing; do not require an exhaustive every-client
@@ -110,22 +111,19 @@ Use the existing [Nibomo plugin listing](https://cursor.directory/plugins/nibomo
 
 Follow the [canonical procedure and credential setup](../plugin-publishing.md#executor).
 
-1. When publishing a new companion Release, complete exact-source
-   **Plugin packages** cloud CI, including **Executor typecheck**, and
-   applicable focused workflow checks.
-   Publish its prepared stable companion Release before the coordinated core
-   `vX.Y.Z` GitHub Release. The latter triggers core **Executor Publish**
-   (`.github/workflows/executor-publish.yml`, `release.published`), which resolves
-   the exact Executor source from the matching immutable companion tag using the
-   [canonical source selection](../plugin-publishing.md#executor).
-   Core releases without a matching companion tag skip the publisher and
-   retain the existing Executor publication.
-2. Inspect the workflow result. To retry an existing stable release after
-   resolving a failure, dispatch **Executor Publish** from core `main` with
-   `release_tag=vX.Y.Z`, selecting the intended immutable companion tag. Manual
-   dispatch also supports companion `executor-vX.Y.Z-scope-migration` remediation
-   Releases. Follow the canonical procedure for the command and diagnosis;
-   retrying an older release intentionally republishes its source.
+1. Record the [resolved Executor source](../plugin-publishing.md#executor) and
+   compare its files with the existing publication. Before publishing a stable
+   core `vX.Y.Z` Release with a matching companion tag, verify the tag selects the
+   intended Executor files. For unchanged Executor, verify the publisher will
+   find the same working, deployed and public revision and files.
+   Require exact-source **Plugin packages** CI, including **Executor typecheck**,
+   for any tag used by the publisher, plus applicable focused workflow checks.
+   Publish a new matching companion Release before the core Release that triggers
+   **Executor Publish**. Without a matching tag the workflow skips publication.
+2. Inspect the workflow result. For a retry or independent Executor
+   publication, follow the canonical procedure to dispatch **Executor Publish**
+   from core `main` with the intended immutable companion `release_tag`.
+   Retrying an older release intentionally republishes its source.
 3. Retain the Actions summary in the [release ledger](evidence.md#release-ledger):
    companion release, core publisher and selected Executor Git source SHAs,
    exact-source cloud run, Executor source commit, deployment ID/commit,
@@ -144,9 +142,9 @@ for the existing plugin, publisher `kirill@kirill-markin.com`, verified
 identity and any accepted pending review; no new listing or transfer is needed.
 The publisher login is separate from the private Nibomo reviewer test account.
 
-Every coordinated release inspects both channels and records an evidence-based
-**no update needed**, **submitted**, **live**, **pending**, or **blocked** decision
-in the [ledger](evidence.md#release-ledger); never silently skip OpenAI.
+Record the hosted MCP and package decisions separately in the
+[ledger](evidence.md#release-ledger), with the applicable **no update needed**,
+**submitted**, **live**, **pending**, or **blocked** outcome.
 
 - **Hosted MCP:** verify the intended backend deployment SHA and runtime at
   `https://mcp.nibomo.com/mcp` under [Web and Backend](web-backend.md#web-and-backend).
@@ -190,10 +188,9 @@ organization. The plugin source is the root of
 [`kirill-markin/nibomo-plugins`](https://github.com/kirill-markin/nibomo-plugins),
 tracked on `main`. Update these listings; do not create duplicate submissions.
 
-1. **Connector runtime:** verify the release's backend deployment and MCP smoke
-   in `AWS/Web Release` succeeded for the intended commit. The connector and
-   plugin both use `https://mcp.nibomo.com/mcp`; backend deployment updates that
-   server. Record its deployed release version/commit and MCP verification.
+1. **Connector runtime:** verify the intended deployment and smoke under
+   [Web and Backend](web-backend.md). Reuse matching evidence for an unchanged
+   deployment. Record the deployed version/commit and MCP verification.
    `initialize.serverInfo.version` currently comes from `SERVER_VERSION = "v1"`
    in `apps/backend/src/mcp/server.ts`, not the package version. Preserve that
    identity during a version bump; it is not proof of the deployed app version.
@@ -233,9 +230,9 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
    prove public visibility. Report reviewer delay or public propagation
    separately; the directory serves the last published version meanwhile.
 
-Completion: the runtime and focused affected-client checks passed, required
-CI/scans passed, and required connector/plugin publication requests for the
-exact source/version were accepted (or matching unchanged publications verified).
+Completion: the applicable runtime, focused client checks and required
+CI/scans passed. For each selected listing, record acceptance for the exact
+source/version or verify its matching publication.
 A scan or private package upload alone is insufficient; complete the available
 **Publish** action. Record a resulting reviewer request or propagation delay
 as external follow-up under the [common completion rule](README.md#release-inventory-and-completion);

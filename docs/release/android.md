@@ -14,15 +14,18 @@ still apply before submission/publication. Enable a manual publishing hold only
 when the user explicitly requests it, and preserve any user-reserved final action
 under the [release authorization rules](README.md).
 
-Track phone and Wear production separately in the [ledger](evidence.md#release-ledger)
-when both are in scope. For each matching draft or submitted artifact, resume at
-the remaining checks or publication steps. For an approved artifact, verify
-retained gate evidence and continue at step 8. For a matching public artifact,
-record its identity and rollout scope at step 9 under the shared historical
-evidence rule. When the phone is already public, resume the pinned Wear draft
-at its first unfinished gate. Continue at step 7 once Wear's step 6 evidence
-is recorded.
-Create a new artifact through every gate below when no matching artifact exists.
+Google Play tracks phone (`production`) and Wear OS (`wear:production`)
+separately. Advance each selected track and record it in the
+[ledger](evidence.md#release-ledger). Resume a matching draft or submission at
+its first unfinished gate using its pinned source, artifact and passing gates.
+For an approved artifact, verify retained evidence and continue at step 8.
+For a matching public artifact, verify step 9 using the shared historical
+evidence rule.
+
+For Wear-only scope, resume a verified Wear draft and check public phone
+compatibility before submission. A fresh Wear draft requires a combined
+dispatch, which uploads the phone draft first. Keep Wear pending if that phone
+upload is outside the authorized scope.
 
 The physical Device Run sessions and, for Wear production submission, the
 first passing Play-installed pairing are mandatory. Apply the
@@ -51,9 +54,10 @@ to other unavailable testing.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
    supply the [localized notes JSON](release-notes.md#android-draft-upload-input).
-   For a phone-only release, set `include_wear_os=false` and select a SHA
-   that supports phone-only builds. Record its
-   target SHA, run/attempt, version code, and release identifier from the summary.
+   Set `include_wear_os=false` for a phone-only upload and select a SHA that
+   supports phone-only builds. Enable `include_wear_os` when both uploads are
+   intended. Record the target SHA, run/attempt, version codes and release
+   identifiers from the summary.
 3. Device Run runs the [named critical journeys and compatibility smoke](../android-ci-cd.md#choose-the-device-run-devices)
    sequentially on physical API 37 and API 30 devices. The signed AAB build and
    R8 gate run in parallel. The Play draft upload waits for hosted CI, the
@@ -67,8 +71,9 @@ to other unavailable testing.
 5. Require green `Android Release` and signed AAB publisher provenance, or
    [recover an exact bundle](#exact-bundle-upload-recovery) after a publisher-only
    failure. If only the Wear OS upload failed after the phone draft committed,
-   dispatch a new release instead of publishing that phone draft: re-running
-   failed jobs cannot work, because the Wear OS job downloads its own attempt's bundle. Inspect build/lint and native diagnostics under the
+   dispatch a new release for the selected scope. The Wear publisher downloads
+   its own attempt's bundle, so rerunning failed jobs cannot recover it. Inspect
+   build/lint and native diagnostics under the
    [warning policy](README.md#release-warning-policy), then retain the
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. In Google Play Console, select each draft being advanced by its release
@@ -115,13 +120,10 @@ to other unavailable testing.
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion requires passing GitHub and physical Device Run gates, applicable
-OS-specific acceptance or an unavailability record under the standing policy,
-and public availability of each intended form factor's exact production
-version at its intended scope. Already-published matching artifacts use the
-shared historical evidence rule. Keep Android open while any intended form
-factor is awaiting publication under the
-[canonical completion contract](README.md#release-inventory-and-completion).
+Each selected track completes when its GitHub and physical Device Run gates
+pass, applicable OS-specific acceptance or an unavailability decision is
+recorded, and the exact production version is public at the intended scope.
+Apply the [canonical completion contract](README.md#release-inventory-and-completion).
 
 Configuration, Device Run access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
@@ -251,9 +253,9 @@ Source changes require the bounded comparisons and affected gates in
 5. Resume step 6 above with the exact recovered bundle. Recheck app-wide Play
    state, delivered translations, processing and publication controls; upload
    recovery alone does not establish readiness or public availability.
-   Recovery re-uploads only the phone bundle. Record the recovered Android
-   release as phone-only in the ledger and carry Wear forward to the next
-   normal release. Mark Android complete after the recovered phone passes steps 6–9.
+   Recovery re-uploads only the phone bundle. Complete that track after steps
+   6–9. For selected Wear work, resume a verified draft or follow the fresh
+   upload rule above.
 
 ## First-release API 30 walkthrough
 
