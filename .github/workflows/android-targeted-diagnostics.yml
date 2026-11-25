@@ -29,6 +29,8 @@ jobs:
     name: Build source-bound debug APKs
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      GRADLE_OPTS: -Dorg.gradle.java.installations.auto-detect=false
     outputs:
       source_sha: ${{ steps.source.outputs.sha }}
     steps:
@@ -95,6 +97,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          check-latest: true
 
       - uses: gradle/actions/setup-gradle@v6.4.1
 
@@ -197,7 +200,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
-          version: '594.0.0'
+          version: '594.0.1'
           install_components: beta
 
       - name: Require selected destination in current catalog and archive diagnostics

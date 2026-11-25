@@ -17,6 +17,8 @@ jobs:
     name: ${{ inputs.lint_only && 'Android debug lint' || 'Android build, unit tests, and lint' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      GRADLE_OPTS: -Dorg.gradle.java.installations.auto-detect=false
 
     steps:
       - uses: actions/checkout@v7
@@ -28,6 +30,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          check-latest: true
 
       - uses: gradle/actions/setup-gradle@v6.4.1
         with:
@@ -91,6 +94,8 @@ jobs:
     name: Android emulator data:local instrumentation
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      GRADLE_OPTS: -Dorg.gradle.java.installations.auto-detect=false
 
     steps:
       - uses: actions/checkout@v7
@@ -101,6 +106,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          check-latest: true
 
       - uses: gradle/actions/setup-gradle@v6.4.1
 
