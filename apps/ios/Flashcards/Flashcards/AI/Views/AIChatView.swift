@@ -15,6 +15,7 @@ struct AIChatView: View {
     @Environment(\.tabBarPlacement) var tabBarPlacement
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.aiCompanionPageIsTop) private var companionPageIsTop
     let chatStore: AIChatStore
     let isCompanion: Bool
     let companionHostTab: AppTab?
@@ -22,7 +23,7 @@ struct AIChatView: View {
     var isPresentationActive: Bool {
         self.navigation.isLiveAIChatVisible && (
             self.isCompanion
-                ? self.navigation.selectedTab == self.companionHostTab
+                ? self.navigation.selectedTab == self.companionHostTab && self.companionPageIsTop
                 : self.navigation.selectedTab == .ai
         )
     }
@@ -34,8 +35,8 @@ struct AIChatView: View {
     @State var isComposerDropHovering: Bool
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
-    @State var transcriptLayout: AIChatTranscriptLayout = AIChatTranscriptLayout()
-    @State var transcriptRestore: AIChatTranscriptRestore? = nil
+    @State var transcriptLayout: AIChatScrollRowLayout = AIChatScrollRowLayout()
+    @State var transcriptRestore: AIChatScrollAnchor? = nil
     @State var composerWindowScene: AIChatComposerWindowScene = AIChatComposerWindowScene()
     /// The transcript a chat off screen keeps showing. Every section mounts its own side chat beside the AI tab's, so
     /// without this each one would diff and lay out every streamed token.

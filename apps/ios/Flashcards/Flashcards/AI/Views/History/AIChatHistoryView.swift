@@ -52,6 +52,8 @@ extension View {
 struct AIChatHistoryView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.aiCompanionHostTab) private var companionHostTab
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
     private var isInPane: Bool { self.companionHostTab != nil }
     let chatStore: AIChatStore
     @Bindable private var model: AIChatHistoryListModel
@@ -71,8 +73,9 @@ struct AIChatHistoryView: View {
 
     var body: some View {
         self.content
-            .nativeNavigationTitle(aiSettingsLocalized("ai.history.title", "Chat history"))
-            .navigationBarTitleDisplayMode(.inline)
+            .aiCompanionPageTitle(aiSettingsLocalized("ai.history.title", "Chat history"), sharesSectionBar: self.sharesSectionBar) {
+                self.paneSearchField
+            }
             #if targetEnvironment(macCatalyst)
             .macToolbarContribution(MacToolbarContribution(
                 tab: .ai,
@@ -154,6 +157,7 @@ struct AIChatHistoryView: View {
         if let companionHostTab = self.companionHostTab {
             guard self.navigation.isAICompanionVisible,
                   self.navigation.selectedTab == companionHostTab,
+                  self.isOnTopPage,
                   case .history(let route)? = self.navigation.aiCompanionPath.last else {
                 return false
             }
@@ -166,7 +170,32 @@ struct AIChatHistoryView: View {
         self.isVisible && self.renameTarget == nil && self.archiveTarget == nil
     }
 
+    @ViewBuilder
     private var content: some View {
+        if self.sharesSectionBar {
+            self.sessionList
+        } else {
+            self.searchableSessionList
+        }
+    }
+
+    /// The pane's search, under its heading. `.searchable` would attach its drawer to the section's bar, which the pane
+    /// shares on iPad, so the pane hosts a system search bar of its own.
+    @ViewBuilder
+    private var paneSearchField: some View {
+        #if !targetEnvironment(macCatalyst)
+        if self.sharesSectionBar {
+            AIChatHistoryPaneSearchBar(
+                text: self.searchQueryBinding,
+                placeholder: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
+                isEnabled: self.canSearch
+            )
+            .accessibilityIdentifier(UITestIdentifier.aiHistorySearchField)
+        }
+        #endif
+    }
+
+    private var searchableSessionList: some View {
         self.sessionList
             #if !targetEnvironment(macCatalyst)
             .searchable(
@@ -199,8 +228,13 @@ struct AIChatHistoryView: View {
     }
 
     private var sessionList: some View {
-        List {
-            switch self.model.phase {
+        let phase = self.model.phase
+        let sessions = phase == .loaded ? aiChatHistoryCurrentChatFirst(
+            sessions: self.model.sessions,
+            currentSessionId: self.currentSessionId
+        ) : []
+        return List {
+            switch phase {
             case .loading:
                 ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
                     .frame(maxWidth: .infinity)
@@ -228,18 +262,14 @@ struct AIChatHistoryView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(
-                    aiChatHistoryCurrentChatFirst(
-                        sessions: self.model.sessions,
-                        currentSessionId: self.currentSessionId
-                    )
-                ) { summary in
+                ForEach(sessions) { summary in
                     self.sessionRow(summary: summary)
+                        .aiCompanionScrollRow(id: summary.sessionId)
                 }
 
                 if self.model.nextCursor != nil {
                     self.loadMoreRow
-                } else if self.model.sessions.isEmpty {
+                } else if sessions.isEmpty {
                     self.emptyState
                         .listRowSeparator(.hidden)
                 }
@@ -249,6 +279,7 @@ struct AIChatHistoryView: View {
         .refreshable {
             await self.model.refresh()
         }
+        .aiCompanionPageScroll(rowIDs: sessions.map(\.sessionId))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryList)
     }
 
@@ -463,3 +494,47 @@ private struct AIChatHistoryRowContent: View {
         }
     }
 }
+
+#if !targetEnvironment(macCatalyst)
+/// A minimal system search bar: its clear button, keyboard search key and accessibility come from UIKit.
+private struct AIChatHistoryPaneSearchBar: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let isEnabled: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: self.$text) }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let searchBar = UISearchBar()
+        searchBar.searchBarStyle = .minimal
+        searchBar.autocapitalizationType = .none
+        searchBar.autocorrectionType = .no
+        searchBar.delegate = context.coordinator
+        searchBar.setContentHuggingPriority(.required, for: .vertical)
+        return searchBar
+    }
+
+    func updateUIView(_ searchBar: UISearchBar, context: Context) {
+        context.coordinator.text = self.$text
+        if searchBar.text != self.text { searchBar.text = self.text }
+        searchBar.placeholder = self.placeholder
+        searchBar.isUserInteractionEnabled = self.isEnabled
+        searchBar.searchTextField.isEnabled = self.isEnabled
+    }
+
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) { self.text = text }
+
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            self.text.wrappedValue = searchText
+        }
+
+        /// The query already applies as it is typed; the search key only puts the keyboard away.
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            searchBar.resignFirstResponder()
+        }
+    }
+}
+#endif

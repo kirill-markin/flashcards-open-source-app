@@ -83,6 +83,7 @@ struct AIChatFullResponseRoute: Hashable {
     let messageId: String?
     /// The text when the page opened, kept once the message no longer continues it.
     let text: String
+    let readingPosition: AICompanionReadingPosition
 }
 
 struct AIChatLongTextView: View {
@@ -116,7 +117,11 @@ struct AIChatLongTextView: View {
                 Button {
                     // Decided once per tap, so a shown page never turns into a sheet or back.
                     if self.pushesFullResponse {
-                        self.navigation.aiCompanionPath.append(.fullResponse(AIChatFullResponseRoute(messageId: self.messageId, text: self.text)))
+                        self.navigation.aiCompanionPath.append(.fullResponse(AIChatFullResponseRoute(
+                            messageId: self.messageId,
+                            text: self.text,
+                            readingPosition: AICompanionReadingPosition()
+                        )))
                     } else {
                         self.isFullResponsePresented = true
                     }
@@ -182,9 +187,34 @@ private struct AIChatDisplayChunk {
     let blocks: [ReviewMathBlock]
 }
 
-private enum AIChatFullResponseChunks {
-    case markdown([String])
-    case mathText([AIChatDisplayChunk])
+private struct AIChatFullResponseChunks {
+    enum Content {
+        case markdown([String])
+        case mathText([AIChatDisplayChunk])
+    }
+
+    let content: Content
+    let scrollTargets: [AICompanionScrollTarget]
+
+    init(content: Content) {
+        self.content = content
+        let texts: [String]
+        let idPrefix: String
+        switch content {
+        case .markdown(let chunks):
+            texts = chunks
+            idPrefix = "markdown"
+        case .mathText(let chunks):
+            texts = chunks.map(\.text)
+            idPrefix = "text"
+        }
+        var start = 0
+        self.scrollTargets = texts.map { text in
+            let source = AICompanionScrollSource(text: text, start: start)
+            defer { start = source.range.upperBound }
+            return AICompanionScrollTarget(id: "\(idPrefix)-\(start)", source: source)
+        }
+    }
 }
 
 private let aiChatMarkdownListItemExpression = makeReviewContentRegularExpression(
@@ -301,7 +331,7 @@ private func buildAIChatFullResponseChunks(text: String) async -> AIChatFullResp
             ) else {
                 return nil
             }
-            return .markdown(chunks)
+            return AIChatFullResponseChunks(content: .markdown(chunks))
         }
 
         let blocks: [ReviewMathBlock]
@@ -336,7 +366,7 @@ private func buildAIChatFullResponseChunks(text: String) async -> AIChatFullResp
             }
         }
         flush()
-        return .mathText(chunks)
+        return AIChatFullResponseChunks(content: .mathText(chunks))
     }
     return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
 }
@@ -378,6 +408,7 @@ func aiChatFullResponseLiveText(route: AIChatFullResponseRoute, chatStore: AICha
 /// A sheet with Close, or a page in the side chat's pane, whose row holds its Back and Copy.
 struct AIChatFullResponseView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
 
     @State private var chunks: AIChatFullResponseChunks?
     @State private var chunkedText: String?
@@ -386,14 +417,35 @@ struct AIChatFullResponseView: View {
     let isPushed: Bool
 
     var body: some View {
-        ScrollView {
-            switch self.chunks {
+        // A sheet keeps its plain title so the Mac still shows it with Close.
+        self.page
+            .aiCompanionPageTitle(
+                aiSettingsLocalized("ai.message.fullResponse.title", "Full response"),
+                sharesSectionBar: self.sharesSectionBar,
+                usesNativeTitle: false
+            ) {
+                self.copyButton
+                    .labelStyle(.titleAndIcon)
+                    .nativeActionButtonStyle()
+            }
+            .toolbar {
+                if self.sharesSectionBar == false {
+                    self.toolbarContent
+                }
+            }
+    }
+
+    private var page: some View {
+        let targets = self.chunks?.scrollTargets ?? []
+        return ScrollView {
+            switch self.chunks?.content {
             case .markdown(let chunks):
                 // Trailing blank lines do not render, so the stack restores the paragraph gap between chunks.
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(chunks.indices, id: \.self) { index in
                         AIChatMarkdownText(text: chunks[index], textStyle: .body, isSelectable: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .aiCompanionScrollRow(id: targets[index].id)
                     }
                 }
                 .padding()
@@ -403,6 +455,7 @@ struct AIChatFullResponseView: View {
                         MathContentText(text: chunks[index].text, isSelectable: true, parsedBlocks: chunks[index].blocks)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
+                            .aiCompanionScrollRow(id: targets[index].id)
                     }
                 }
                 .padding()
@@ -412,6 +465,7 @@ struct AIChatFullResponseView: View {
                     .padding()
             }
         }
+        .aiCompanionPageScroll(targets: targets)
         .task(id: self.text) {
             let text = self.text
             // A page shown again after a section switch keeps its chunks, and a streaming reply shows the last
@@ -430,11 +484,16 @@ struct AIChatFullResponseView: View {
             self.chunks = chunks
             self.chunkedText = text
         }
-        .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            self.toolbarContent
+    }
+
+    private var copyButton: some View {
+        Button(
+            aiSettingsLocalized("common.copy", "Copy"),
+            systemImage: "doc.on.doc"
+        ) {
+            UIPasteboard.general.string = self.text
         }
+        .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
     }
 
     @ToolbarContentBuilder
@@ -447,13 +506,7 @@ struct AIChatFullResponseView: View {
             }
         }
         ToolbarItem(placement: .primaryAction) {
-            Button(
-                aiSettingsLocalized("common.copy", "Copy"),
-                systemImage: "doc.on.doc"
-            ) {
-                UIPasteboard.general.string = self.text
-            }
-            .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
+            self.copyButton
         }
     }
 }

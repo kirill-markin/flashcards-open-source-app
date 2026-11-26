@@ -13,6 +13,7 @@ enum AIChatHistoryReaderPhase: Equatable {
 final class AIChatHistoryReaderModel {
     private(set) var phase: AIChatHistoryReaderPhase
 
+    @ObservationIgnored let readingPosition = AICompanionReadingPosition()
     @ObservationIgnored private let chatStore: AIChatStore
     @ObservationIgnored private let sessionId: String
     @ObservationIgnored private let onUnavailable: () -> Void
@@ -74,6 +75,8 @@ final class AIChatHistoryReaderModel {
 /// Shows an old chat without a composer; the server refuses to continue a chat that is not current.
 struct AIChatHistoryReaderView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionPaneSharesSectionBar) private var sharesSectionBar
+    @Environment(\.aiCompanionPaneLayerIsShown) private var isLayerShown
     let chatStore: AIChatStore
     let summary: AIChatSessionHistorySummary
     @State private var model: AIChatHistoryReaderModel
@@ -86,8 +89,9 @@ struct AIChatHistoryReaderView: View {
 
     var body: some View {
         self.content
-            .nativeNavigationTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle())
-            .navigationBarTitleDisplayMode(.inline)
+            .aiCompanionPageTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle(), sharesSectionBar: self.sharesSectionBar) {
+                EmptyView()
+            }
             #if targetEnvironment(macCatalyst)
             .macToolbarContribution(MacToolbarContribution(tab: .ai, role: .navigation))
             #endif
@@ -98,6 +102,8 @@ struct AIChatHistoryReaderView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, aiChatMessageListHorizontalPadding)
                     .padding(.vertical, 12)
+                    .opacity(self.isLayerShown ? 1 : 0)
+                    .accessibilityHidden(self.isLayerShown == false)
             }
             .onAppear {
                 self.model.loadIfNeeded()
@@ -154,6 +160,7 @@ struct AIChatHistoryReaderView: View {
                         self.navigation.openSettings(destination: .accountStatus)
                     }
                 )
+                .aiCompanionScrollRow(id: message.id)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -166,6 +173,7 @@ struct AIChatHistoryReaderView: View {
         .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
         .contentMargins(.vertical, 12, for: .scrollContent)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .aiCompanionPageScroll(rowIDs: messages.map(\.id))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryReader)
     }
 }

@@ -9,9 +9,6 @@ struct AICompanionColumns<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
-    #if !targetEnvironment(macCatalyst)
-    @State private var tabRowInset: CGFloat = 0
-    #endif
     private let hostTab: AppTab
     private let content: Content
 
@@ -60,23 +57,7 @@ struct AICompanionColumns<Content: View>: View {
                 ? geometry.size.width / 2
                 : max(0, min(geometry.size.width, (geometry.size.width + rightInset - leftInset) / 2))
             #endif
-            HStack(spacing: 0) {
-                Color.clear
-                    .frame(width: isVisible && isLeading ? width : 0)
-                    .accessibilityHidden(true)
-                self.content
-                    .environment(\.showsAICompanionBarBackground, isPad && isVisible)
-                    #if targetEnvironment(macCatalyst)
-                    // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
-                    .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
-                    .frame(maxHeight: .infinity)
-                    #else
-                    .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
-                    #endif
-                Color.clear
-                    .frame(width: isVisible && !isLeading ? width : 0)
-                    .accessibilityHidden(true)
-            }
+            self.sectionColumn(isPad: isPad, isVisible: isVisible, isLeading: isLeading, width: width, size: geometry.size)
             .overlay(alignment: isLeading ? .leading : .trailing) {
                 if isVisible {
                     self.pane
@@ -90,22 +71,57 @@ struct AICompanionColumns<Content: View>: View {
                         .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
                 }
             }
+            // Both columns, so their bars share one band.
+            .environment(\.showsAICompanionBarBackground, isPad && isVisible)
             // A section switch leaves this unchanged; the toggle and an availability change (rotation, a resized window,
             // a Duo fold) move the pane.
             .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
         }
-        #if !targetEnvironment(macCatalyst)
-        .padding(.top, isPad ? self.tabRowInset : 0)
-        .background {
-            if isPad {
-                AICompanionTabContentInset(inset: self.$tabRowInset)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+        // The paired columns share one keyboard boundary and one layout proposal.
+        .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
+    }
+
+    @ViewBuilder
+    private func sectionColumn(isPad: Bool, isVisible: Bool, isLeading: Bool, width: CGFloat, size: CGSize) -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.spacedSectionColumn(isVisible: isVisible, isLeading: isLeading, width: width) {
+            self.content
+                // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
+                .frame(width: max(0, size.width - (isVisible ? width : 0)))
+                .frame(maxHeight: .infinity)
+        }
+        #else
+        if isPad {
+            // The chat's column is safe area to the section, which shares its page and stack: lists and readable
+            // layouts then take their own margins on both sides, as they did in a stack of their own. Offset by a
+            // spacer, a list inherited only the page's trailing margin.
+            self.content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .safeAreaPadding(isLeading ? .leading : .trailing, isVisible ? width : 0)
+        } else {
+            self.spacedSectionColumn(isVisible: isVisible, isLeading: isLeading, width: width) {
+                self.content
             }
         }
         #endif
-        // The paired columns share one keyboard boundary and one layout proposal.
-        .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
+    }
+
+    /// Duo and the Mac keep the section in a stack of its own, beside the chat.
+    private func spacedSectionColumn<Column: View>(
+        isVisible: Bool,
+        isLeading: Bool,
+        width: CGFloat,
+        @ViewBuilder column: () -> Column
+    ) -> some View {
+        HStack(spacing: 0) {
+            Color.clear
+                .frame(width: isVisible && isLeading ? width : 0)
+                .accessibilityHidden(true)
+            column()
+            Color.clear
+                .frame(width: isVisible && !isLeading ? width : 0)
+                .accessibilityHidden(true)
+        }
     }
 
     private var pane: some View {
@@ -132,13 +148,59 @@ struct AICompanionColumns<Content: View>: View {
     }
 }
 
+#if !targetEnvironment(macCatalyst)
+/// One page of an iPad section's navigation stack with the side chat beside it. Every page carries the pane, so the
+/// section's own pushes keep native Back and swipe-back while the chat's controls stay on the one shared bar.
+struct AICompanionSectionPage<Content: View>: View {
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    let hostTab: AppTab
+    /// Whether this page tops its section's stack; only that page's chat takes the composer and its keyboard.
+    let isTopPage: @MainActor (AppNavigationModel) -> Bool
+    let content: Content
+
+    init(hostTab: AppTab, isTopPage: @escaping @MainActor (AppNavigationModel) -> Bool, @ViewBuilder content: () -> Content) {
+        self.hostTab = hostTab
+        self.isTopPage = isTopPage
+        self.content = content()
+    }
+
+    var body: some View {
+        AICompanionColumns(hostTab: self.hostTab) {
+            self.content
+                .aiCompanionColumnPage()
+        }
+        .environment(\.aiCompanionPageIsTop, self.isTopPage(self.navigation))
+        .environment(\.aiCompanionSectionPosition, AICompanionSectionPosition(isTop: self.isTopPage))
+        // A centred title would straddle the two columns, or drop below a floating tab bar; the editor role leads it
+        // after the bar's controls and truncates it before the tab bar.
+        .toolbarRole(self.navigation.isAICompanionPaneOpen ? .editor : .automatic)
+    }
+}
+#endif
+
 extension EnvironmentValues {
     /// True inside both halves while a wide layout, iPad or Duo's inner display, shows the side chat; their pages then
     /// keep an opaque bar band.
     @Entry var showsAICompanionBarBackground: Bool = false
+    /// False for a side chat on a section page that another pushed page covers.
+    @Entry var aiCompanionPageIsTop: Bool = true
 }
 
 extension View {
+    /// Keeps a section root's title as VoiceOver's first heading while the side chat leaves it off the shared bar.
+    func aiCompanionAccessibilityHeading(_ title: String, isBesideCompanion: Bool) -> some View {
+        self.overlay(alignment: .top) {
+            if isBesideCompanion {
+                Color.clear
+                    .frame(height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text(verbatim: title))
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilitySortPriority(1)
+            }
+        }
+    }
+
     func aiCompanionColumnPage() -> some View {
         self.modifier(AICompanionColumnPageKeyboard())
             .modifier(AICompanionColumnPageBar())

@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension AIChatView {
-    /// The Mac pane's controls join the window toolbar. On iOS the pane draws its own row beside its section's bar.
+    /// The Mac pane's controls join the window toolbar. On iOS they join the bar of the pane's stack: its own on Duo,
+    /// its section's on iPad.
     var usesCompactCompanionToolbar: Bool {
         #if targetEnvironment(macCatalyst)
         self.isCompanion && self.isPresentationActive
@@ -13,6 +14,40 @@ extension AIChatView {
     #if !targetEnvironment(macCatalyst)
     @ToolbarContentBuilder
     var companionPaneToolbar: some ToolbarContent {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            self.sectionBarCompanionToolbar
+        } else {
+            self.ownBarCompanionToolbar
+        }
+    }
+
+    /// On iPad the chat's controls join its section's bar. They all lead, so they stay clear of a floating tab bar
+    /// centred over the window and of the section's own trailing controls. As above the Duo pane's pushed pages,
+    /// History and New belong to the live chat; a page's Back is in its heading.
+    @ToolbarContentBuilder
+    private var sectionBarCompanionToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            AICompanionToolbarButton()
+                .labelStyle(.iconOnly)
+        }
+        if #available(iOS 26.0, *) {
+            ToolbarSpacer(.fixed, placement: .topBarLeading)
+        }
+        if self.navigation.aiCompanionPath.isEmpty {
+            ToolbarItemGroup(placement: .topBarLeading) {
+                self.historyButton(usesToolbarIconLabel: false)
+                    .disabled(self.isPresentationActive == false)
+                if self.accessState == .ready {
+                    self.newCompanionChatLabelButton
+                        .labelStyle(.iconOnly)
+                        .disabled(self.isPresentationActive == false)
+                }
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var ownBarCompanionToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             AICompanionToolbarButton()
                 .labelStyle(.iconOnly)

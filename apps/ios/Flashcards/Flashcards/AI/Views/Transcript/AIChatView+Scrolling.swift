@@ -104,11 +104,11 @@ extension AIChatView {
         self.isAutoFollowEnabled = false
         // A row on screen places itself before the frame renders. Only a row off screen is first brought to the
         // viewport's top, after which it places itself the rest of the way.
-        self.transcriptLayout.placedRestoreMessageId = nil
-        self.transcriptRestore = AIChatTranscriptRestore(messageId: messageId, topOffset: topOffset)
+        self.transcriptLayout.placedRestoreRowID = nil
+        self.transcriptRestore = AIChatScrollAnchor(rowID: messageId, topOffset: topOffset)
         DispatchQueue.main.async {
-            guard self.transcriptRestore?.messageId == messageId,
-                  self.transcriptLayout.placedRestoreMessageId != messageId else { return }
+            guard self.transcriptRestore?.rowID == messageId,
+                  self.transcriptLayout.placedRestoreRowID != messageId else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {

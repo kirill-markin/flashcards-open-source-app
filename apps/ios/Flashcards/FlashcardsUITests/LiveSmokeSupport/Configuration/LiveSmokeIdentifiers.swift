@@ -2,6 +2,7 @@ import Foundation
 
 enum LiveSmokeIdentifier {
     static let aiCompanionToggle: String = "ai.companion.toggle"
+    static let aiCompanionBackButton: String = "ai.companion.back"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
@@ -144,6 +145,7 @@ enum LiveSmokeIdentifier {
     static let cardEditorFrontTextEditor: String = "cardEditor.frontTextEditor"
     static let cardEditorBackTextEditor: String = "cardEditor.backTextEditor"
     static let reviewProgressBadge: String = "review.progressBadge"
+    static let reviewLeaderboardShortcut: String = "review.leaderboardShortcut"
     static let reviewQueueButton: String = "review.queueButton"
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
     static let reviewAiButton: String = "review.aiButton"
@@ -174,6 +176,8 @@ enum LiveSmokeIdentifier {
     static let aiNewChatButton: String = "ai.newChatButton"
     static let aiHistoryButton: String = "ai.historyButton"
     static let aiHistoryList: String = "ai.history.list"
+    static let aiHistorySearchField: String = "ai.history.searchField"
+    static let settingsThemeRow: String = "settings.themeRow"
     static let aiHistorySessionRow: String = "ai.history.sessionRow"
     static let aiHistoryCurrentSessionRow: String = "ai.history.currentSessionRow"
     static let aiHistoryReader: String = "ai.history.reader"

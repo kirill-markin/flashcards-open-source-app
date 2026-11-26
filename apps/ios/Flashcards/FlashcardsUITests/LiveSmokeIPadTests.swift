@@ -34,6 +34,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 #if !targetEnvironment(macCatalyst)
         try self.assertCompanionControlsAreReachableAfterBackground()
+        try self.assertCompanionSharesFloatingTabRow()
 #endif
         #if targetEnvironment(macCatalyst)
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
@@ -114,6 +115,95 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         XCTAssertTrue(filter.isHittable)
         XCTAssertTrue(toggle.isHittable)
         XCTAssertTrue(history.isHittable)
+    }
+
+    /// With tabs floating, the chat's and Review's controls share the tab bar's row, beside it rather than under it or in
+    /// an overflow menu: on first display, after a revisit, with a chat page open and above a pushed section page.
+    @MainActor
+    private func assertCompanionSharesFloatingTabRow() throws {
+        let startsInSidebar = self.isTabBarFloating == false
+        if startsInSidebar {
+            try self.toggleTabBarPlacement(floating: true)
+        }
+        let reviewRow = [
+            LiveSmokeIdentifier.aiCompanionToggle, LiveSmokeIdentifier.reviewFilterMenu,
+            LiveSmokeIdentifier.reviewLeaderboardShortcut, LiveSmokeIdentifier.reviewProgressBadge
+        ]
+        try self.assertCompanionRow(controls: reviewRow + [LiveSmokeIdentifier.aiHistoryButton])
+        try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabProgressItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabReviewItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertCompanionRow(controls: reviewRow + [LiveSmokeIdentifier.aiHistoryButton])
+
+        try self.step("open History in the pane and return with its Back") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiHistoryButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.aiHistoryList, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.aiHistorySearchField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertCompanionRow(controls: reviewRow)
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionBackButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiHistoryList, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertCompanionRow(controls: reviewRow + [LiveSmokeIdentifier.aiHistoryButton])
+        }
+
+        try self.step("keep the shared row above a pushed Settings page") {
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabSettingsItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            let themeRow = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.settingsThemeRow).firstMatch
+            XCTAssertTrue(themeRow.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+            themeRow.tap()
+            let sectionBack = self.app.navigationBars.buttons.matching(identifier: "BackButton").firstMatch
+            XCTAssertTrue(sectionBack.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+            try self.assertCompanionRow(controls: [LiveSmokeIdentifier.aiCompanionToggle, LiveSmokeIdentifier.aiHistoryButton])
+            try self.assertOnTabRow(sectionBack, name: "The section's Back")
+            sectionBack.tap()
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabReviewItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+        if startsInSidebar {
+            try self.toggleTabBarPlacement(floating: false)
+        }
+    }
+
+    /// Floating tabs sit on the bar's row; a sidebar lists them further down. Geometry, so any locale reads it.
+    @MainActor
+    private var isTabBarFloating: Bool {
+        let reviewTab = self.app.buttons[LiveSmokeIdentifier.rootTabReviewItem].firstMatch
+        return reviewTab.exists && reviewTab.frame.minY < 80
+    }
+
+    @MainActor
+    private func toggleTabBarPlacement(floating: Bool) throws {
+        let toggle = self.app.buttons.matching(NSPredicate(format: "identifier ==[c] 'ToggleSidebar'")).firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        toggle.tap()
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        while self.isTabBarFloating != floating && Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+        XCTAssertEqual(self.isTabBarFloating, floating, "The tab bar must finish moving before its row is measured.")
+    }
+
+    @MainActor
+    private func floatingTabBarFrame() -> CGRect {
+        [LiveSmokeIdentifier.rootTabReviewItem, LiveSmokeIdentifier.rootTabProgressItem, LiveSmokeIdentifier.rootTabSettingsItem]
+            .map { self.app.buttons[$0].firstMatch }
+            .filter(\.exists)
+            .reduce(CGRect.null) { $0.union($1.frame) }
+    }
+
+    @MainActor
+    private func assertCompanionRow(controls: [String]) throws {
+        XCTAssertTrue(self.app.buttons[LiveSmokeIdentifier.rootTabReviewItem].firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        for identifier in controls {
+            let control = self.app.buttons[identifier].firstMatch
+            XCTAssertTrue(control.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "\(identifier) must be on the bar.")
+            try self.assertOnTabRow(control, name: identifier)
+        }
+    }
+
+    @MainActor
+    private func assertOnTabRow(_ control: XCUIElement, name: String) throws {
+        let tabBar = self.floatingTabBarFrame()
+        XCTAssertTrue(control.isHittable, "\(name) must be directly reachable, not in an overflow menu.")
+        XCTAssertEqual(control.frame.midY, tabBar.midY, accuracy: 6, "\(name) must share the floating tab bar's row.")
+        XCTAssertFalse(control.frame.intersects(tabBar), "\(name) must stay clear of the floating tab bar.")
     }
 
     @MainActor

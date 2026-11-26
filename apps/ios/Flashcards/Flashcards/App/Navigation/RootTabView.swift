@@ -712,8 +712,8 @@ struct RootTabView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    /// Every section hosts the side chat the same way: the pane beside the section's own navigation stack, so the
-    /// section's pushes stay in its column and the pane keeps its place.
+    /// Every section hosts the side chat the same way. On iPad the pane sits inside the section's one navigation stack,
+    /// so both share a bar beside a floating tab bar; on Duo's inner display and the Mac it sits beside that stack.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
         #if targetEnvironment(macCatalyst)
@@ -722,10 +722,18 @@ struct RootTabView: View {
                 .toolbar(.hidden, for: .navigationBar)
         }
         #else
-        AICompanionColumns(hostTab: hostTab) {
+        if UIDevice.current.userInterfaceIdiom == .pad {
             NavigationStack {
-                content()
-                    .aiCompanionColumnPage()
+                AICompanionSectionPage(hostTab: hostTab, isTopPage: { _ in true }) {
+                    content()
+                }
+            }
+        } else {
+            AICompanionColumns(hostTab: hostTab) {
+                NavigationStack {
+                    content()
+                        .aiCompanionColumnPage()
+                }
             }
         }
         #endif
@@ -1058,7 +1066,30 @@ struct RootTabView: View {
         #endif
     }
 
+    @ViewBuilder
     private func libraryTab(libraryPath: Binding<LibraryNavigationPath>) -> some View {
+        #if !targetEnvironment(macCatalyst)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationStack(path: libraryPath) {
+                AICompanionSectionPage(hostTab: .library, isTopPage: { $0.libraryPath.isEmpty }) {
+                    self.libraryRoot
+                }
+                .navigationDestination(for: LibraryNavigationDestination.self) { destination in
+                    AICompanionSectionPage(hostTab: .library, isTopPage: { $0.libraryPath.last == destination }) {
+                        self.libraryDestinationView(destination: destination)
+                    }
+                }
+            }
+        } else {
+            self.libraryColumns(libraryPath: libraryPath)
+        }
+        #else
+        self.libraryColumns(libraryPath: libraryPath)
+        #endif
+    }
+
+    /// The Mac's Library, and Duo's beside the pane's own stack; iPad's shares one stack with the pane above.
+    private func libraryColumns(libraryPath: Binding<LibraryNavigationPath>) -> some View {
         AICompanionColumns(hostTab: .library) {
             NavigationStack(path: libraryPath) {
                 self.libraryRoot
@@ -1136,9 +1167,22 @@ struct RootTabView: View {
         self.settingsStack(settingsPath: settingsPath)
             .environment(\.macToolbarOwnerTab, .settings)
         #else
-        // Settings pages push inside their column while the side chat stays open beside them.
-        AICompanionColumns(hostTab: .settings) {
-            self.settingsStack(settingsPath: settingsPath)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationStack(path: settingsPath) {
+                AICompanionSectionPage(hostTab: .settings, isTopPage: { $0.settingsPath.isEmpty }) {
+                    SettingsView()
+                }
+                .navigationDestination(for: SettingsNavigationDestination.self) { destination in
+                    AICompanionSectionPage(hostTab: .settings, isTopPage: { $0.settingsPath.last == destination }) {
+                        self.settingsDestinationView(destination: destination)
+                    }
+                }
+            }
+        } else {
+            // Duo: Settings pages push inside their column while the side chat stays open beside them.
+            AICompanionColumns(hostTab: .settings) {
+                self.settingsStack(settingsPath: settingsPath)
+            }
         }
         #endif
     }

@@ -5,6 +5,17 @@ enum AICompanionPaneRoute: Hashable {
     case history(AIChatHistoryListRoute)
     case reader(AICompanionHistoryReaderRoute)
     case fullResponse(AIChatFullResponseRoute)
+
+    @MainActor var readingPosition: AICompanionReadingPosition {
+        switch self {
+        case .history(let route):
+            route.model.readingPosition
+        case .reader(let route):
+            route.model.readingPosition
+        case .fullResponse(let route):
+            route.readingPosition
+        }
+    }
 }
 
 struct AICompanionHistoryReaderRoute: Hashable {
@@ -22,12 +33,22 @@ struct AICompanionHistoryReaderRoute: Hashable {
 
 extension EnvironmentValues {
     @Entry var aiCompanionHostTab: AppTab? = nil
+    /// True on iPad, where the pane lives in its section's navigation stack and shares its bar; the pane's pages then
+    /// carry their own headings and controls instead of navigation titles.
+    @Entry var aiCompanionPaneSharesSectionBar: Bool = false
+    /// The title of the page beneath a side-chat page that shares its section's bar, which its heading's Back returns to.
+    @Entry var aiCompanionBackTitle: String? = nil
+    /// False for a side-chat page kept beneath the next. Its bars, which SwiftUI hosts apart from the page, read it to
+    /// stay out of VoiceOver too.
+    @Entry var aiCompanionPaneLayerIsShown: Bool = true
 }
 
 #if !targetEnvironment(macCatalyst)
 struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
+    @Environment(\.aiCompanionSectionPosition) private var sectionPosition
     let hostTab: AppTab?
     let toolbar: RootToolbar
     let liveChat: LiveChat
@@ -39,6 +60,53 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
     }
 
     var body: some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            self.sectionStackPane
+        } else {
+            self.ownStackPane
+        }
+    }
+
+    /// iPad: one navigation stack per section keeps the section's and the chat's controls on one bar, beside a floating
+    /// tab bar. Every page stays mounted under the next, as in a pushed stack, so each keeps its place and content.
+    private var sectionStackPane: some View {
+        let path = self.navigation.aiCompanionPath
+        return ZStack {
+            self.liveChat
+                .aiCompanionPaneLayer(isShown: path.isEmpty)
+            ForEach(Array(path.enumerated()), id: \.element) { index, route in
+                self.page(route: route)
+                    .background(Color(uiColor: .systemBackground))
+                    .environment(\.aiCompanionBackTitle, index == 0 ? aiSettingsLocalized("ai.title", "AI") : path[index - 1].title)
+                    .aiCompanionPaneLayer(isShown: index == path.count - 1)
+                    .environment(\.aiCompanionScrollContext, AICompanionScrollContext(
+                        position: route.readingPosition,
+                        isExposed: self.navigation.isAICompanionVisible
+                            && self.navigation.selectedTab == self.hostTab
+                            && self.isOnTopPage
+                            && index == path.count - 1,
+                        isActive: {
+                            self.navigation.isAICompanionVisible
+                                && self.navigation.selectedTab == self.hostTab
+                                && self.sectionPosition.isTop(self.navigation)
+                                && self.navigation.aiCompanionPath.last == route
+                        }
+                    ))
+            }
+        }
+        .toolbar { self.toolbar }
+        .environment(\.aiChatPushesFullResponse, true)
+        .environment(\.aiCompanionHostTab, self.hostTab)
+        .environment(\.aiCompanionPaneSharesSectionBar, true)
+        .overlay(alignment: .trailing) {
+            HStack(spacing: 0) { Divider() }
+                .frame(width: 1)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// iPhone Duo's inner display keeps the pane's own stack beside the section's.
+    private var ownStackPane: some View {
         NavigationStack(path: self.path) {
             self.liveChat
                 .navigationBarTitleDisplayMode(.inline)
@@ -51,13 +119,6 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
         }
         .environment(\.aiChatPushesFullResponse, true)
         .environment(\.aiCompanionHostTab, self.hostTab)
-        .overlay(alignment: .trailing) {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                HStack(spacing: 0) { Divider() }
-                    .frame(width: 1)
-                    .allowsHitTesting(false)
-            }
-        }
     }
 
     private var path: Binding<[AICompanionPaneRoute]> {
@@ -87,88 +148,123 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
     }
 }
 
-/// Keep both native navigation stacks below the tab controller's unobscured content boundary.
-struct AICompanionTabContentInset: UIViewRepresentable {
-    @Binding var inset: CGFloat
-
-    func makeUIView(context: Context) -> InsetView {
-        InsetView()
-    }
-
-    func updateUIView(_ view: InsetView, context: Context) {
-        view.onInsetChange = { inset in self.inset = inset }
-        view.reportInset()
-    }
-
-    final class InsetView: UIView {
-        var onInsetChange: ((CGFloat) -> Void)?
-        private let probe = ContentTopProbe()
-        private var contentTopConstraint: NSLayoutConstraint?
-        private var reportedInset: CGFloat?
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            self.isUserInteractionEnabled = false
-            self.probe.translatesAutoresizingMaskIntoConstraints = false
-            self.probe.onMove = { [weak self] in self?.reportInset() }
-            self.addSubview(self.probe)
-            NSLayoutConstraint.activate([
-                self.probe.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-                self.probe.widthAnchor.constraint(equalToConstant: 0),
-                self.probe.heightAnchor.constraint(equalToConstant: 0)
-            ])
+extension AICompanionPaneRoute {
+    /// The page's title, as its heading shows it.
+    var title: String {
+        switch self {
+        case .history:
+            aiSettingsLocalized("ai.history.title", "Chat history")
+        case .reader(let route):
+            route.summary.title ?? aiChatHistoryUntitledChatTitle()
+        case .fullResponse:
+            aiSettingsLocalized("ai.message.fullResponse.title", "Full response")
         }
+    }
+}
 
-        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+extension View {
+    /// A page of the pane, shown on top or kept beneath the next without taking touches, focus or VoiceOver.
+    func aiCompanionPaneLayer(isShown: Bool) -> some View {
+        self.opacity(isShown ? 1 : 0)
+            .allowsHitTesting(isShown)
+            .accessibilityHidden(isShown == false)
+            .disabled(isShown == false)
+            .environment(\.aiCompanionPaneLayerIsShown, isShown)
+    }
+}
+#endif
 
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            self.contentTopConstraint?.isActive = false
-            self.contentTopConstraint = nil
-            var responder = self.next
-            while let current = responder, self.window != nil {
-                if let controller = current as? UIViewController,
-                   let tabs = (controller as? UITabBarController) ?? controller.tabBarController {
-                    let contentTop: NSLayoutYAxisAnchor
-                    if #available(iOS 26.0, *) {
-                        contentTop = tabs.contentLayoutGuide.topAnchor
-                    } else {
-                        contentTop = tabs.view.safeAreaLayoutGuide.topAnchor
+extension View {
+    /// A side-chat page's title: a navigation title in its own stack, or, where the pane shares its section's bar, a
+    /// heading at the top of the page with the page's own controls beside it. `usesNativeTitle` false keeps a plain
+    /// navigation title, for a sheet the Mac must still title.
+    @ViewBuilder
+    func aiCompanionPageTitle<Accessory: View>(
+        _ title: String,
+        sharesSectionBar: Bool,
+        usesNativeTitle: Bool = true,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        if sharesSectionBar {
+            #if targetEnvironment(macCatalyst)
+            self
+            #else
+            self.nativeTopBar(alignment: .leading) {
+                AICompanionPageHeading(title: title, accessory: accessory())
+            }
+            #endif
+        } else if usesNativeTitle {
+            self.nativeNavigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            self.navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+#if !targetEnvironment(macCatalyst)
+/// The heading of a side-chat page that shares its section's bar: its Back returns to the page beneath, leaving the
+/// bar's controls in place.
+private struct AICompanionPageHeading<Accessory: View>: View {
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionHostTab) private var hostTab
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
+    @Environment(\.aiCompanionBackTitle) private var backTitle
+    @Environment(\.aiCompanionPaneLayerIsShown) private var isLayerShown
+    let title: String
+    let accessory: Accessory
+
+    var body: some View {
+        // A covered page keeps its heading's height, so its content stays put, but nothing of it can be reached.
+        if self.isLayerShown {
+            self.heading
+        } else {
+            self.heading.hidden()
+        }
+    }
+
+    private var heading: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                if let backTitle = self.backTitle {
+                    Button(action: self.goBack) {
+                        Image(systemName: "chevron.backward")
+                            .font(.body.weight(.semibold))
+                            .frame(minWidth: 24, minHeight: 24)
                     }
-                    self.contentTopConstraint = self.probe.topAnchor.constraint(equalTo: contentTop)
-                    self.contentTopConstraint?.isActive = true
-                    break
+                    .buttonBorderShape(.circle)
+                    .buttonStyle(.bordered)
+                    .tint(Color.primary)
+                    // Pages kept beneath or in other sections must not take the shortcut from the one on screen.
+                    .keyboardShortcut(self.isActive ? KeyboardShortcut("[", modifiers: .command) : nil)
+                    .accessibilityLabel(Text(verbatim: aiSettingsLocalized("common.back", "Back")))
+                    .accessibilityValue(Text(verbatim: backTitle))
+                    .accessibilityIdentifier(UITestIdentifier.aiCompanionBackButton)
+                    .disabled(self.isActive == false)
                 }
-                responder = current.next
+                Text(self.title)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
             }
-            self.reportInset()
+            self.accessory
         }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            self.reportInset()
-        }
-
-        func reportInset() {
-            guard self.onInsetChange != nil else { return }
-            let inset = self.contentTopConstraint == nil ? 0 : max(0, self.probe.frame.minY)
-            guard abs(inset - (self.reportedInset ?? -1)) >= 0.5 else { return }
-            self.reportedInset = inset
-            DispatchQueue.main.async { [weak self] in
-                guard let self, self.reportedInset == inset else { return }
-                self.onInsetChange?(inset)
-            }
-        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
     }
 
-    private final class ContentTopProbe: UIView {
-        var onMove: (() -> Void)?
+    /// Only the pane the person sees goes back, so a pane kept in another section or beneath a pushed page cannot.
+    private var isActive: Bool {
+        self.navigation.isAICompanionVisible && self.navigation.selectedTab == self.hostTab && self.isOnTopPage
+            && self.isLayerShown
+    }
 
-        override var center: CGPoint {
-            didSet {
-                if self.center != oldValue { self.onMove?() }
-            }
-        }
+    private func goBack() {
+        guard self.isActive else { return }
+        _ = self.navigation.aiCompanionPath.popLast()
     }
 }
 #endif
