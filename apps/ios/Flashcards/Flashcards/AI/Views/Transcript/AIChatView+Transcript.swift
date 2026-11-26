@@ -193,12 +193,13 @@ extension AIChatView {
                             }
                         )
                         .equatable()
-                        .modifier(AIChatTranscriptRowFrameTracking(
-                            messageId: message.id,
+                        .modifier(AIChatScrollRowFrameTracking(
+                            rowID: message.id,
                             layout: self.isCompanion ? self.transcriptLayout : nil,
-                            restoredTopOffset: self.transcriptRestore?.messageId == message.id
-                                ? self.transcriptRestore?.topOffset
-                                : nil
+                            restoredOffset: self.transcriptRestore?.rowID == message.id
+                                ? self.transcriptRestore.map { .points($0.topOffset) }
+                                : nil,
+                            canRestore: { true }
                         ))
                         .macToolbarScrollSurface("chat")
                         .id(message.id)
@@ -257,28 +258,32 @@ private struct AIChatTranscriptTopEdgeEffect: ViewModifier {
     }
 }
 
-/// Frames of the side chat's rows on screen and the top of its viewport, in window space; a List row has no scroll
+/// Frames of the scroll view's rows on screen and the top of its viewport, in window space; a List row has no scroll
 /// view space of its own. Written as the transcript scrolls, so it stays out of SwiftUI state; read when the side chat
 /// records where the reader is.
 @MainActor
-final class AIChatTranscriptLayout {
+final class AIChatScrollRowLayout {
     var rowFrames: [String: CGRect] = [:]
     var viewportTop: CGFloat = 0
     /// The restored row that has placed itself; any other restored row is not on screen yet.
-    var placedRestoreMessageId: String? = nil
+    var placedRestoreRowID: String? = nil
 }
 
-/// A restored place the side chat holds until the reader scrolls.
-struct AIChatTranscriptRestore: Equatable {
-    let messageId: String
+struct AIChatScrollAnchor: Equatable {
+    let rowID: String
     let topOffset: CGFloat
 }
 
-/// Only the side chat tracks its rows; the AI tab's chat opens at its newest message.
-private struct AIChatTranscriptRowFrameTracking: ViewModifier {
-    let messageId: String
-    let layout: AIChatTranscriptLayout?
-    let restoredTopOffset: CGFloat?
+enum AIChatScrollOffset: Equatable {
+    case points(CGFloat)
+    case rowFraction(CGFloat)
+}
+
+struct AIChatScrollRowFrameTracking: ViewModifier {
+    let rowID: String
+    let layout: AIChatScrollRowLayout?
+    let restoredOffset: AIChatScrollOffset?
+    let canRestore: @MainActor () -> Bool
 
     func body(content: Content) -> some View {
         if let layout = self.layout {
@@ -286,17 +291,18 @@ private struct AIChatTranscriptRowFrameTracking: ViewModifier {
                 .onGeometryChange(for: CGRect.self) { geometry in
                     geometry.frame(in: .global)
                 } action: { frame in
-                    layout.rowFrames[self.messageId] = frame
+                    layout.rowFrames[self.rowID] = frame
                 }
                 .onDisappear {
-                    layout.rowFrames[self.messageId] = nil
+                    layout.rowFrames[self.rowID] = nil
                 }
                 .background {
-                    if let restoredTopOffset = self.restoredTopOffset {
-                        AIChatTranscriptRowOffsetRestorer(
+                    if let restoredOffset = self.restoredOffset {
+                        AIChatScrollRowOffsetRestorer(
                             layout: layout,
-                            messageId: self.messageId,
-                            topOffset: restoredTopOffset
+                            rowID: self.rowID,
+                            offset: restoredOffset,
+                            canRestore: self.canRestore
                         )
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
@@ -312,10 +318,11 @@ private struct AIChatTranscriptRowFrameTracking: ViewModifier {
 /// this view behind it moves the List's own scroll view so the row's top sits where the reader left it: at once as the
 /// section comes on screen, so the first frame already shows the place, then again whenever the List's content size
 /// changes, since an unfinished size can clamp the offset short. A touch on the transcript ends it.
-private struct AIChatTranscriptRowOffsetRestorer: UIViewRepresentable {
-    let layout: AIChatTranscriptLayout
-    let messageId: String
-    let topOffset: CGFloat
+private struct AIChatScrollRowOffsetRestorer: UIViewRepresentable {
+    let layout: AIChatScrollRowLayout
+    let rowID: String
+    let offset: AIChatScrollOffset
+    let canRestore: @MainActor () -> Bool
 
     func makeUIView(context: Context) -> RestorerView {
         RestorerView()
@@ -323,15 +330,17 @@ private struct AIChatTranscriptRowOffsetRestorer: UIViewRepresentable {
 
     func updateUIView(_ view: RestorerView, context: Context) {
         view.layout = self.layout
-        view.messageId = self.messageId
-        view.topOffset = self.topOffset
+        view.rowID = self.rowID
+        view.offset = self.offset
+        view.canRestore = self.canRestore
         view.restoreNowAndAfterLayout()
     }
 
     final class RestorerView: UIView {
-        weak var layout: AIChatTranscriptLayout?
-        var messageId: String = ""
-        var topOffset: CGFloat = 0
+        weak var layout: AIChatScrollRowLayout?
+        var rowID: String = ""
+        var offset: AIChatScrollOffset = .points(0)
+        var canRestore: @MainActor () -> Bool = { false }
         private weak var observedScrollView: UIScrollView?
         private var contentSizeObservation: NSKeyValueObservation?
         private var isCancelled: Bool = false
@@ -353,8 +362,11 @@ private struct AIChatTranscriptRowOffsetRestorer: UIViewRepresentable {
         }
 
         private func restore() {
+            guard self.canRestore() else {
+                self.stopObserving()
+                return
+            }
             guard self.isCancelled == false, self.window != nil, let layout = self.layout else { return }
-            layout.placedRestoreMessageId = self.messageId
             var ancestor = self.superview
             while let view = ancestor, (view is UIScrollView) == false {
                 ancestor = view.superview
@@ -366,7 +378,16 @@ private struct AIChatTranscriptRowOffsetRestorer: UIViewRepresentable {
                 return
             }
             self.observe(scrollView)
-            let distance = self.convert(self.bounds, to: nil).minY - (layout.viewportTop - self.topOffset)
+            let topOffset: CGFloat
+            switch self.offset {
+            case .points(let points):
+                topOffset = points
+            case .rowFraction(let fraction):
+                guard self.bounds.height > 0 else { return }
+                topOffset = self.bounds.height * fraction
+            }
+            layout.placedRestoreRowID = self.rowID
+            let distance = self.convert(self.bounds, to: nil).minY - (layout.viewportTop - topOffset)
             guard abs(distance) >= 0.5 else { return }
             let minimumOffset = -scrollView.adjustedContentInset.top
             let maximumOffset = max(
@@ -374,6 +395,7 @@ private struct AIChatTranscriptRowOffsetRestorer: UIViewRepresentable {
                 scrollView.contentSize.height + scrollView.adjustedContentInset.bottom - scrollView.bounds.height
             )
             let offset = min(max(scrollView.contentOffset.y + distance, minimumOffset), maximumOffset)
+            guard self.canRestore() else { return }
             scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: offset), animated: false)
         }
 

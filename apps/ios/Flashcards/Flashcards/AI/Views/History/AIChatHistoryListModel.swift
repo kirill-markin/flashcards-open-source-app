@@ -140,6 +140,7 @@ final class AIChatHistoryListModel {
     private(set) var notice: String?
     private(set) var appliedSearchText: String?
 
+    @ObservationIgnored let readingPosition = AICompanionReadingPosition()
     @ObservationIgnored private let chatStore: AIChatStore
     @ObservationIgnored private var hasStartedLoading: Bool
     // A first-page load bumps it, so responses for a replaced query or an older refresh are dropped.
@@ -331,6 +332,7 @@ final class AIChatHistoryListModel {
     private func reload(searchText: String?) {
         self.hasStartedLoading = true
         self.appliedSearchText = searchText
+        self.readingPosition.anchor = nil
         self.phase = .loading
         self.sessions = []
         self.nextCursor = nil
@@ -385,6 +387,22 @@ final class AIChatHistoryListModel {
     }
 
     private func removeSession(sessionId: String) {
+        if self.readingPosition.anchor?.target.id == sessionId {
+            let sessions = aiChatHistoryCurrentChatFirst(
+                sessions: self.sessions,
+                currentSessionId: self.chatStore.chatSessionId
+            )
+            let neighbor = sessions.firstIndex(where: { $0.sessionId == sessionId }).flatMap { index in
+                sessions.dropFirst(index + 1).first ?? sessions.prefix(index).last
+            }
+            self.readingPosition.anchor = neighbor.map {
+                AICompanionReadingAnchor(
+                    target: AICompanionScrollTarget(id: $0.sessionId, source: nil),
+                    topOffset: 0,
+                    sourceOffset: nil
+                )
+            }
+        }
         self.sessions.removeAll { session in session.sessionId == sessionId }
     }
 }

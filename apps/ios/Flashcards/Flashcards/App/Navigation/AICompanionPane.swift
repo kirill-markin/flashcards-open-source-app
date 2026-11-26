@@ -5,6 +5,17 @@ enum AICompanionPaneRoute: Hashable {
     case history(AIChatHistoryListRoute)
     case reader(AICompanionHistoryReaderRoute)
     case fullResponse(AIChatFullResponseRoute)
+
+    @MainActor var readingPosition: AICompanionReadingPosition {
+        switch self {
+        case .history(let route):
+            route.model.readingPosition
+        case .reader(let route):
+            route.model.readingPosition
+        case .fullResponse(let route):
+            route.readingPosition
+        }
+    }
 }
 
 struct AICompanionHistoryReaderRoute: Hashable {
@@ -36,6 +47,8 @@ extension EnvironmentValues {
 struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionPageIsTop) private var isOnTopPage
+    @Environment(\.aiCompanionSectionPosition) private var sectionPosition
     let hostTab: AppTab?
     let toolbar: RootToolbar
     let liveChat: LiveChat
@@ -66,6 +79,19 @@ struct AICompanionPane<RootToolbar: ToolbarContent, LiveChat: View>: View {
                     .background(Color(uiColor: .systemBackground))
                     .environment(\.aiCompanionBackTitle, index == 0 ? aiSettingsLocalized("ai.title", "AI") : path[index - 1].title)
                     .aiCompanionPaneLayer(isShown: index == path.count - 1)
+                    .environment(\.aiCompanionScrollContext, AICompanionScrollContext(
+                        position: route.readingPosition,
+                        isExposed: self.navigation.isAICompanionVisible
+                            && self.navigation.selectedTab == self.hostTab
+                            && self.isOnTopPage
+                            && index == path.count - 1,
+                        isActive: {
+                            self.navigation.isAICompanionVisible
+                                && self.navigation.selectedTab == self.hostTab
+                                && self.sectionPosition.isTop(self.navigation)
+                                && self.navigation.aiCompanionPath.last == route
+                        }
+                    ))
             }
         }
         .toolbar { self.toolbar }

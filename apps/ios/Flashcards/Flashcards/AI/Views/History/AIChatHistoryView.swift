@@ -228,8 +228,13 @@ struct AIChatHistoryView: View {
     }
 
     private var sessionList: some View {
-        List {
-            switch self.model.phase {
+        let phase = self.model.phase
+        let sessions = phase == .loaded ? aiChatHistoryCurrentChatFirst(
+            sessions: self.model.sessions,
+            currentSessionId: self.currentSessionId
+        ) : []
+        return List {
+            switch phase {
             case .loading:
                 ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
                     .frame(maxWidth: .infinity)
@@ -257,18 +262,14 @@ struct AIChatHistoryView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(
-                    aiChatHistoryCurrentChatFirst(
-                        sessions: self.model.sessions,
-                        currentSessionId: self.currentSessionId
-                    )
-                ) { summary in
+                ForEach(sessions) { summary in
                     self.sessionRow(summary: summary)
+                        .aiCompanionScrollRow(id: summary.sessionId)
                 }
 
                 if self.model.nextCursor != nil {
                     self.loadMoreRow
-                } else if self.model.sessions.isEmpty {
+                } else if sessions.isEmpty {
                     self.emptyState
                         .listRowSeparator(.hidden)
                 }
@@ -278,6 +279,7 @@ struct AIChatHistoryView: View {
         .refreshable {
             await self.model.refresh()
         }
+        .aiCompanionPageScroll(rowIDs: sessions.map(\.sessionId))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryList)
     }
 

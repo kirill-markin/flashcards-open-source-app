@@ -13,6 +13,7 @@ enum AIChatHistoryReaderPhase: Equatable {
 final class AIChatHistoryReaderModel {
     private(set) var phase: AIChatHistoryReaderPhase
 
+    @ObservationIgnored let readingPosition = AICompanionReadingPosition()
     @ObservationIgnored private let chatStore: AIChatStore
     @ObservationIgnored private let sessionId: String
     @ObservationIgnored private let onUnavailable: () -> Void
@@ -159,6 +160,7 @@ struct AIChatHistoryReaderView: View {
                         self.navigation.openSettings(destination: .accountStatus)
                     }
                 )
+                .aiCompanionScrollRow(id: message.id)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -171,6 +173,7 @@ struct AIChatHistoryReaderView: View {
         .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
         .contentMargins(.vertical, 12, for: .scrollContent)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .aiCompanionPageScroll(rowIDs: messages.map(\.id))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryReader)
     }
 }

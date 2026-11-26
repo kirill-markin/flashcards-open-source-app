@@ -155,10 +155,10 @@ struct AICompanionSectionPage<Content: View>: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     let hostTab: AppTab
     /// Whether this page tops its section's stack; only that page's chat takes the composer and its keyboard.
-    let isTopPage: (AppNavigationModel) -> Bool
+    let isTopPage: @MainActor (AppNavigationModel) -> Bool
     let content: Content
 
-    init(hostTab: AppTab, isTopPage: @escaping (AppNavigationModel) -> Bool, @ViewBuilder content: () -> Content) {
+    init(hostTab: AppTab, isTopPage: @escaping @MainActor (AppNavigationModel) -> Bool, @ViewBuilder content: () -> Content) {
         self.hostTab = hostTab
         self.isTopPage = isTopPage
         self.content = content()
@@ -170,6 +170,7 @@ struct AICompanionSectionPage<Content: View>: View {
                 .aiCompanionColumnPage()
         }
         .environment(\.aiCompanionPageIsTop, self.isTopPage(self.navigation))
+        .environment(\.aiCompanionSectionPosition, AICompanionSectionPosition(isTop: self.isTopPage))
         // A centred title would straddle the two columns, or drop below a floating tab bar; the editor role leads it
         // after the bar's controls and truncates it before the tab bar.
         .toolbarRole(self.navigation.isAICompanionPaneOpen ? .editor : .automatic)
