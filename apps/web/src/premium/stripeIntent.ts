@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../browserUuid";
 import { isAnalyticsEnabledForCurrentRuntime, isAwaitingAnalyticsConsentDecision, isProductAnalyticsCollectionEnabled, type AnalyticsPaywallEntryPoint } from "../analytics";
 import { ApiContractError, parseEnum, parseObject, parseString } from "../apiContracts/core";
 import { parseStripeSessionId, parseStripeUuid } from "../apiContracts/stripeBilling";
@@ -33,7 +34,7 @@ export function invalidateStripeBilling(): void {
   window.dispatchEvent(new Event(invalidationEvent));
   try {
     clearStripeIntent();
-    window.localStorage.setItem(invalidationKey, crypto.randomUUID());
+    window.localStorage.setItem(invalidationKey, createBrowserUuidV4());
   } catch {
     // A blocked storage write must not prevent the already-requested sign-out.
     console.error("Stripe intent cleanup failed", { code: "STRIPE_INTENT_CLEANUP_FAILED" });
@@ -180,7 +181,7 @@ export function consumeStripeContinuation(expected: StripeIntent): PremiumContin
 }
 
 export function storeGuestStripeCheckout(userId: string, continuation: PremiumContinuation | null, presentation: PaywallPresentation | null, country: string | null): string {
-  const token = crypto.randomUUID();
+  const token = createBrowserUuidV4();
   storeStripeIntent({ userId, checkoutAfterSignIn: token, continuation, presentation, country,
     attemptId: null, sessionId: null, reportedReturn: null });
   return token;

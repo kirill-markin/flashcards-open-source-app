@@ -108,11 +108,9 @@ contract. The companion repository owns [`server.json`](https://github.com/kiril
 the automatic [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
 check. Core owns manual
 [MCP Registry Publish](https://github.com/kirill-markin/flashcards-open-source-app/actions/workflows/mcp-registry-publish.yml).
-Align manifest/plugin and core versions during
-[release preparation](release/versioning.md#release-preparation), then follow
-[the MCP gate and explicit core dispatch command](release/mcp-and-plugins.md#mcp)
-to publish an absent version from its immutable companion release tag.
-Registry versions are immutable; reuse a matching publication and its evidence.
+Apply the [MCP and plugin release decisions](release/versioning.md#mcp-and-plugin-release-decisions)
+and follow the [MCP gate](release/mcp-and-plugins.md#mcp) for validation and
+publication.
 
 Release order and authorization belong to the [full release runbook](release/README.md).
 Platform gates and console actions are in [Platform Release Procedures](release/README.md#required-reading).

@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../browserUuid";
 import { rebaseTagDraft } from "./cardTags";
 import type {
   ReviewableCardScheduleState,
@@ -557,7 +558,7 @@ export function buildInitialCard(
   operationId: string,
 ): Card {
   return {
-    cardId: crypto.randomUUID().toLowerCase(),
+    cardId: createBrowserUuidV4(),
     frontText: input.frontText,
     backText: input.backText,
     cardType: "basic",
@@ -711,7 +712,7 @@ export function buildDeck(
   operationId: string,
 ): Deck {
   return {
-    deckId: crypto.randomUUID().toLowerCase(),
+    deckId: createBrowserUuidV4(),
     workspaceId: "",
     name: input.name,
     filterDefinition: input.filterDefinition,

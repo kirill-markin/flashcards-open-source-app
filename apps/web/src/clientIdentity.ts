@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "./browserUuid";
 import packageMetadata from "../package.json";
 
 export const LEGACY_DEVICE_ID_STORAGE_KEY = "flashcards-sync-device-id";
@@ -25,7 +26,7 @@ let inMemoryLiveClientId: string | null = null;
  * persisted: a reload is a new runtime and may safely release the previous attach.
  */
 export function getWebLiveClientId(): string {
-  const liveClientId = inMemoryLiveClientId ?? crypto.randomUUID().toLowerCase();
+  const liveClientId = inMemoryLiveClientId ?? createBrowserUuidV4();
   inMemoryLiveClientId = liveClientId;
   return liveClientId;
 }
@@ -99,7 +100,7 @@ export function getStableInstallationId(): string {
 
   const nextInstallationId = loadLegacyMappedInstallationId()
     ?? loadLegacyDeviceInstallationId()
-    ?? crypto.randomUUID().toLowerCase();
+    ?? createBrowserUuidV4();
   persistStoredInstallationId(nextInstallationId);
   clearLegacyInstallationStorage();
   return nextInstallationId;

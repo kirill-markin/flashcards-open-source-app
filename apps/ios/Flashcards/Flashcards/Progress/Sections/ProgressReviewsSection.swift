@@ -36,6 +36,7 @@ struct ProgressReviewsSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     let chartDays: [ProgressChartDay]
+    let chartPages: [ProgressReviewChartPage]
     /// The rolling last 7 days against the usual, whatever week the chart pages to.
     let pace: ProgressPace
     /// Nil at 0 minutes or under the server's timing sample.
@@ -67,15 +68,6 @@ struct ProgressReviewsSection: View {
         }
 
         return pageSelection.startLocalDate
-    }
-
-    private var chartPages: [ProgressReviewChartPage] {
-        let today = self.chartDays.first(where: { day in day.isToday })?.date
-        return makeProgressReviewChartPages(
-            chartDays: self.chartDays,
-            calendar: self.chartCalendar,
-            today: today
-        )
     }
 
     private var selectedPageIndex: Int {

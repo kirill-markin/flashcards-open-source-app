@@ -3,9 +3,9 @@ FROM $IMAGE
 
 RUN npm install --global --allow-scripts=yarn@1.22.22 yarn@1.22.22
 
-RUN npm install --global --allow-scripts=pnpm@12.21.0 pnpm@12.21.0
+RUN npm install --global --allow-scripts=pnpm@12.23.0 pnpm@12.23.0
 
-RUN npm install --global --allow-scripts=bun@1.4.4 bun@1.4.4
+RUN npm install --global --allow-scripts=bun@1.4.5 bun@1.4.5
 
 RUN npm install --global typescript
 

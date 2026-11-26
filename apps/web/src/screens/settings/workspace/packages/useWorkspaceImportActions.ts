@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../../browserUuid";
 import { confirmWorkspacePackageImport } from "../../../../api";
 import { useAppData } from "../../../../appData";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
@@ -34,7 +35,7 @@ export function useWorkspaceImportActions() {
     indexedDbOpenRecoveryState.throwIfFailed();
     const replicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
     indexedDbOpenRecoveryState.throwIfFailed();
-    const importId = crypto.randomUUID().toLowerCase();
+    const importId = createBrowserUuidV4();
     const importedAt = new Date().toISOString();
     return confirmWorkspacePackageImport(workspaceId, file, {
       addImportTag: importOptions.addImportTag,

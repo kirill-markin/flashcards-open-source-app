@@ -13,30 +13,29 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudArrayOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudIsoTimestamp
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudLocalDate
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNonNegativeInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudPositiveRank
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressBestDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressBestWeek
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressInsights
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileBestRatingPlacement
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileMetrics
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivity
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivityDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileStats
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardViewer
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
@@ -44,21 +43,14 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardMetric
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRankingRow
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
-import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStudySecondsDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
-import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileReviewActivityDateBasis
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileStatus
-import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import java.time.LocalDate
-import java.time.format.DateTimeParseException
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -215,7 +207,7 @@ internal fun parseCloudProgressInsights(
             "$fieldPath.bestDayBeforeToday"
         )?.let { bestDay ->
             CloudProgressBestDay(
-                date = parseCloudProgressLocalDate(
+                date = parseCloudLocalDate(
                     value = bestDay.requireCloudString("date", "$fieldPath.bestDayBeforeToday.date"),
                     fieldPath = "$fieldPath.bestDayBeforeToday.date"
                 ).toString(),
@@ -230,7 +222,7 @@ internal fun parseCloudProgressInsights(
             "$fieldPath.bestWeekBeforeToday"
         )?.let { bestWeek ->
             CloudProgressBestWeek(
-                endDate = parseCloudProgressLocalDate(
+                endDate = parseCloudLocalDate(
                     value = bestWeek.requireCloudString("endDate", "$fieldPath.bestWeekBeforeToday.endDate"),
                     fieldPath = "$fieldPath.bestWeekBeforeToday.endDate"
                 ).toString(),
@@ -256,7 +248,7 @@ internal fun parseCloudProgressInsights(
                     val dayFieldPath = "$fieldPath.studySecondsByDay[$index]"
                     add(
                         CloudProgressStudySecondsDay(
-                            date = parseCloudProgressLocalDate(
+                            date = parseCloudLocalDate(
                                 value = day.requireCloudString("date", "$dayFieldPath.date"),
                                 fieldPath = "$dayFieldPath.date"
                             ).toString(),
@@ -500,11 +492,11 @@ private fun createCloudProgressDateRange(
     to: String,
     fieldPath: String
 ): List<String> {
-    val startDate = parseCloudProgressLocalDate(
+    val startDate = parseCloudLocalDate(
         value = from,
         fieldPath = "$fieldPath.from"
     )
-    val endDate = parseCloudProgressLocalDate(
+    val endDate = parseCloudLocalDate(
         value = to,
         fieldPath = "$fieldPath.to"
     )
@@ -519,17 +511,6 @@ private fun createCloudProgressDateRange(
         currentDate = currentDate.plusDays(1L)
     }
     return dates
-}
-
-private fun parseCloudProgressLocalDate(
-    value: String,
-    fieldPath: String
-): LocalDate {
-    return try {
-        LocalDate.parse(value)
-    } catch (error: DateTimeParseException) {
-        throw CloudContractMismatchException("$fieldPath must be a YYYY-MM-DD date.", error)
-    }
 }
 
 internal fun parseCloudProgressReviewScheduleResponse(
@@ -556,7 +537,7 @@ internal fun parseCloudProgressReviewScheduleResponse(
             add(
                 CloudProgressReviewScheduleBucket(
                     key = actualBucketKey,
-                    count = requireNonNegativeReviewScheduleInt(
+                    count = requireCloudNonNegativeInt(
                         value = bucket.requireCloudInt("count", "$fieldPath.buckets[$index].count"),
                         fieldPath = "$fieldPath.buckets[$index].count"
                     )
@@ -570,7 +551,7 @@ internal fun parseCloudProgressReviewScheduleResponse(
             "$fieldPath.buckets expected $expectedBucketCount buckets but got ${buckets.size}."
         )
     }
-    val totalCards = requireNonNegativeReviewScheduleInt(
+    val totalCards = requireCloudNonNegativeInt(
         value = response.requireCloudInt("totalCards", "$fieldPath.totalCards"),
         fieldPath = "$fieldPath.totalCards"
     )
@@ -633,17 +614,6 @@ private fun requireNonNegativeReviewHistorySequenceId(
     return value
 }
 
-private fun requireNonNegativeReviewScheduleInt(
-    value: Int,
-    fieldPath: String
-): Int {
-    if (value < 0) {
-        throw CloudContractMismatchException("$fieldPath must not be negative.")
-    }
-
-    return value
-}
-
 private fun requireNonNegativeProgressCount(
     value: Int,
     fieldPath: String
@@ -693,147 +663,6 @@ private fun requirePositiveProgressInt(
     return value
 }
 
-// Shared between the live response and the local payload cache so both sides of the
-// offline-first leaderboard pipeline enforce the same wire contract.
-internal fun parseCloudProgressLeaderboard(
-    payload: JSONObject,
-    fieldPath: String
-): CloudProgressLeaderboard {
-    val status = ProgressLeaderboardStatus.fromWireKey(
-        wireKey = payload.requireCloudString("status", "$fieldPath.status")
-    )
-    val metric = payload.requireCloudObject("metric", "$fieldPath.metric")
-    val windowsArray = payload.requireCloudArray("windows", "$fieldPath.windows")
-    val windows = buildList {
-        for (index in 0 until windowsArray.length()) {
-            add(
-                windowsArray.requireCloudObject(index, "$fieldPath.windows[$index]")
-                    .toCloudProgressLeaderboardWindow(fieldPath = "$fieldPath.windows[$index]")
-            )
-        }
-    }
-
-    return CloudProgressLeaderboard(
-        status = status,
-        metric = CloudProgressLeaderboardMetric(
-            metricVersion = metric.requireCloudString("metricVersion", "$fieldPath.metric.metricVersion"),
-            title = metric.requireCloudString("title", "$fieldPath.metric.title"),
-            description = metric.requireCloudString("description", "$fieldPath.metric.description")
-        ),
-        defaultWindowKey = ProgressLeaderboardWindowKey.fromWireKey(
-            wireKey = payload.requireCloudString("defaultWindowKey", "$fieldPath.defaultWindowKey")
-        ),
-        windows = windows
-    )
-}
-
-private fun JSONObject.toCloudProgressLeaderboardWindow(
-    fieldPath: String
-): CloudProgressLeaderboardWindow {
-    val viewer = requireCloudObject("viewer", "$fieldPath.viewer")
-    val rowsArray = requireCloudArray("rows", "$fieldPath.rows")
-    val rows = buildList {
-        for (index in 0 until rowsArray.length()) {
-            add(
-                rowsArray.requireCloudObject(index, "$fieldPath.rows[$index]")
-                    .toCloudProgressLeaderboardRow(fieldPath = "$fieldPath.rows[$index]")
-            )
-        }
-    }
-    val rankingRowsArray = requireCloudArray("rankingRows", "$fieldPath.rankingRows")
-    val rankingRows = buildList {
-        for (index in 0 until rankingRowsArray.length()) {
-            add(
-                rankingRowsArray.requireCloudObject(index, "$fieldPath.rankingRows[$index]")
-                    .toCloudProgressLeaderboardRankingRow(fieldPath = "$fieldPath.rankingRows[$index]")
-            )
-        }
-    }
-
-    return CloudProgressLeaderboardWindow(
-        windowKey = ProgressLeaderboardWindowKey.fromWireKey(
-            wireKey = requireCloudString("windowKey", "$fieldPath.windowKey")
-        ),
-        snapshotId = requireCloudString("snapshotId", "$fieldPath.snapshotId"),
-        snapshotGeneratedAt = requireCloudString("snapshotGeneratedAt", "$fieldPath.snapshotGeneratedAt"),
-        asOfServerHour = requireCloudString("asOfServerHour", "$fieldPath.asOfServerHour"),
-        nextRefreshAfter = requireCloudString("nextRefreshAfter", "$fieldPath.nextRefreshAfter"),
-        participantCount = requireNonNegativeReviewScheduleInt(
-            value = requireCloudInt("participantCount", "$fieldPath.participantCount"),
-            fieldPath = "$fieldPath.participantCount"
-        ),
-        viewer = CloudProgressLeaderboardViewer(
-            publicProfileId = viewer.requireCloudString("publicProfileId", "$fieldPath.viewer.publicProfileId"),
-            rank = requirePositiveLeaderboardRank(
-                value = viewer.requireCloudInt("rank", "$fieldPath.viewer.rank"),
-                fieldPath = "$fieldPath.viewer.rank"
-            ),
-            qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
-                value = viewer.requireCloudInt("qualifiedReviewCount", "$fieldPath.viewer.qualifiedReviewCount"),
-                fieldPath = "$fieldPath.viewer.qualifiedReviewCount"
-            )
-        ),
-        rows = rows,
-        rankingRows = rankingRows
-    )
-}
-
-private fun JSONObject.toCloudProgressLeaderboardRow(
-    fieldPath: String
-): CloudProgressLeaderboardRow {
-    val kind = requireCloudString("kind", "$fieldPath.kind")
-    if (kind == "gap") {
-        return CloudProgressLeaderboardRow.Gap
-    }
-
-    return CloudProgressLeaderboardRow.Participant(
-        kind = ProgressLeaderboardParticipantRowKind.fromWireKey(wireKey = kind),
-        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
-        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
-        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
-        qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
-            value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
-            fieldPath = "$fieldPath.qualifiedReviewCount"
-        ),
-        rank = requirePositiveLeaderboardRank(
-            value = requireCloudInt("rank", "$fieldPath.rank"),
-            fieldPath = "$fieldPath.rank"
-        )
-    )
-}
-
-private fun JSONObject.toCloudProgressLeaderboardRankingRow(
-    fieldPath: String
-): CloudProgressLeaderboardRankingRow {
-    return CloudProgressLeaderboardRankingRow(
-        kind = CloudProgressLeaderboardRankingRowKind.fromWireKey(
-            wireKey = requireCloudString("kind", "$fieldPath.kind")
-        ),
-        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
-        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
-        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
-        qualifiedReviewCount = requireNonNegativeReviewScheduleInt(
-            value = requireCloudInt("qualifiedReviewCount", "$fieldPath.qualifiedReviewCount"),
-            fieldPath = "$fieldPath.qualifiedReviewCount"
-        ),
-        rank = requirePositiveLeaderboardRank(
-            value = requireCloudInt("rank", "$fieldPath.rank"),
-            fieldPath = "$fieldPath.rank"
-        )
-    )
-}
-
-private fun requirePositiveLeaderboardRank(
-    value: Int,
-    fieldPath: String
-): Int {
-    if (value < 1) {
-        throw CloudContractMismatchException("$fieldPath must be at least 1.")
-    }
-
-    return value
-}
-
 internal fun parseCloudProgressLeaderboardProfile(
     payload: JSONObject,
     fieldPath: String
@@ -877,7 +706,7 @@ private fun JSONObject.toCloudProgressLeaderboardProfileMetrics(
     fieldPath: String
 ): CloudProgressLeaderboardProfileMetrics {
     return CloudProgressLeaderboardProfileMetrics(
-        currentStreakDays = requireNonNegativeLeaderboardInt(
+        currentStreakDays = requireCloudNonNegativeInt(
             value = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
             fieldPath = "$fieldPath.currentStreakDays"
         ),
@@ -913,7 +742,7 @@ private fun JSONObject.toCloudProgressLeaderboardProfileBestRatingPlacement(
         windowKey = ProgressLeaderboardWindowKey.fromWireKey(
             wireKey = requireCloudString("windowKey", "$fieldPath.windowKey")
         ),
-        rank = requirePositiveLeaderboardRank(
+        rank = requireCloudPositiveRank(
             value = requireCloudInt("rank", "$fieldPath.rank"),
             fieldPath = "$fieldPath.rank"
         )
@@ -931,7 +760,7 @@ private fun JSONObject.toCloudProgressLeaderboardProfileReviewActivity(
             add(
                 CloudProgressLeaderboardProfileReviewActivityDay(
                     date = day.requireCloudString("date", "$dayFieldPath.date"),
-                    reviewCount = requireNonNegativeLeaderboardInt(
+                    reviewCount = requireCloudNonNegativeInt(
                         value = day.requireCloudInt("reviewCount", "$dayFieldPath.reviewCount"),
                         fieldPath = "$dayFieldPath.reviewCount"
                     )
@@ -964,7 +793,7 @@ private fun validateCloudProgressLeaderboardProfileReviewActivityDays(
 
     var previousDate: LocalDate? = null
     days.forEachIndexed { index, day ->
-        val date = parseCloudProgressLocalDate(
+        val date = parseCloudLocalDate(
             value = day.date,
             fieldPath = "$fieldPath[$index].date"
         )
@@ -989,7 +818,7 @@ private fun JSONObject.toCloudProgressLeaderboardProfileStats(
 
     return CloudProgressLeaderboardProfileStats(
         joinedAt = joinedAt,
-        totalCards = requireNonNegativeLeaderboardInt(
+        totalCards = requireCloudNonNegativeInt(
             value = requireCloudInt("totalCards", "$fieldPath.totalCards"),
             fieldPath = "$fieldPath.totalCards"
         )
@@ -1002,208 +831,6 @@ private fun requireNonBlankProgressString(
 ): String {
     if (value.isBlank()) {
         throw CloudContractMismatchException("$fieldPath must not be blank.")
-    }
-
-    return value
-}
-
-internal fun parseCloudProgressStreakLeaderboard(
-    payload: JSONObject,
-    fieldPath: String
-): CloudProgressStreakLeaderboard {
-    val status = ProgressLeaderboardStatus.fromWireKey(
-        wireKey = payload.requireCloudString("status", "$fieldPath.status")
-    )
-    val metric = payload.requireCloudObject("metric", "$fieldPath.metric")
-        .toCloudProgressStreakLeaderboardMetric(fieldPath = "$fieldPath.metric")
-    if (status != ProgressLeaderboardStatus.READY) {
-        return CloudProgressStreakLeaderboard.NonReady(
-            status = status,
-            metric = metric
-        )
-    }
-
-    val viewer = payload.requireCloudObject("viewer", "$fieldPath.viewer")
-        .toCloudProgressStreakLeaderboardViewer(fieldPath = "$fieldPath.viewer")
-    val rowsArray = payload.requireCloudArray("rows", "$fieldPath.rows")
-    val rows = buildList {
-        for (index in 0 until rowsArray.length()) {
-            add(
-                rowsArray.requireCloudObject(index, "$fieldPath.rows[$index]")
-                    .toCloudProgressStreakLeaderboardRow(fieldPath = "$fieldPath.rows[$index]")
-            )
-        }
-    }
-    val rankingRowsArray = payload.requireCloudArray("rankingRows", "$fieldPath.rankingRows")
-    val rankingRows = buildList {
-        for (index in 0 until rankingRowsArray.length()) {
-            add(
-                rankingRowsArray.requireCloudObject(index, "$fieldPath.rankingRows[$index]")
-                    .toCloudProgressStreakLeaderboardRankingRow(fieldPath = "$fieldPath.rankingRows[$index]")
-            )
-        }
-    }
-    val asOfUtcDate = payload.requireCloudString("asOfUtcDate", "$fieldPath.asOfUtcDate")
-    parseCloudProgressLocalDate(
-        value = asOfUtcDate,
-        fieldPath = "$fieldPath.asOfUtcDate"
-    )
-    validateCloudProgressStreakLeaderboardReadyPayload(
-        fieldPath = fieldPath,
-        participantCount = requireNonNegativeLeaderboardInt(
-            value = payload.requireCloudInt("participantCount", "$fieldPath.participantCount"),
-            fieldPath = "$fieldPath.participantCount"
-        ),
-        viewer = viewer,
-        rankingRows = rankingRows
-    )
-
-    return CloudProgressStreakLeaderboard.Ready(
-        status = status,
-        metric = metric,
-        snapshotId = payload.requireCloudString("snapshotId", "$fieldPath.snapshotId"),
-        snapshotGeneratedAt = payload.requireCloudString("snapshotGeneratedAt", "$fieldPath.snapshotGeneratedAt"),
-        asOfUtcDate = asOfUtcDate,
-        nextRefreshAfter = payload.requireCloudString("nextRefreshAfter", "$fieldPath.nextRefreshAfter"),
-        participantCount = rankingRows.size,
-        viewer = viewer,
-        rows = rows,
-        rankingRows = rankingRows
-    )
-}
-
-private fun JSONObject.toCloudProgressStreakLeaderboardMetric(
-    fieldPath: String
-): CloudProgressStreakLeaderboardMetric {
-    val metricVersion = requireCloudString("metricVersion", "$fieldPath.metricVersion")
-    if (metricVersion != "streak_days_v1") {
-        throw CloudContractMismatchException(
-            "$fieldPath.metricVersion expected 'streak_days_v1' but got '$metricVersion'."
-        )
-    }
-
-    return CloudProgressStreakLeaderboardMetric(
-        metricVersion = metricVersion,
-        title = requireCloudString("title", "$fieldPath.title"),
-        description = requireCloudString("description", "$fieldPath.description")
-    )
-}
-
-private fun JSONObject.toCloudProgressStreakLeaderboardViewer(
-    fieldPath: String
-): CloudProgressStreakLeaderboardViewer {
-    val displayName = requireCloudString("displayName", "$fieldPath.displayName")
-    if (displayName != "You") {
-        throw CloudContractMismatchException("$fieldPath.displayName expected 'You' but got '$displayName'.")
-    }
-
-    return CloudProgressStreakLeaderboardViewer(
-        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
-        displayName = displayName,
-        rank = requirePositiveLeaderboardRank(
-            value = requireCloudInt("rank", "$fieldPath.rank"),
-            fieldPath = "$fieldPath.rank"
-        ),
-        streakDays = requireNonNegativeLeaderboardInt(
-            value = requireCloudInt("streakDays", "$fieldPath.streakDays"),
-            fieldPath = "$fieldPath.streakDays"
-        )
-    )
-}
-
-private fun JSONObject.toCloudProgressStreakLeaderboardRow(
-    fieldPath: String
-): CloudProgressStreakLeaderboardRow {
-    val kind = requireCloudString("kind", "$fieldPath.kind")
-    if (kind == "gap") {
-        return CloudProgressStreakLeaderboardRow.Gap
-    }
-
-    return CloudProgressStreakLeaderboardRow.Participant(
-        kind = ProgressLeaderboardParticipantRowKind.fromWireKey(wireKey = kind),
-        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
-        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
-        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
-        streakDays = requireNonNegativeLeaderboardInt(
-            value = requireCloudInt("streakDays", "$fieldPath.streakDays"),
-            fieldPath = "$fieldPath.streakDays"
-        ),
-        rank = requirePositiveLeaderboardRank(
-            value = requireCloudInt("rank", "$fieldPath.rank"),
-            fieldPath = "$fieldPath.rank"
-        )
-    )
-}
-
-private fun JSONObject.toCloudProgressStreakLeaderboardRankingRow(
-    fieldPath: String
-): CloudProgressStreakLeaderboardRankingRow {
-    return CloudProgressStreakLeaderboardRankingRow(
-        kind = CloudProgressLeaderboardRankingRowKind.fromWireKey(
-            wireKey = requireCloudString("kind", "$fieldPath.kind")
-        ),
-        publicProfileId = requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
-        anonymousDisplayName = requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
-        friendDisplayName = optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
-        streakDays = requireNonNegativeLeaderboardInt(
-            value = requireCloudInt("streakDays", "$fieldPath.streakDays"),
-            fieldPath = "$fieldPath.streakDays"
-        ),
-        rank = requirePositiveLeaderboardRank(
-            value = requireCloudInt("rank", "$fieldPath.rank"),
-            fieldPath = "$fieldPath.rank"
-        )
-    )
-}
-
-private fun validateCloudProgressStreakLeaderboardReadyPayload(
-    fieldPath: String,
-    participantCount: Int,
-    viewer: CloudProgressStreakLeaderboardViewer,
-    rankingRows: List<CloudProgressStreakLeaderboardRankingRow>
-) {
-    if (participantCount != rankingRows.size) {
-        throw CloudContractMismatchException(
-            "$fieldPath.participantCount expected rankingRows size ${rankingRows.size} but got $participantCount."
-        )
-    }
-    val viewerRows = rankingRows.filter { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
-    if (viewerRows.size != 1) {
-        throw CloudContractMismatchException("$fieldPath.rankingRows must include exactly one viewer row.")
-    }
-    val viewerRow = viewerRows.single()
-    if (
-        viewerRow.publicProfileId != viewer.publicProfileId ||
-        viewerRow.rank != viewer.rank ||
-        viewerRow.streakDays != viewer.streakDays
-    ) {
-        throw CloudContractMismatchException("$fieldPath.viewer must match the rankingRows viewer row.")
-    }
-
-    var previousStreakDays: Int? = null
-    rankingRows.forEachIndexed { index, row ->
-        val expectedRank = index + 1
-        if (row.rank != expectedRank) {
-            throw CloudContractMismatchException(
-                "$fieldPath.rankingRows[$index].rank expected $expectedRank but got ${row.rank}."
-            )
-        }
-        val resolvedPreviousStreakDays = previousStreakDays
-        if (resolvedPreviousStreakDays != null && row.streakDays > resolvedPreviousStreakDays) {
-            throw CloudContractMismatchException(
-                "$fieldPath.rankingRows[$index].streakDays must not be greater than the previous ranked row."
-            )
-        }
-        previousStreakDays = row.streakDays
-    }
-}
-
-private fun requireNonNegativeLeaderboardInt(
-    value: Int,
-    fieldPath: String
-): Int {
-    if (value < 0) {
-        throw CloudContractMismatchException("$fieldPath must not be negative.")
     }
 
     return value

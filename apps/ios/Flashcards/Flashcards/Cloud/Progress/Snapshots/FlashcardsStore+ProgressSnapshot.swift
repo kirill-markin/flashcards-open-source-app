@@ -67,7 +67,7 @@ extension FlashcardsStore {
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
             let presentationCalendar = try makeProgressPresentationCalendar(
                 timeZoneIdentifier: scopeKey.timeZone,
-                userCalendar: Calendar.autoupdatingCurrent
+                userCalendar: Calendar.current
             )
 
             // Local review data changes leave the charts stale until Progress is shown;
@@ -609,8 +609,11 @@ extension FlashcardsStore {
     }
 
     func applyProgressSnapshot(snapshot: ProgressSnapshot?) {
-        if self.progressSnapshot != snapshot {
-            self.progressSnapshot = snapshot
+        let previousSnapshot = self.progressScreenSnapshot
+        if previousSnapshot?.progress != snapshot {
+            self.progressScreenSnapshot = snapshot.map {
+                ProgressScreenSnapshot(progress: $0, previousSnapshot: previousSnapshot)
+            }
         }
         #if !targetEnvironment(macCatalyst)
         if self.widgetProgressSnapshot != snapshot {

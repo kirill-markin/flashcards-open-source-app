@@ -135,6 +135,10 @@ export function loadVerifiedBrowserGuestSession(userId: string, workspaceId: str
   return sessionRecovery.loadVerifiedBrowserGuestSession(userId, workspaceId);
 }
 
+export function loadVerifiedRegisteredBrowserSession(): Promise<SessionInfo> {
+  return sessionRecovery.loadVerifiedRegisteredBrowserSession();
+}
+
 export function resumeVerifiedBrowserSession(session: SessionInfo): SessionInfo {
   sessionRecovery.resumeVerifiedBrowserSession(session);
   return session;

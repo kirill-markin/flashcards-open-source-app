@@ -1,3 +1,4 @@
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { makeDefaultCardMetadata } from "../../domain/cardMetadata";
 import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
 import { loadCardById, putCard, putCardWithOutboxRecord } from "../../../localDb/cards/cards";
@@ -152,7 +153,7 @@ async function createCardWithMetadataLocally(
 ): Promise<LocalCardMutationResult> {
   indexedDbOpenRecoveryState.throwIfFailed();
   const normalizedInput = normalizeCreateCardInput(input.input);
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -186,7 +187,7 @@ export async function createDeckLocally(
 ): Promise<LocalDeckMutationResult> {
   indexedDbOpenRecoveryState.throwIfFailed();
   const normalizedInput = normalizeCreateDeckInput(input.input);
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -227,7 +228,7 @@ export async function updateCardLocally(
     indexedDbOpenRecoveryState,
   );
   const normalizedInput = normalizeUpdateCardInput(input.input);
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -269,7 +270,7 @@ export async function updateDeckLocally(
     indexedDbOpenRecoveryState,
   );
   const normalizedInput = normalizeUpdateDeckInput(input.input);
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -306,7 +307,7 @@ export async function deleteCardLocally(
     () => requireCard(input.workspaceId, input.cardId),
     indexedDbOpenRecoveryState,
   );
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -347,7 +348,7 @@ export async function deleteDeckLocally(
     () => requireDeck(input.workspaceId, input.deckId),
     indexedDbOpenRecoveryState,
   );
-  const operationId = crypto.randomUUID().toLowerCase();
+  const operationId = createBrowserUuidV4();
   const installationId = await runRecoveryGuardedSyncLocalOperation(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
@@ -398,9 +399,9 @@ function buildLocalReview(
   schedulerSettings: WorkspaceSchedulerSettings,
   installationId: string,
 ): LocalReviewWrite {
-  const reviewEventId = crypto.randomUUID().toLowerCase();
-  const clientEventId = crypto.randomUUID().toLowerCase();
-  const cardOperationId = crypto.randomUUID().toLowerCase();
+  const reviewEventId = createBrowserUuidV4();
+  const clientEventId = createBrowserUuidV4();
+  const cardOperationId = createBrowserUuidV4();
   const schedule = computeReviewSchedule(
     toReviewableCardState(existingCard),
     {

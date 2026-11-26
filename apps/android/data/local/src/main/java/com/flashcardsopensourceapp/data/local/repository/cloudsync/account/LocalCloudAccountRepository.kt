@@ -6,7 +6,6 @@ import java.io.File
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialGuestBinding
-import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -47,7 +46,6 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
-import com.flashcardsopensourceapp.data.local.model.sync.AnalyticsPreferenceWriteOrigin
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
@@ -60,12 +58,8 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.FirstReviewOnboardingPushPendingException
-import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushPendingException
-import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushRefusedException
-import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushUndeliverableException
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadProductAnalyticsGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.progress.CloudProgressRemoteReader
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
@@ -112,13 +106,21 @@ class LocalCloudAccountRepository(
      * as undeliverable. The repository owns no observability of its own, and the app graph turns it
      * into a single analytics-pipeline warning.
      */
-    private val onProductAnalyticsPreferencePushRefused: (Int?) -> Unit = {}
+    onProductAnalyticsPreferencePushRefused: (Int?) -> Unit = {}
 ) : CloudAccountRepository {
     private val sessionProvider: CloudSessionProvider = CloudSessionProvider(
         preferencesStore = preferencesStore,
         remoteService = remoteService,
         operationCoordinator = operationCoordinator,
         resetCoordinator = resetCoordinator
+    )
+    private val productAnalyticsPreferenceCoordinator = CloudProductAnalyticsPreferenceCoordinator(
+        preferencesStore = preferencesStore,
+        remoteService = remoteService,
+        operationCoordinator = operationCoordinator,
+        guestSessionStore = guestSessionStore,
+        resolveLinkedSessionLocked = ::resolveAccountContextSessionLocked,
+        onProductAnalyticsPreferencePushRefused = onProductAnalyticsPreferencePushRefused
     )
     private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator =
         CloudLinkedWorkspaceTransitionCoordinator(
@@ -367,125 +369,7 @@ class LocalCloudAccountRepository(
     }
 
     override suspend fun updateProductAnalyticsEnabled(enabled: Boolean) {
-        // Outside the coordinator, before anything can wait: this is a `SharedPreferences` commit
-        // and a state-flow update, and only the push below needs exclusivity. The coordinator is
-        // shared with full sync, workspace operations, guest upgrade recovery and account deletion,
-        // all of which hold it across network I/O for arbitrarily long, and until the answer is
-        // written the kill switch still reads as on and the client keeps recording and flushing.
-        //
-        // Durable before the request, and never rolled back by it: a device told to stop has to
-        // stop whether or not the server can be reached, and the answer has to survive the process
-        // dying on the next line.
-        preferencesStore.saveProductAnalyticsEnabledPendingPush(enabled = enabled)
-        operationCoordinator.runExclusive {
-            // The push's own failure is held rather than thrown, because it is not the outcome: the
-            // answer is what the person asked about, and the readback below decides what became of
-            // it. An account refresh — fired on entering Settings, on launch and on foreground —
-            // can hold or win the coordinator after the durable write and deliver, or be refused
-            // on, this very answer, because `refreshAccountContextLocked` must keep going to the
-            // account read. The push below then finds nothing pending and returns.
-            val pushFailure: Exception? = try {
-                // `USER_ACTION`: this is the press itself being delivered, with the control still
-                // waiting on it, so the route must store it even over a stored refusal. A refresh
-                // that raced ahead and delivered this same answer as a reconciliation left it owed
-                // if the route refused it, so the press still reaches the account from here.
-                pushPendingProductAnalyticsPreferenceLocked(
-                    origin = AnalyticsPreferenceWriteOrigin.USER_ACTION
-                )
-                null
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                error
-            }
-            val failure: Exception? = productAnalyticsAnswerFailureLocked(
-                enabled = enabled,
-                cause = pushFailure
-            )
-            if (failure != null) {
-                throw failure
-            }
-        }
-    }
-
-    /**
-     * What became of the answer after this caller's turn, read from the store rather than inferred
-     * from the push, and null where there is nothing to report.
-     *
-     * Asserting the outcome instead of the refusal record alone is what stops one server refusal
-     * being reported two different ways depending on who won the coordinator. A refusal the handler
-     * deliberately leaves owed — a revoked credential — writes no record, so a concurrent refresh
-     * absorbing it would otherwise leave this caller with no failure to see and the person with a
-     * silent success for a delivery that never happened.
-     *
-     * A superseded answer is not this caller's to report. Their own answer reached wherever it was
-     * going, and what is owed now belongs to the toggle that replaced it and carries its own marker.
-     *
-     * Known limitation: an answer whose marker was dropped at an identity boundary reads here as
-     * delivered. `CloudPreferencesStore.clearAccountPreferences` drops an owed opt-in's marker on
-     * logout, and nothing in the store distinguishes that from a push that landed, so a toggle
-     * racing a logout reports plain success although the account copy went with the identity it
-     * belonged to. Left as is: telling the two apart needs a durable record of why the marker went
-     * away, the local answer survives the boundary and is still honored, and an owed opt-in is the
-     * direction where a lost account copy collects less rather than more.
-     */
-    private suspend fun productAnalyticsAnswerFailureLocked(enabled: Boolean, cause: Exception?): Exception? {
-        if (preferencesStore.currentAccountPreferences().productAnalyticsEnabled != enabled) {
-            return null
-        }
-        if (preferencesStore.isProductAnalyticsEnabledPushRefused()) {
-            return ProductAnalyticsPreferencePushRefusedException(cause = cause)
-        }
-        if (preferencesStore.isProductAnalyticsEnabledPendingPush().not()) {
-            return null
-        }
-        if (enabled.not() && productAnalyticsAnswerHasNowhereToLand()) {
-            return ProductAnalyticsPreferencePushUndeliverableException(cause = cause)
-        }
-        return cause ?: ProductAnalyticsPreferencePushPendingException(cause = null)
-    }
-
-    /**
-     * Whether an owed opt-out has no identity left that will ever receive it.
-     *
-     * Asked only of an opt-out, because that is the answer that removes its own delivery: a client
-     * told to stop never flushes, so it never asks for an analytics guest session and nothing mints
-     * one. An owed opt-in is the opposite — analytics resumes, the next flush mints a session, and
-     * the next account read delivers the answer — so it stays an ordinary retryable failure.
-     *
-     * A signed-in account always has somewhere to land, and so does one waiting on credential
-     * recovery it entered from `LINKED`: that account outlives the credential, and the next refresh
-     * after it is restored delivers the answer. A recovery entered from `GUEST` is not that case —
-     * it is an install with no account whose guest session is what went missing — so it falls
-     * through to the lookup below and reads as undeliverable, which is the true answer for it,
-     * including for the erase escape hatch that ends such a recovery with no identity at all. Only
-     * an install with no account and no analytics guest session left has nothing to reach.
-     *
-     * Two states answer `true` although an account does exist: an `INVALID_STORED_STATE` recovery,
-     * which is recorded with `previousCloudState = DISCONNECTED` whatever the install was before,
-     * and `LINKING_READY` with no stored guest session while a sign-in is still in flight. Both
-     * understate what exists rather than mislead, because the message they produce only claims
-     * there is nothing to update now and that signing in will save the answer — which stays true
-     * in both.
-     *
-     * Deliberately not [resolveProductAnalyticsSessionLocked]: that answers what can be presented
-     * right now and would refresh an ID token over the network to say so, while the question here is
-     * whether a later attempt has any chance at all.
-     */
-    private suspend fun productAnalyticsAnswerHasNowhereToLand(): Boolean {
-        if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            return false
-        }
-        val recoveryState: CloudCredentialRecoveryState? = preferencesStore.loadCloudCredentialRecoveryState()
-        if (recoveryState?.previousCloudState == CloudAccountState.LINKED) {
-            return false
-        }
-        // The same lookup the push and the analytics batches resolve through, so this cannot drift
-        // on which session counts as the analytics one.
-        return loadProductAnalyticsGuestSessionOrNull(
-            guestSessionStore = guestSessionStore,
-            configuration = preferencesStore.currentServerConfiguration()
-        ) == null
+        productAnalyticsPreferenceCoordinator.updateEnabled(enabled = enabled)
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
@@ -811,35 +695,8 @@ class LocalCloudAccountRepository(
     }
 
     private suspend fun refreshAccountContextLocked() {
-        // Before the read: an answer still owed to the server would otherwise be overwritten by the
-        // older answer the server is about to report. Kept in this order now that the push names its
-        // origin, because the ordering is no longer what protects a newer remote answer - the route
-        // refuses a reconciliation that would loosen what it holds, whichever side of the read the
-        // body goes out on. Moving the push below the read would also strand every install the read
-        // returns early for: `resolveAccountContextSessionLocked` answers null while a credential
-        // recovery is pending and for `DISCONNECTED` and `LINKING_READY`, and an install that never
-        // signs in is exactly the one whose answer only the analytics guest credential can carry.
-        //
-        // Never fatal to the refresh. A push that keeps failing — a server down, a device offline,
-        // a refusal `handleRefusedProductAnalyticsPreferencePushLocked` deliberately leaves owed —
-        // would otherwise abort every refresh this install ever runs, because the marker stays set:
-        // workspaces, linked email and account-deletion state would stop updating and Settings
-        // would report a failure on every launch. The failure is
-        // already reported by the HTTP layer, and the direct `updateProductAnalyticsEnabled` caller
-        // is the one that surfaces it to the person who asked; here the answer simply stays owed
-        // and the next refresh retries it.
-        try {
-            // `RECONCILIATION`: nobody is pressing anything here. This is an answer left owed by an
-            // earlier press - possibly days earlier, possibly made for an identity this install has
-            // since left - and the account may have moved past it on another device meanwhile.
-            pushPendingProductAnalyticsPreferenceLocked(
-                origin = AnalyticsPreferenceWriteOrigin.RECONCILIATION
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            // Deliberately continues to the account read below.
-        }
+        // An analytics guest can deliver a pending answer even when there is no account to fetch.
+        productAnalyticsPreferenceCoordinator.reconcilePendingLocked()
         pushPendingFirstReviewOnboardingLocked()
         val session = resolveAccountContextSessionLocked() ?: return
         val accountSnapshot = remoteService.fetchCloudAccount(
@@ -910,226 +767,6 @@ class LocalCloudAccountRepository(
         }
     }
 
-    /**
-     * Delivers the owed answer, saying who asked for it.
-     *
-     * [origin] is decided by the path that got here rather than by how many attempts this answer has
-     * had or how long it has been owed, because that is the only thing the field can honestly claim:
-     * a press being handled right now is [AnalyticsPreferenceWriteOrigin.USER_ACTION], and an answer
-     * this device is carrying from before is [AnalyticsPreferenceWriteOrigin.RECONCILIATION]. A
-     * first attempt that fails is therefore already reconciled the next time a refresh picks it up,
-     * seconds later or days later alike: what makes the claim false is that the person may have
-     * answered again elsewhere since, and no elapsed time makes that safer.
-     */
-    private suspend fun pushPendingProductAnalyticsPreferenceLocked(
-        origin: AnalyticsPreferenceWriteOrigin
-    ) {
-        if (preferencesStore.isProductAnalyticsEnabledPendingPush().not()) {
-            return
-        }
-
-        // Never null while the marker is set: every writer of the marker commits it in the same
-        // `SharedPreferences` transaction as the answer it owes, and no writer removes the answer
-        // while one is owed, all of it under the store's product-analytics lock. The elvis only
-        // keeps the expression total.
-        val enabled: Boolean = preferencesStore.currentAccountPreferences().productAnalyticsEnabled ?: return
-        // No credential yet. The device already honors the answer on its own, and the next refresh
-        // that finds a credential delivers it; minting one here is not an option, because recording
-        // a refusal must never create the identity it refuses.
-        val session = resolveProductAnalyticsSessionLocked() ?: return
-        val updatedPreferences = try {
-            remoteService.updateAccountPreferences(
-                apiBaseUrl = session.apiBaseUrl,
-                authorizationHeader = session.authorizationHeader,
-                update = AccountPreferencesUpdate(
-                    accentColor = null,
-                    theme = null,
-                    reviewReactionAnimationsEnabled = null,
-                    productAnalyticsEnabled = enabled,
-                    productAnalyticsEnabledOrigin = origin,
-                    locale = null,
-                    firstReviewOnboardingCompleted = null
-                )
-            )
-        } catch (error: CloudRemoteException) {
-            // Recorded here, classified by the caller. What the refusal did to the answer is written
-            // to the store, and reading it back there is the only way the direct caller sees the
-            // same outcome whether its own push or a concurrent refresh hit the refusal.
-            handleRefusedProductAnalyticsPreferencePushLocked(
-                enabled = enabled,
-                session = session,
-                error = error
-            )
-            throw error
-        }
-        // The acknowledgement save, which never re-arms the marker it is about to clear. Cleared
-        // after it: a crash in between costs one redundant PATCH on the next refresh, while the
-        // reverse order would drop an answer that is not yet fully stored.
-        //
-        // Conditional on the pushed answer still being the stored one, compared and cleared in one
-        // step inside the store. The durable write happens outside the coordinator, so a second
-        // toggle can land — and re-arm the marker — while this push is parked in its PATCH;
-        // clearing unconditionally would wipe the marker that second answer just armed, and its own
-        // job would then find nothing pending and send nothing. The ordinary success case always
-        // matches, because `savePushedAccountPreferences` keeps this device's own answer, so the
-        // marker cannot be left set forever by a push that nothing superseded. When it does not
-        // match, the newer answer is already owed and carries its own marker, so the next push
-        // delivers it.
-        //
-        // Nothing here has to cope with a server that stores the answer and leaves it out of the
-        // acknowledgement. `parseAccountPreferencesInput` rejects any key it does not know with a
-        // `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN`, and has since the route was written, so a
-        // backend that has never heard of `productAnalyticsEnabled` - or of the origin sent beside
-        // it, which landed on `main` five and a half hours later the same day - refuses the whole
-        // body rather than ignoring part of it. That `400` never reaches this line: it is thrown above
-        // and recorded by `handleRefusedProductAnalyticsPreferencePushLocked`, which is the right
-        // outcome against a self-hosted backend older than the off switch, because such a server
-        // cannot store this setting at all.
-        preferencesStore.savePushedAccountPreferences(preferences = updatedPreferences)
-        // The route answers with what it stored, and a reconciliation it refused comes back holding
-        // the stricter answer the account already had. That answer is not delivered, so it stays
-        // owed rather than being marked as done: a press arriving next sends it as `USER_ACTION`
-        // and is stored, and until then every refresh re-offers it and the account takes it the
-        // moment it stops being a loosening one. A `USER_ACTION` is never refused this way, so its
-        // clear is unchanged.
-        //
-        // Read off the one disagreement the guard can produce - a reconciled `true` answered with a
-        // stored `false` - rather than off any disagreement. The route refuses only that direction,
-        // so a reconciled opt-out answered with `true` is something else entirely and must not be
-        // filed as the guard: doing so would keep the debt and silently re-offer it on every
-        // refresh with nothing recorded anywhere. `== false` names the acknowledged value rather
-        // than testing for any mismatch because the field is nullable: null means nobody has
-        // answered on that row (db/migrations/0149_product_analytics_off_switch.sql), which is not
-        // a stored refusal, leaves the owed answer unstored, and has to stay a failure.
-        //
-        // Three conjuncts where the iOS drain has four, on purpose. Its fourth re-reads the owed
-        // answer, so a press landing while the body was in flight cannot be read as a refusal of
-        // itself and reported settled. Nothing here reports on the strength of this flag: it only
-        // decides whether to call a clear that already compares, and
-        // `clearProductAnalyticsEnabledPendingPushIfAnswerIs` refuses to clear the marker that
-        // second press re-armed with its own answer. That comparison is what stands in for the
-        // fourth conjunct, so making the clear unconditional would have to add one here.
-        val storedByServer: Boolean? = updatedPreferences.productAnalyticsEnabled
-        val refusedAsLoosening: Boolean = origin == AnalyticsPreferenceWriteOrigin.RECONCILIATION
-            && enabled
-            && storedByServer == false
-        if (refusedAsLoosening.not()) {
-            preferencesStore.clearProductAnalyticsEnabledPendingPushIfAnswerIs(enabled = enabled)
-        }
-    }
-
-    /**
-     * A refusal that repeating cannot fix, handled so the same doomed PATCH does not re-issue on
-     * every refresh for the life of the install.
-     *
-     * `401` and `410` on the analytics guest credential are the server saying the session behind it
-     * is gone. Left in place, [resolveProductAnalyticsSessionLocked] would keep handing back the
-     * same dead token. The analytics batch path retires it too, from
-     * `AppAnalyticsSupport.onCredentialRefused`, and one dead token can be refused on both paths in
-     * the same process — a flush and this push can each present it. Whichever runs second finds the
-     * session already gone, or a replacement the check below rejects as not the refused one, and
-     * does nothing. Retiring it leaves the
-     * answer owed. An owed opt-in is then delivered by the next process,
-     * which mints a replacement session as soon as analytics needs a credential again; an owed
-     * opt-out stays owed and undeliverable, because a client told to stop never flushes, so it
-     * never asks for a credential and nothing mints one. That is deliberate: this device has
-     * already stopped collecting, and minting a fresh server-side identity purely to announce that
-     * it will send nothing would create the very thing the person opted out of. A refusal on a
-     * cloud guest is left alone: that credential is not this path's to retire, and AI chat,
-     * feedback and sync own its recovery.
-     *
-     * Any other durable `4xx` is a verdict on the request itself — an unknown or rejected field, a
-     * body this server will never accept — so the answer is given up as undeliverable and the
-     * refusal reported once. Recorded rather than merely un-marked: clearing the marker alone would
-     * let the undelivered-opt-out re-arm in `CloudPreferencesStore.saveAccountPreferences` put the
-     * same doomed push straight back on the next account read, re-issuing it and re-reporting it on
-     * every refresh. The device still honors the answer locally either way, and the person's own
-     * retoggle drops the record and sends a fresh one.
-     *
-     * A refusal of an answer a second toggle has already replaced is dropped whole: the marker it
-     * would clear belongs to that newer answer, so the store refuses to record it, and the warning
-     * goes with it. Reporting a giving-up there would name an answer that was superseded rather
-     * than abandoned, and would break the one-warning-per-answer contract the refused answer's own
-     * report already satisfies.
-     *
-     * `403`, `408` and `429` stay owed exactly as a transient failure does: they are authorization
-     * and pressure, not a verdict on the answer.
-     */
-    private suspend fun handleRefusedProductAnalyticsPreferencePushLocked(
-        enabled: Boolean,
-        session: AccountContextSession,
-        error: CloudRemoteException
-    ) {
-        val statusCode: Int = error.statusCode ?: return
-        if (statusCode !in 400..499) {
-            return
-        }
-        if (statusCode == 401 || statusCode == 410) {
-            retireRefusedProductAnalyticsGuestSessionLocked(session = session)
-            return
-        }
-        if (statusCode == 403 || statusCode == 408 || statusCode == 429) {
-            return
-        }
-
-        if (preferencesStore.markProductAnalyticsEnabledPushRefusedIfAnswerIs(enabled = enabled)) {
-            onProductAnalyticsPreferencePushRefused(statusCode)
-        }
-    }
-
-    private suspend fun retireRefusedProductAnalyticsGuestSessionLocked(session: AccountContextSession) {
-        val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
-            guestSessionStore = guestSessionStore,
-            configuration = preferencesStore.currentServerConfiguration()
-        ) ?: return
-        if (guestSession.isAnalyticsOnly.not()) {
-            return
-        }
-        // The refused credential has to be the one still stored: a bearer token, or a guest already
-        // replaced since the request, says nothing about what would be presented next.
-        if (session.authorizationHeader != "Guest ${guestSession.guestToken}") {
-            return
-        }
-
-        // Not the two keys it happens to sit under: a session bound to another local workspace would
-        // survive and be presented as the next analytics credential. In practice that scan finds
-        // exactly the entry resolved above — this install holds one guest identity at a time,
-        // because a mint only runs when `loadAnySession` finds nothing and `saveSession` drops the
-        // duplicate keys of what it writes — so the wider sweep is for leftovers an older build or
-        // a restored preferences file could leave behind. Such a leftover is dropped with the
-        // refused one rather than kept, which is why the cloud guest this path leaves alone is the
-        // resolved credential and not every stored entry.
-        withContext(Dispatchers.IO) { guestSessionStore.clearStoredSessions() }
-    }
-
-    /**
-     * The analytics answer reaches further than the other preferences: an install that never signed
-     * in still has a server-side identity once analytics minted its guest session, and that session
-     * is where its answer belongs.
-     *
-     * Every guest case therefore resolves through [loadProductAnalyticsGuestSessionOrNull], the one
-     * function that also picks the credential the analytics batches are delivered under. Routing a
-     * `GUEST` install through the account-context lookup instead would park the answer on the
-     * workspace-bound session while the events left on another one.
-     */
-    private suspend fun resolveProductAnalyticsSessionLocked(): AccountContextSession? {
-        if (preferencesStore.loadCloudCredentialRecoveryState() != null) {
-            return null
-        }
-        if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
-            return resolveAccountContextSessionLocked()
-        }
-
-        val guestSession: StoredGuestAiSession = loadProductAnalyticsGuestSessionOrNull(
-            guestSessionStore = guestSessionStore,
-            configuration = preferencesStore.currentServerConfiguration()
-        ) ?: return null
-        return AccountContextSession(
-            apiBaseUrl = guestSession.apiBaseUrl,
-            authorizationHeader = "Guest ${guestSession.guestToken}"
-        )
-    }
-
     private suspend fun persistAccountSnapshotForCurrentCloudIdentity(accountSnapshot: CloudAccountSnapshot) {
         val cloudSettings = preferencesStore.currentCloudSettings()
         if (cloudSettings.cloudState != CloudAccountState.LINKED && cloudSettings.cloudState != CloudAccountState.GUEST) {
@@ -1162,7 +799,7 @@ class LocalCloudAccountRepository(
     }
 }
 
-private data class AccountContextSession(
+internal data class AccountContextSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )
