@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 enum AIChatTranscriptScrollTarget: Hashable {
     case bottom
@@ -21,11 +20,7 @@ extension AIChatView {
                 // Content margins add spacing beyond the safe area; keep zero extra on both iPad and iPhone.
                 .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
-                .onGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.frame(in: .global).minY
-                } action: { top in
-                    self.transcriptLayout.viewportTop = top
-                }
+                .aiChatScrollViewport(layout: self.transcriptLayout)
                 .onScrollGeometryChange(for: CGFloat.self) { geometry in
                     geometry.containerSize.height - geometry.contentInsets.top - geometry.contentInsets.bottom
                 } action: { _, _ in
@@ -254,166 +249,6 @@ private struct AIChatTranscriptTopEdgeEffect: ViewModifier {
             content.scrollEdgeEffectStyle(.soft, for: .top)
         } else {
             content
-        }
-    }
-}
-
-/// Frames of the scroll view's rows on screen and the top of its viewport, in window space; a List row has no scroll
-/// view space of its own. Written as the transcript scrolls, so it stays out of SwiftUI state; read when the side chat
-/// records where the reader is.
-@MainActor
-final class AIChatScrollRowLayout {
-    var rowFrames: [String: CGRect] = [:]
-    var viewportTop: CGFloat = 0
-    /// The restored row that has placed itself; any other restored row is not on screen yet.
-    var placedRestoreRowID: String? = nil
-}
-
-struct AIChatScrollAnchor: Equatable {
-    let rowID: String
-    let topOffset: CGFloat
-}
-
-enum AIChatScrollOffset: Equatable {
-    case points(CGFloat)
-    case rowFraction(CGFloat)
-}
-
-struct AIChatScrollRowFrameTracking: ViewModifier {
-    let rowID: String
-    let layout: AIChatScrollRowLayout?
-    let restoredOffset: AIChatScrollOffset?
-    let canRestore: @MainActor () -> Bool
-
-    func body(content: Content) -> some View {
-        if let layout = self.layout {
-            content
-                .onGeometryChange(for: CGRect.self) { geometry in
-                    geometry.frame(in: .global)
-                } action: { frame in
-                    layout.rowFrames[self.rowID] = frame
-                }
-                .onDisappear {
-                    layout.rowFrames[self.rowID] = nil
-                }
-                .background {
-                    if let restoredOffset = self.restoredOffset {
-                        AIChatScrollRowOffsetRestorer(
-                            layout: layout,
-                            rowID: self.rowID,
-                            offset: restoredOffset,
-                            canRestore: self.canRestore
-                        )
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                    }
-                }
-        } else {
-            content
-        }
-    }
-}
-
-/// A List's `scrollTo` places a row only at the viewport's top, center or bottom. While the restored row is on screen,
-/// this view behind it moves the List's own scroll view so the row's top sits where the reader left it: at once as the
-/// section comes on screen, so the first frame already shows the place, then again whenever the List's content size
-/// changes, since an unfinished size can clamp the offset short. A touch on the transcript ends it.
-private struct AIChatScrollRowOffsetRestorer: UIViewRepresentable {
-    let layout: AIChatScrollRowLayout
-    let rowID: String
-    let offset: AIChatScrollOffset
-    let canRestore: @MainActor () -> Bool
-
-    func makeUIView(context: Context) -> RestorerView {
-        RestorerView()
-    }
-
-    func updateUIView(_ view: RestorerView, context: Context) {
-        view.layout = self.layout
-        view.rowID = self.rowID
-        view.offset = self.offset
-        view.canRestore = self.canRestore
-        view.restoreNowAndAfterLayout()
-    }
-
-    final class RestorerView: UIView {
-        weak var layout: AIChatScrollRowLayout?
-        var rowID: String = ""
-        var offset: AIChatScrollOffset = .points(0)
-        var canRestore: @MainActor () -> Bool = { false }
-        private weak var observedScrollView: UIScrollView?
-        private var contentSizeObservation: NSKeyValueObservation?
-        private var isCancelled: Bool = false
-
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            if self.window == nil {
-                self.stopObserving()
-            } else {
-                self.restoreNowAndAfterLayout()
-            }
-        }
-
-        func restoreNowAndAfterLayout() {
-            self.restore()
-            DispatchQueue.main.async { [weak self] in
-                self?.restore()
-            }
-        }
-
-        private func restore() {
-            guard self.canRestore() else {
-                self.stopObserving()
-                return
-            }
-            guard self.isCancelled == false, self.window != nil, let layout = self.layout else { return }
-            var ancestor = self.superview
-            while let view = ancestor, (view is UIScrollView) == false {
-                ancestor = view.superview
-            }
-            guard let scrollView = ancestor as? UIScrollView else { return }
-            if scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating {
-                self.isCancelled = true
-                self.stopObserving()
-                return
-            }
-            self.observe(scrollView)
-            let topOffset: CGFloat
-            switch self.offset {
-            case .points(let points):
-                topOffset = points
-            case .rowFraction(let fraction):
-                guard self.bounds.height > 0 else { return }
-                topOffset = self.bounds.height * fraction
-            }
-            layout.placedRestoreRowID = self.rowID
-            let distance = self.convert(self.bounds, to: nil).minY - (layout.viewportTop - topOffset)
-            guard abs(distance) >= 0.5 else { return }
-            let minimumOffset = -scrollView.adjustedContentInset.top
-            let maximumOffset = max(
-                minimumOffset,
-                scrollView.contentSize.height + scrollView.adjustedContentInset.bottom - scrollView.bounds.height
-            )
-            let offset = min(max(scrollView.contentOffset.y + distance, minimumOffset), maximumOffset)
-            guard self.canRestore() else { return }
-            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: offset), animated: false)
-        }
-
-        private func observe(_ scrollView: UIScrollView) {
-            guard self.observedScrollView !== scrollView else { return }
-            self.stopObserving()
-            self.observedScrollView = scrollView
-            self.contentSizeObservation = scrollView.observe(\.contentSize, options: [.new]) { [weak self] _, _ in
-                MainActor.assumeIsolated {
-                    self?.restore()
-                }
-            }
-        }
-
-        private func stopObserving() {
-            self.contentSizeObservation?.invalidate()
-            self.contentSizeObservation = nil
-            self.observedScrollView = nil
         }
     }
 }

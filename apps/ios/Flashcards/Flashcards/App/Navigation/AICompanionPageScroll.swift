@@ -165,11 +165,7 @@ private struct AICompanionPageScroll: ViewModifier {
                             return self.isCurrent(restore, context: context)
                         }
                     ))
-                    .onGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.frame(in: .global).minY
-                    } action: { top in
-                        self.layout.viewportTop = top
-                    }
+                    .aiChatScrollViewport(layout: self.layout)
                     .onScrollGeometryChange(for: AICompanionScrollGeometry.self) { geometry in
                         AICompanionScrollGeometry(
                             contentHeight: geometry.containerSize.height > 0 ? geometry.contentSize.height : 0,
@@ -215,7 +211,7 @@ private struct AICompanionPageScroll: ViewModifier {
                     .onChange(of: self.targets) { previous, current in
                         if let request = self.restore, current.contains(where: { $0.id == request.target.id }) == false {
                             self.restore = nil
-                            self.layout.placedRestoreRowID = nil
+                            self.layout.resetRestorePlacement()
                         }
                         if let anchor = context.position.anchor,
                            previous.contains(where: { $0.preservesPointOffset(from: anchor.target) }),
@@ -234,16 +230,12 @@ private struct AICompanionPageScroll: ViewModifier {
     private func rememberPosition(context: AICompanionScrollContext) {
         // Query the actual path: an outgoing page can still deliver scroll callbacks during a push or a pop.
         guard context.isActive() else { return }
-        let top = self.layout.viewportTop
-        guard let row = self.layout.rowFrames
-            .filter({ _, frame in frame.maxY > top && frame.height > 0 })
-            .min(by: { $0.value.minY < $1.value.minY }),
-              let target = self.targets.first(where: { $0.id == row.key }) else {
+        guard let row = self.layout.firstVisibleRow(),
+              let target = self.targets.first(where: { $0.id == row.id }) else {
             return
         }
-        let topOffset = top - row.value.minY
-        let sourceOffset = target.source?.sourceOffset(atRowFraction: topOffset / row.value.height)
-        context.position.anchor = AICompanionReadingAnchor(target: target, topOffset: topOffset, sourceOffset: sourceOffset)
+        let sourceOffset = target.source?.sourceOffset(atRowFraction: row.topOffset / row.height)
+        context.position.anchor = AICompanionReadingAnchor(target: target, topOffset: row.topOffset, sourceOffset: sourceOffset)
     }
 
     private func resolve(_ anchor: AICompanionReadingAnchor) -> AICompanionScrollRestore? {
@@ -267,7 +259,7 @@ private struct AICompanionPageScroll: ViewModifier {
         guard context.isActive(), self.isUserScrolling == false else { return }
         let request = context.position.anchor.flatMap { self.resolve($0) }
         guard self.restore != request else { return }
-        self.layout.placedRestoreRowID = nil
+        self.layout.resetRestorePlacement()
         self.restore = request
         self.scrollToRestoreRow(context: context, proxy: proxy)
     }
@@ -278,7 +270,7 @@ private struct AICompanionPageScroll: ViewModifier {
         DispatchQueue.main.async {
             guard self.contentHeight > 0,
                   self.isCurrent(request, context: context),
-                  self.layout.placedRestoreRowID != request.target.id else { return }
+                  self.layout.hasPlacedRestoreRow(request.target.id) == false else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
