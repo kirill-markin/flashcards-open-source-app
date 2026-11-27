@@ -1,5 +1,10 @@
 import SwiftUI
 
+struct AIChatScrollAnchor: Equatable {
+    let rowID: String
+    let topOffset: CGFloat
+}
+
 struct AIChatScrollState: Equatable {
     let isNearBottom: Bool
     let isUserInitiatedScroll: Bool
@@ -104,11 +109,11 @@ extension AIChatView {
         self.isAutoFollowEnabled = false
         // A row on screen places itself before the frame renders. Only a row off screen is first brought to the
         // viewport's top, after which it places itself the rest of the way.
-        self.transcriptLayout.placedRestoreRowID = nil
+        self.transcriptLayout.resetRestorePlacement()
         self.transcriptRestore = AIChatScrollAnchor(rowID: messageId, topOffset: topOffset)
         DispatchQueue.main.async {
             guard self.transcriptRestore?.rowID == messageId,
-                  self.transcriptLayout.placedRestoreRowID != messageId else { return }
+                  self.transcriptLayout.hasPlacedRestoreRow(messageId) == false else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
@@ -126,16 +131,8 @@ extension AIChatView {
             self.chatStore.companionPresentation.transcriptPosition = .bottom
             return
         }
-        let viewportTop = self.transcriptLayout.viewportTop
-        guard let topRow = self.transcriptLayout.rowFrames
-            .filter({ _, frame in frame.maxY > viewportTop && frame.height > 0 })
-            .min(by: { first, second in first.value.minY < second.value.minY }) else {
-            return
-        }
-        self.chatStore.companionPresentation.transcriptPosition = .message(
-            id: topRow.key,
-            topOffset: viewportTop - topRow.value.minY
-        )
+        guard let topRow = self.transcriptLayout.firstVisibleRow() else { return }
+        self.chatStore.companionPresentation.transcriptPosition = .message(id: topRow.id, topOffset: topRow.topOffset)
     }
 
     func scrollToBottom(proxy: ScrollViewProxy, isAnimated: Bool) {
