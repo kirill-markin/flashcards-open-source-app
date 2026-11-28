@@ -1,5 +1,7 @@
 <resources>
     <string name="ai_new_chat_content_description">Nouveau clavardage</string>
+    <string name="ai_entry_prefill_create_catalog_deck">Aide-moi à créer un paquet de cartes mémoire sur %1$s.</string>
+    <string name="ai_catalog_deck_prompt_queued">La demande de création de paquet s’ouvrira lorsque le clavardage actuel sera prêt.</string>
     <string name="ai_loading_chat_title">Chargement du clavardage</string>
     <string name="ai_loading_chat_body">Nous chargeons le dernier clavardage avec l’IA de ce compte avant d’activer le champ de rédaction.</string>
     <string name="ai_chat_unavailable_title">Clavardage indisponible</string>

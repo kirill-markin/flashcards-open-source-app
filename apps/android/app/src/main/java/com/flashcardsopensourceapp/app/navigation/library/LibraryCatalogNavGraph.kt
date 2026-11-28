@@ -13,7 +13,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.cards.catalog.CatalogDeckEvent
 import com.flashcardsopensourceapp.feature.cards.catalog.CatalogDeckRoute
 import com.flashcardsopensourceapp.feature.cards.catalog.CatalogDeckViewModel
@@ -52,6 +55,11 @@ internal fun NavGraphBuilder.registerLibraryCatalogDestinations(
             onSelectSortOrder = catalogViewModel::selectSortOrder,
             onOpenDeck = { deck ->
                 navController.navigate(route = LibraryCatalogDeckDestination.createRoute(packageId = deck.packageId))
+            },
+            onCreateDeckWithAi = { topic, resultCount ->
+                appGraph.analytics.track(event = AnalyticsEvent.CatalogAiDeckClicked(resultCount = resultCount))
+                appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = AiEntryPrefill.CatalogDeck(topic = topic))
+                navigateToAiChat(navController = navController)
             },
             onDecksShown = catalogViewModel::prefetchDeckPages,
             onRetry = catalogViewModel::revalidate,

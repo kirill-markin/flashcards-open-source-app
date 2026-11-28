@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canApplyAiCom
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraftText
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canOpenFreshAiCatalogDeckDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
@@ -197,6 +198,16 @@ internal class AiChatRuntime(
             )
         }
         persistCurrentDraft()
+    }
+
+    fun acknowledgeComposerFocusRequest(version: Long) {
+        runtimeStateMutable.update { state ->
+            if (state.pendingComposerFocusRequestVersion == version) {
+                state.copy(pendingComposerFocusRequestVersion = null)
+            } else {
+                state
+            }
+        }
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
@@ -393,6 +404,23 @@ internal class AiChatRuntime(
             return false
         }
 
+        if (prefill is AiEntryPrefill.CatalogDeck) {
+            val accessContext = context.activeAccessContext ?: return false
+            if (
+                currentState.loadedAccessKey != accessContext.runtimeKey() ||
+                shouldPrepareGuestAccess(accessContext = accessContext, hasConsent = context.hasConsent()) ||
+                canOpenFreshAiCatalogDeckDraft(state = currentState).not()
+            ) {
+                return false
+            }
+            startFreshConversation(
+                draftMessage = aiEntryPrefillPrompt(prefill = prefill, textProvider = context.textProvider),
+                pendingAttachments = emptyList(),
+                shouldFocusComposer = true
+            )
+            return true
+        }
+
         if (currentState.importRequest != null) {
             showErrorMessage(message = context.textProvider.entryPrefillRequiresNewChat)
             return true
@@ -401,13 +429,14 @@ internal class AiChatRuntime(
             return false
         }
 
+        val composerFocusRequestVersion = context.nextComposerFocusRequestVersion()
         runtimeStateMutable.update { state ->
             state.copy(
                 draftMessage = aiEntryPrefillPrompt(
                     prefill = prefill,
                     textProvider = context.textProvider
                 ),
-                focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
+                pendingComposerFocusRequestVersion = composerFocusRequestVersion,
                 activeAlert = null,
                 errorMessage = ""
             )
@@ -524,10 +553,11 @@ internal class AiChatRuntime(
         )
 
         if (currentState.composerPhase == AiComposerPhase.RUNNING) {
+            val composerFocusRequestVersion = context.nextComposerFocusRequestVersion()
             runtimeStateMutable.update { state ->
                 state.copy(
                     pendingAttachments = state.pendingAttachments + pendingCardAttachment,
-                    focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
+                    pendingComposerFocusRequestVersion = composerFocusRequestVersion,
                     activeAlert = null,
                     errorMessage = ""
                 )
@@ -576,11 +606,12 @@ internal class AiChatRuntime(
             return AiCardHandoffResult.APPLIED
         }
 
+        val composerFocusRequestVersion = context.nextComposerFocusRequestVersion()
         runtimeStateMutable.update { state ->
             state.copy(
                 draftMessage = "",
                 pendingAttachments = listOf(pendingCardAttachment),
-                focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
+                pendingComposerFocusRequestVersion = composerFocusRequestVersion,
                 activeAlert = null,
                 errorMessage = ""
             )
@@ -619,12 +650,15 @@ internal class AiChatRuntime(
         if (hasConsent().not()) {
             return
         }
-        if (runtimeStateMutable.value.workspaceId == null) {
+        val currentState = runtimeStateMutable.value
+        if (currentState.workspaceId == null) {
             return
         }
 
-        if (runtimeStateMutable.value.guestAccessPreparationError != null &&
-            shouldPrepareGuestAccess(accessContext = context.activeAccessContext, hasConsent = true)
+        if (
+            currentState.conversationBootstrapState != AiConversationBootstrapState.FAILED
+            && currentState.guestAccessPreparationError != null
+            && shouldPrepareGuestAccess(accessContext = context.activeAccessContext, hasConsent = true)
         ) {
             lifecycleCoordinator.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
             return

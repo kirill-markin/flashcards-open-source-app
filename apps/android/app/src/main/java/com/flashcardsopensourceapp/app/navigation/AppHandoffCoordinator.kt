@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 data class AiEntryPrefillRequest(
     val requestId: Long,
@@ -110,7 +111,9 @@ class AppHandoffCoordinator {
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
-        discardPendingAiImport()
+        if (prefill == AiEntryPrefill.CreateCard) {
+            discardPendingAiImport()
+        }
         aiEntryPrefillState.value = AiEntryPrefillRequest(
             requestId = nextRequestId.incrementAndGet(),
             prefill = prefill
@@ -118,11 +121,9 @@ class AppHandoffCoordinator {
     }
 
     fun consumeAiEntryPrefill(requestId: Long) {
-        if (aiEntryPrefillState.value?.requestId != requestId) {
-            return
+        aiEntryPrefillState.update { request ->
+            request.takeUnless { it?.requestId == requestId }
         }
-
-        aiEntryPrefillState.value = null
     }
 
     fun requestAiCardHandoff(
@@ -154,7 +155,9 @@ class AppHandoffCoordinator {
         origin: AiImportOrigin
     ) {
         discardPendingAiImport()
-        aiEntryPrefillState.value = null
+        aiEntryPrefillState.update { request ->
+            request?.takeIf { it.prefill is AiEntryPrefill.CatalogDeck }
+        }
         aiCardHandoffState.value = null
         aiImportState.value = AiImportRequest(
             requestId = nextRequestId.incrementAndGet(),

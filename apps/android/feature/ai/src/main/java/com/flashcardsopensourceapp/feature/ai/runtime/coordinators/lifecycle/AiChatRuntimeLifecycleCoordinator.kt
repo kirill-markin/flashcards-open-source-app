@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canReplaceAiDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.forSession
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.isAiChatConversationStale
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
@@ -213,7 +214,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
         if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
             return
         }
-        if (context.activeWarmUpJob != null) {
+        if (context.activeWarmUpJob != null || context.activeFreshSessionJob != null) {
             return
         }
         if (
@@ -387,7 +388,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
         if (canUseAi.not()) {
             return false
         }
-        if (context.activeFreshSessionJob != null || state.importRequest != null) {
+        if (context.activeFreshSessionJob != null || canReplaceAiDraft(state = state).not()) {
             return false
         }
 

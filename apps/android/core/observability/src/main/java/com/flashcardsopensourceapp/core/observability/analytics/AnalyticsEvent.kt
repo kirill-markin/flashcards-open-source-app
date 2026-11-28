@@ -1123,6 +1123,14 @@ sealed interface AnalyticsEvent {
         )
     }
 
+    data class CatalogAiDeckClicked(val resultCount: Int) : AnalyticsEvent {
+        override val screen: AnalyticsSurface = AnalyticsSurface.CATALOG
+        override val eventName: String = "catalog_ai_deck_clicked"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "result_count" to AnalyticsPropertyValue.Count(value = resultCount)
+        )
+    }
+
     data class CatalogDeckInstallStarted(
         val packageSlug: String,
         override val screen: AnalyticsSurface? = AnalyticsSurface.CATALOG

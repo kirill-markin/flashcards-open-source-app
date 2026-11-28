@@ -60,6 +60,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
@@ -88,6 +91,7 @@ internal fun AiComposer(
     uiState: AiUiState,
     onViewPremium: (() -> Unit)?,
     onDraftMessageChange: (String) -> Unit,
+    onComposerFocusApplied: (Long) -> Unit,
     onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
@@ -132,9 +136,16 @@ internal fun AiComposer(
         }
     }
 
-    LaunchedEffect(uiState.focusComposerRequestVersion) {
-        if (uiState.focusComposerRequestVersion > 0L) {
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val pendingFocusRequestVersion = uiState.pendingComposerFocusRequestVersion
+    LaunchedEffect(pendingFocusRequestVersion, uiState.canEditDraftText, lifecycleState) {
+        if (
+            pendingFocusRequestVersion != null &&
+            uiState.canEditDraftText &&
+            lifecycleState.isAtLeast(Lifecycle.State.RESUMED) &&
             focusRequester.requestFocus()
+        ) {
+            onComposerFocusApplied(pendingFocusRequestVersion)
         }
     }
 

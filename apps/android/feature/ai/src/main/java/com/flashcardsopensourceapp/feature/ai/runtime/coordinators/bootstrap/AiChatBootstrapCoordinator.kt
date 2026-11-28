@@ -88,6 +88,9 @@ internal class AiChatBootstrapCoordinator(
         forceReloadState: Boolean,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
+        if (context.activeFreshSessionJob != null) {
+            return
+        }
         val accessContext = context.activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
         if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
@@ -104,7 +107,6 @@ internal class AiChatBootstrapCoordinator(
         }
 
         val bootstrapRequestToken = nextBootstrapRequestToken()
-        context.lastBootstrapFailureRetryable = false
         context.activeBootstrapJob?.cancel(
             cause = CancellationException("AI bootstrap restarted.")
         )
@@ -139,6 +141,24 @@ internal class AiChatBootstrapCoordinator(
             var switchTargetSessionId: String? = null
             val preBootstrapState = context.runtimeStateMutable.value
             try {
+                val livePersistedState = preBootstrapState.persistedState
+                // Fresh provisioning updates the shown chat before its queued storage write finishes.
+                if (
+                    forceReloadState.not()
+                    && preBootstrapState.workspaceId == workspaceId
+                    && preBootstrapState.loadedAccessKey?.matchesCurrentAccess(current = accessContext.runtimeKey()) == true
+                    && livePersistedState.chatSessionId.isNotBlank()
+                    && (
+                        livePersistedState.chatSessionId != persistedState.chatSessionId
+                            || (
+                                livePersistedState.requiresRemoteSessionProvisioning.not()
+                                    && persistedState.requiresRemoteSessionProvisioning
+                            )
+                    )
+                ) {
+                    return@launch
+                }
+                context.lastBootstrapFailureRetryable = false
                 val canPreserveLocalComposerState =
                     forceReloadState.not()
                         && context.runtimeStateMutable.value.composerPhase == AiComposerPhase.IDLE

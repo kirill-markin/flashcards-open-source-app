@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChat
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -88,6 +89,7 @@ internal class AiChatSessionCoordinator(
                 attachmentIds = pendingAttachments.map { attachment -> attachment.id }
             )
         }
+        val composerFocusRequestVersion = if (shouldFocusComposer) context.nextComposerFocusRequestVersion() else null
         context.lastBootstrapFailureRetryable = false
         context.runtimeStateMutable.update { state ->
             state.copy(
@@ -106,11 +108,7 @@ internal class AiChatSessionCoordinator(
                 draftMessage = draftMessage,
                 pendingAttachments = pendingAttachments,
                 importRequest = importRequest,
-                focusComposerRequestVersion = if (shouldFocusComposer) {
-                    state.focusComposerRequestVersion + 1L
-                } else {
-                    state.focusComposerRequestVersion
-                },
+                pendingComposerFocusRequestVersion = composerFocusRequestVersion,
                 serverComposerSuggestions = state.serverComposerSuggestions,
                 composerPhase = AiComposerPhase.IDLE,
                 dictationState = AiChatDictationState.IDLE,
@@ -368,8 +366,8 @@ internal class AiChatSessionCoordinator(
 
     private fun initializeFreshConversation(workspaceId: String?, targetSessionId: String) {
         context.activeFreshSessionTargetSessionId = targetSessionId
-        var freshSessionJob: Job? = null
-        freshSessionJob = context.scope.launch {
+        lateinit var freshSessionJob: Job
+        freshSessionJob = context.scope.launch(start = CoroutineStart.LAZY) {
             try {
                 val snapshot = createNewAiChatSessionWithBootstrapRetry(
                     context = context,
@@ -430,6 +428,7 @@ internal class AiChatSessionCoordinator(
             }
         }
         context.activeFreshSessionJob = freshSessionJob
+        freshSessionJob.start()
     }
 
     private fun handleNewChatFailure(

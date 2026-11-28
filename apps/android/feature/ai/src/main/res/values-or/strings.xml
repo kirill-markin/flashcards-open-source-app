@@ -190,6 +190,8 @@
     <string name="ai_server_dictation_custom_unavailable">ଏହି ସର୍ଭର୍‌ରେ AI ସାହାଯ୍ୟରେ କହି ଲେଖିବା ଉପଲବ୍ଧ ନାହିଁ। ସର୍ଭର୍ ପରିଚାଳକଙ୍କୁ ଯୋଗାଯୋଗ କରନ୍ତୁ।</string>
     <string name="ai_message_with_request_id">%1$s ଅନୁରୋଧ ID: %2$s</string>
     <string name="ai_entry_prefill_create_card">ଏକ କାର୍ଡ ତିଆରି କରିବାରେ ମୋତେ ସାହାଯ୍ୟ କର।</string>
+    <string name="ai_entry_prefill_create_catalog_deck">%1$s ବିଷୟରେ ଏକ ଫ୍ଲାସ୍‌କାର୍ଡ ଡେକ୍ ତିଆରି କରିବାରେ ମୋତେ ସାହାଯ୍ୟ କରନ୍ତୁ।</string>
+    <string name="ai_catalog_deck_prompt_queued">ଆପଣଙ୍କର ବର୍ତ୍ତମାନର ଚାଟ୍ ପ୍ରସ୍ତୁତ ହେଲେ ଡେକ୍‌ର ପ୍ରମ୍ପ୍ଟ ଖୋଲିବ।</string>
     <string name="ai_history_content_description">ଇତିହାସ</string>
     <string name="ai_history_title">ଚାଟ୍ ଇତିହାସ</string>
     <string name="ai_history_back_content_description">ପଛକୁ</string>

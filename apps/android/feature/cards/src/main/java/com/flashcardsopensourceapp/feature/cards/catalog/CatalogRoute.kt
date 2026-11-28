@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -59,6 +60,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +70,7 @@ import coil3.compose.AsyncImage
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexDeck
 import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.catalogAiDeckRowTag
 import com.flashcardsopensourceapp.feature.cards.catalogDeckRowTag
 import com.flashcardsopensourceapp.feature.cards.catalogEmptyStateTag
 import com.flashcardsopensourceapp.feature.cards.catalogErrorStateTag
@@ -89,6 +92,7 @@ fun CatalogRoute(
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
     onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
+    onCreateDeckWithAi: (String, Int) -> Unit,
     onDecksShown: (List<CatalogBrowseIndexDeck>) -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit
@@ -136,6 +140,7 @@ fun CatalogRoute(
                 onSelectLanguageFilter = onSelectLanguageFilter,
                 onSelectSortOrder = onSelectSortOrder,
                 onOpenDeck = onOpenDeck,
+                onCreateDeckWithAi = onCreateDeckWithAi,
                 onDecksShown = onDecksShown,
                 modifier = contentModifier
             )
@@ -176,6 +181,7 @@ private fun CatalogReadyContent(
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
     onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
+    onCreateDeckWithAi: (String, Int) -> Unit,
     onDecksShown: (List<CatalogBrowseIndexDeck>) -> Unit,
     modifier: Modifier
 ) {
@@ -212,7 +218,13 @@ private fun CatalogReadyContent(
                 onSelectSortOrder = onSelectSortOrder
             )
         }
-        CatalogDeckList(listState = listState, content = content, onOpenDeck = onOpenDeck)
+        CatalogDeckList(
+            listState = listState,
+            content = content,
+            topic = uiState.searchQuery.trim(),
+            onOpenDeck = onOpenDeck,
+            onCreateDeckWithAi = onCreateDeckWithAi
+        )
     }
 }
 
@@ -220,13 +232,15 @@ private fun CatalogReadyContent(
 private fun ColumnScope.CatalogDeckList(
     listState: LazyListState,
     content: CatalogContentUiState.Ready,
-    onOpenDeck: (CatalogBrowseIndexDeck) -> Unit
+    topic: String,
+    onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
+    onCreateDeckWithAi: (String, Int) -> Unit
 ) {
     LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f)
     ) {
-        if (content.decks.isEmpty()) {
+        if (content.decks.isEmpty() && topic.isEmpty()) {
             item {
                 Text(
                     text = if (content.isCatalogEmpty) {
@@ -241,12 +255,41 @@ private fun ColumnScope.CatalogDeckList(
                         .testTag(catalogEmptyStateTag)
                 )
             }
-        } else {
-            items(content.decks, key = { deck -> deck.packageId }) { deck ->
-                CatalogDeckRow(deck = deck, onClick = { onOpenDeck(deck) })
+        }
+        items(content.decks, key = { deck -> deck.packageId }) { deck ->
+            CatalogDeckRow(deck = deck, onClick = { onOpenDeck(deck) })
+        }
+        if (topic.isNotEmpty()) {
+            item {
+                CatalogAiDeckRow(onClick = { onCreateDeckWithAi(topic, content.decks.size) })
             }
         }
     }
+}
+
+@Composable
+private fun CatalogAiDeckRow(onClick: () -> Unit) {
+    ListItem(
+        leadingContent = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(width = 80.dp, height = 45.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        },
+        headlineContent = { Text(stringResource(id = R.string.catalog_create_deck_with_ai)) },
+        modifier = Modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(catalogAiDeckRowTag)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

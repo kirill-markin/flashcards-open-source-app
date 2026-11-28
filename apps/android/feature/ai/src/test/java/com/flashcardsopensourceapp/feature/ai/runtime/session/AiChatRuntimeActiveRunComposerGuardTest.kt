@@ -104,7 +104,7 @@ class AiChatRuntimeActiveRunComposerGuardTest {
 
         assertEquals(AiComposerPhase.RUNNING, runtime.state.value.composerPhase)
 
-        val didApplyPrefill = runtime.applyEntryPrefill(prefill = AiEntryPrefill.CREATE_CARD)
+        val didApplyPrefill = runtime.applyEntryPrefill(prefill = AiEntryPrefill.CreateCard)
         runtime.sendMessage()
         advanceUntilIdle()
 

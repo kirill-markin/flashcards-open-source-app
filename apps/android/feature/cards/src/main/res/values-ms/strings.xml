@@ -70,6 +70,7 @@
     </plurals>
     <string name="catalog_empty_no_decks">Belum ada dek yang tersedia.</string>
     <string name="catalog_empty_no_matches">Tiada dek yang sepadan dengan carian anda.</string>
+    <string name="catalog_create_deck_with_ai">Cipta dek dengan AI</string>
     <string name="catalog_load_failed">Katalog dek tidak dapat dimuatkan. Semak sambungan anda dan cuba lagi.</string>
     <string name="catalog_retry">Cuba lagi</string>
     <string name="catalog_refresh_failed">Katalog dek tidak dapat dikemas kini. Memaparkan dek yang disimpan.</string>

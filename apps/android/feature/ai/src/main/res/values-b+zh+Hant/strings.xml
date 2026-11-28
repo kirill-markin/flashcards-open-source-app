@@ -189,6 +189,8 @@
     <string name="ai_server_dictation_custom_unavailable">此伺服器無法提供 AI 語音輸入。請聯絡伺服器管理員。</string>
     <string name="ai_message_with_request_id">%1$s 請求 ID：%2$s</string>
     <string name="ai_entry_prefill_create_card">幫我建立一張卡片。</string>
+    <string name="ai_entry_prefill_create_catalog_deck">請幫我建立一副關於「%1$s」的學習卡牌組。</string>
+    <string name="ai_catalog_deck_prompt_queued">目前的對話準備好後，就會開啟牌組提示。</string>
     <string name="ai_history_content_description">紀錄</string>
     <string name="ai_history_title">對話紀錄</string>
     <string name="ai_history_back_content_description">返回</string>

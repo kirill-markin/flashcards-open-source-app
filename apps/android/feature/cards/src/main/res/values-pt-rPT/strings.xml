@@ -74,6 +74,7 @@
     </plurals>
     <string name="catalog_empty_no_decks">Ainda não há baralhos disponíveis.</string>
     <string name="catalog_empty_no_matches">Nenhum baralho corresponde à pesquisa.</string>
+    <string name="catalog_create_deck_with_ai">Criar um baralho com IA</string>
     <string name="catalog_load_failed">Não foi possível carregar o catálogo de baralhos. Verifique a ligação e tente novamente.</string>
     <string name="catalog_retry">Tentar novamente</string>
     <string name="catalog_refresh_failed">Não foi possível atualizar o catálogo de baralhos. A mostrar os baralhos guardados.</string>

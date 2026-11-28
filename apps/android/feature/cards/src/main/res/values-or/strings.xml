@@ -71,6 +71,7 @@
     </plurals>
     <string name="catalog_empty_no_decks">ଏଯାଏ କୌଣସି ଡେକ୍ ଉପଲବ୍ଧ ନାହିଁ।</string>
     <string name="catalog_empty_no_matches">ଆପଣଙ୍କ ସନ୍ଧାନ ସହ କୌଣସି ଡେକ୍ ମେଳ ଖାଉନାହିଁ।</string>
+    <string name="catalog_create_deck_with_ai">AI ସହିତ ଏକ ଡେକ୍ ତିଆରି କରନ୍ତୁ</string>
     <string name="catalog_load_failed">ଡେକ୍ କ୍ୟାଟାଲଗ୍ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
     <string name="catalog_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
     <string name="catalog_refresh_failed">ଡେକ୍ କ୍ୟାଟାଲଗ୍ ଅପଡେଟ୍ ହୋଇପାରିଲା ନାହିଁ। ସେଭ୍ ହୋଇଥିବା ଡେକ୍ ଦେଖାଯାଉଛି।</string>

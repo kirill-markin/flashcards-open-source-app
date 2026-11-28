@@ -96,7 +96,7 @@ internal data class AiDraftState(
     val importRequest: AiChatImportRequest?,
     /** A picked attachment is being copied into the app cache or waits for the draft; the send waits for it. */
     val isImportingAttachment: Boolean,
-    val focusComposerRequestVersion: Long,
+    val pendingComposerFocusRequestVersion: Long?,
     val serverComposerSuggestions: List<AiChatComposerSuggestion>,
     val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
@@ -134,6 +134,23 @@ internal fun canEditAiDraft(state: AiChatRuntimeState): Boolean {
         return false
     }
     return true
+}
+
+internal fun canOpenFreshAiCatalogDeckDraft(state: AiChatRuntimeState): Boolean {
+    return state.workspaceId != null &&
+        state.conversationBootstrapState == AiConversationBootstrapState.READY &&
+        canReplaceAiDraft(state = state)
+}
+
+internal fun canReplaceAiDraft(state: AiChatRuntimeState): Boolean {
+    return state.composerPhase == AiComposerPhase.IDLE &&
+        state.activeRun == null &&
+        state.persistedState.pendingToolRunPostSync.not() &&
+        state.dictationState == AiChatDictationState.IDLE &&
+        state.isImportingAttachment.not() &&
+        state.importRequest == null &&
+        state.draftMessage.isEmpty() &&
+        state.pendingAttachments.isEmpty()
 }
 
 internal fun canManageAiDraftAttachments(state: AiChatRuntimeState): Boolean {
@@ -184,7 +201,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         pendingAttachments = emptyList(),
         importRequest = null,
         isImportingAttachment = false,
-        focusComposerRequestVersion = 0L,
+        pendingComposerFocusRequestVersion = null,
         serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
@@ -219,7 +236,7 @@ internal fun makeAiDraftState(
         pendingAttachments = emptyList(),
         importRequest = null,
         isImportingAttachment = false,
-        focusComposerRequestVersion = 0L,
+        pendingComposerFocusRequestVersion = null,
         serverComposerSuggestions = normalizedPersistedState.composerSuggestions,
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,

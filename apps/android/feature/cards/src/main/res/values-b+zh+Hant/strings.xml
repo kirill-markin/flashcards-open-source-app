@@ -70,6 +70,7 @@
     </plurals>
     <string name="catalog_empty_no_decks">目前沒有可用的牌組。</string>
     <string name="catalog_empty_no_matches">找不到符合搜尋條件的牌組。</string>
+    <string name="catalog_create_deck_with_ai">使用 AI 建立牌組</string>
     <string name="catalog_load_failed">無法載入牌組目錄。請檢查網路連線後再試一次。</string>
     <string name="catalog_retry">再試一次</string>
     <string name="catalog_refresh_failed">無法更新牌組目錄。目前顯示的是已儲存的牌組。</string>

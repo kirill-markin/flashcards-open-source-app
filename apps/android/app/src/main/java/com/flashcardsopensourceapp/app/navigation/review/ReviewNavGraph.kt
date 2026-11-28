@@ -338,7 +338,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                             screen = AnalyticsSurface.REVIEW
                         )
                     )
-                    appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
+                    appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CreateCard)
                     navigateToAiChat(navController = navController)
                 },
                 onSwitchToAllCards = {

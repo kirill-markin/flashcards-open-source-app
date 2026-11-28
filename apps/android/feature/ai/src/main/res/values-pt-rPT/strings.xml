@@ -191,6 +191,8 @@
     <string name="ai_server_dictation_custom_unavailable">O ditado com IA não está disponível neste servidor. Contacte quem gere o servidor.</string>
     <string name="ai_message_with_request_id">%1$s ID do pedido: %2$s</string>
     <string name="ai_entry_prefill_create_card">Ajuda-me a criar um cartão.</string>
+    <string name="ai_entry_prefill_create_catalog_deck">Ajuda-me a criar um baralho de cartões sobre %1$s.</string>
+    <string name="ai_catalog_deck_prompt_queued">O pedido para criar um baralho será aberto quando a conversa atual estiver pronta.</string>
     <string name="ai_history_content_description">Histórico</string>
     <string name="ai_history_title">Histórico de conversas</string>
     <string name="ai_history_back_content_description">Voltar</string>

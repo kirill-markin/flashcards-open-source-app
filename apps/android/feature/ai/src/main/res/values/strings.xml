@@ -190,6 +190,8 @@
     <string name="ai_server_dictation_custom_unavailable">AI dictation is unavailable on this server. Contact the server operator.</string>
     <string name="ai_message_with_request_id">%1$s Request ID: %2$s</string>
     <string name="ai_entry_prefill_create_card">Help me create a card.</string>
+    <string name="ai_entry_prefill_create_catalog_deck">Help me create a flashcard deck about %1$s.</string>
+    <string name="ai_catalog_deck_prompt_queued">The deck prompt will open when your current chat is ready.</string>
     <string name="ai_history_content_description">History</string>
     <string name="ai_history_title">Chat history</string>
     <string name="ai_history_back_content_description">Back</string>
