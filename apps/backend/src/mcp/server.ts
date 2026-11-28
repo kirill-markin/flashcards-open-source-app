@@ -192,7 +192,7 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
 /**
  * Per-request telemetry channel handed to the server by the entrypoint, which
  * builds one server per transport request (see
- * apps/backend/src/entrypoints/lambda-mcp.ts).
+ * apps/backend/src/mcp/httpApp.ts).
  *
  * `caller` labels the calling MCP client on the records this request emits. It
  * is the normalized request `User-Agent`: the `initialize` clientInfo is not
@@ -510,7 +510,7 @@ async function buildToolErrorResult(
  *
  * The connection is captured per request (the Lambda creates one server per
  * call) so the tools never read ambient request state. `websiteUrl` is the
- * public marketing-site origin (env-driven, see lambda-mcp.ts) surfaced in the
+ * public marketing-site origin (env-driven, see httpApp.ts) surfaced in the
  * MCP implementation metadata.
  * `iconUrl` is the absolute https URL of the served branded SVG icon
  * (`/icon.svg`), advertised as the server `icons` entry so spec-current MCP

@@ -3,14 +3,20 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-function readEntrypointSource(): string {
-  return readFileSync(path.resolve(process.cwd(), "src/entrypoints/lambda-mcp.ts"), "utf8");
+function readSource(relativePath: string): string {
+  return readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 }
 
-test("MCP Lambda entrypoint does not import the backend Hono app", () => {
+// The routes live in the MCP app; the Lambda entrypoint only serves it.
+function readEntrypointSource(): string {
+  return readSource("src/mcp/httpApp.ts");
+}
+
+test("the MCP Lambda entrypoint and the MCP app do not import the backend Hono app", () => {
   const source = readEntrypointSource();
   const backendAppImportPattern = /from\s+["']\.\.\/server\/app["']|import\s*\(\s*["']\.\.\/server\/app["']\s*\)/;
 
+  assert.equal(backendAppImportPattern.test(readSource("src/entrypoints/lambda-mcp.ts")), false);
   assert.equal(backendAppImportPattern.test(source), false);
   assert.match(source, /import \{ parsePublicOrigin \} from "\.\.\/shared\/publicUrls";/);
   assert.match(

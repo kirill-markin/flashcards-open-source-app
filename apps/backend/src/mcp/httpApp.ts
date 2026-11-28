@@ -1,0 +1,567 @@
+/**
+ * The MCP Hono app for the dedicated MCP API Gateway on mcp.<domain>, served by
+ * the Lambda entry point (../entrypoints/lambda-mcp.ts).
+ *
+ * Serves the OAuth Protected Resource Metadata (PRM) document, a Bearer 401
+ * challenge, and the Streamable HTTP `/mcp` transport that exposes the tool
+ * registry's MCP tools. Every `/mcp` request must carry an OAuth Bearer access token,
+ * which resolves to a connection (user + selected workspace) before the MCP
+ * server runs.
+ *
+ * The canonical MCP resource is `https://mcp.<domain>/mcp` (no `/v1` stage
+ * prefix), and the authorization server lives on `https://auth.<domain>`.
+ *
+ * The same API optionally answers on one more public host, `MCP_ALTERNATE_HOST`.
+ * The OAuth identifiers are therefore per-host: which host serves a request, and
+ * what that means for the tokens it accepts, is `./hosts`. The authorization
+ * server, the website and the icon stay on the base domain for every host.
+ *
+ * Routes are mounted at both `/` and `/v1`, mirroring the auth app
+ * (apps/auth/src/app.ts): custom-domain traffic on `mcp.<domain>` arrives
+ * without a stage prefix, while the raw execute-api invoke URL delivers the
+ * `/v1` stage name in the request path.
+ */
+import { type Context, Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { authenticateMcpBearerToken } from "../auth/mcpTokens";
+import { createMcpServer, type McpToolOutcome } from "./server";
+import { MAX_MCP_REQUEST_BODY_BYTES } from "./requestLimits";
+import {
+  normalizeMcpTelemetryValue,
+  readCallToolNameFromRequestBody,
+  runWithMcpRequestId,
+} from "./requestTelemetry";
+import { HttpError } from "../shared/errors";
+import { logMcpRequestEvent } from "../server/logging";
+import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
+import { parsePublicOrigin } from "../shared/publicUrls";
+import {
+  buildMcpProtectedResourceMetadata,
+  getAllowedMcpHosts,
+  getMcpResourceUrl,
+  resolveMcpHost,
+} from "./hosts";
+import { buildMcpBearerChallenge, extractBearerToken } from "./bearerChallenge";
+import {
+  captureBackendException,
+  createBackendObservationScope,
+  normalizeCaughtError,
+} from "../observability/sentry";
+import { hasReportedBackendException } from "../observability/reporting";
+
+const supportedScopes = ["flashcards"] as const;
+
+/**
+ * Per-request context, mirroring apps/backend/src/server/app.ts: one request id
+ * is generated per request and read back by `app.onError`, so every response
+ * and every observation of the same request carries the same id.
+ */
+type McpAppEnv = {
+  Variables: {
+    requestId: string;
+  };
+};
+
+/**
+ * Resolves the public base domain from the environment. Backend Lambdas are
+ * wired with `MCP_BASE_DOMAIN`, and we fail loudly rather than serve a
+ * metadata document pointing at the wrong host.
+ */
+function getBaseDomain(): string {
+  const baseDomain = process.env.MCP_BASE_DOMAIN;
+  if (baseDomain === undefined || baseDomain.trim() === "") {
+    throw new Error("MCP_BASE_DOMAIN environment variable is required for the MCP handler");
+  }
+
+  return baseDomain.trim();
+}
+
+/**
+ * The optional second public MCP host this deployment also answers as, set by
+ * the MCP gateway only when both alternate context values are configured
+ * (infra/aws/lib/mcp-alternate-host.ts). Unset everywhere else, which leaves the
+ * primary host as the only accepted host.
+ */
+function getAlternateMcpHost(): string | null {
+  const alternateHost = process.env.MCP_ALTERNATE_HOST;
+  if (alternateHost === undefined || alternateHost.trim() === "") {
+    return null;
+  }
+
+  return alternateHost.trim();
+}
+
+/**
+ * The configured MCP host this request arrived on. Anything that is not the
+ * primary host or the configured alternate host -- including a missing header
+ * and the raw execute-api hostname -- resolves to the primary host, which is
+ * what this handler has always served.
+ */
+function getRequestMcpHost(c: Context, baseDomain: string): string {
+  return resolveMcpHost(c.req.header("host"), baseDomain, getAlternateMcpHost());
+}
+
+/**
+ * Resolves the public marketing-site origin surfaced in the MCP implementation
+ * metadata. Env-driven via `PUBLIC_SITE_BASE_URL` (self-hosters set their own
+ * domain, mirroring the discovery envelope's legal links); when unset it
+ * defaults to the apex origin derived from `MCP_BASE_DOMAIN`.
+ */
+function getWebsiteUrl(baseDomain: string): string {
+  const configuredValue = process.env.PUBLIC_SITE_BASE_URL;
+  if (configuredValue !== undefined && configuredValue !== "") {
+    return parsePublicOrigin(configuredValue, "PUBLIC_SITE_BASE_URL");
+  }
+
+  return parsePublicOrigin(`https://${baseDomain}`, "PUBLIC_SITE_BASE_URL");
+}
+
+/**
+ * Resolves the absolute https URL of the served branded SVG icon advertised in
+ * the MCP implementation `icons`. Derived from the same public site origin as
+ * `getWebsiteUrl` (env `PUBLIC_SITE_BASE_URL`, fallback to the apex origin from
+ * `MCP_BASE_DOMAIN`) and pointed at the served `/icon.svg`, so self-hosters
+ * advertise their own icon without extra configuration.
+ */
+function getIconUrl(baseDomain: string): string {
+  return `${getWebsiteUrl(baseDomain)}/icon.svg`;
+}
+
+function getAuthorizationServerUrl(baseDomain: string): string {
+  return `https://auth.${baseDomain}`;
+}
+
+function buildProtectedResourceMetadata(
+  mcpHost: string,
+  baseDomain: string,
+): Record<string, unknown> {
+  return buildMcpProtectedResourceMetadata(
+    mcpHost,
+    getAuthorizationServerUrl(baseDomain),
+    supportedScopes,
+  );
+}
+
+function buildBearerChallenge(c: Context, mcpHost: string): Response {
+  const challenge = buildMcpBearerChallenge(mcpHost);
+  return c.json(challenge.body, challenge.statusCode, { "WWW-Authenticate": challenge.wwwAuthenticate });
+}
+
+/**
+ * Character length of the response body, measured without disturbing the
+ * response the client receives. The transport runs with `enableJsonResponse`,
+ * so a buffered JSON body can be read from a clone; anything else is left
+ * unmeasured rather than risk consuming a stream the client needs.
+ */
+async function measureResponseBodyChars(response: Response): Promise<number | null> {
+  if (response.body === null) {
+    return 0;
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (contentType === null || contentType.toLowerCase().includes("application/json") === false) {
+    return null;
+  }
+
+  return (await response.clone().text()).length;
+}
+
+/**
+ * `measureResponseBodyChars` with its own failure boundary, and `null` when the
+ * branch produced no response at all. A clone or a body read that rejects costs
+ * this one field of one record, never the record itself, which is why the
+ * emitter below resolves the size here before it decides to emit.
+ */
+async function resolveResponseBodyChars(response: Response | null): Promise<number | null> {
+  if (response === null) {
+    return null;
+  }
+
+  try {
+    return await measureResponseBodyChars(response);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The authenticated connection (user + selected workspace) a `/mcp` request
+ * runs under, resolved from the request's OAuth Bearer token.
+ */
+type AuthenticatedMcpConnection = Awaited<ReturnType<typeof authenticateMcpBearerToken>>;
+
+type McpRequestRecordInput = Readonly<{
+  request: Request;
+  connection: AuthenticatedMcpConnection;
+  requestId: string;
+  startedAtMs: number;
+  statusCode: number;
+  response: Response | null;
+  toolName: string | null;
+  toolExecuted: boolean | null;
+  toolCallArguments: string | null;
+  toolIsError: boolean | null;
+  toolErrorCode: string | null;
+}>;
+
+/**
+ * Emits the one `mcp_request` record of an authenticated `/mcp` request. Every
+ * branch of the route below that answers an authenticated client calls this
+ * exactly once -- the transport response, the transport fault, and the non-POST
+ * rejection alike -- so the record count is the authenticated request count.
+ * The unauthenticated branches (no token, rejected token, auth-layer failure)
+ * emit nothing: they have no connection, and this record is about traffic that
+ * reached the resource.
+ *
+ * Its inputs are the request headers the MCP spec defines
+ * (`MCP-Protocol-Version`, `Mcp-Method`, `User-Agent`) plus the `toolName` and
+ * `toolExecuted` the caller resolved, which prefer the tool the handlers report
+ * in process and the one the `tools/call` body names over the `Mcp-Name`
+ * header, because that header is only REQUIRED from MCP revision 2026-07-28 and
+ * most live clients are older. Header values are client-controlled, so they are
+ * normalized for telemetry and never validated: a missing or surprising header
+ * must not change how a request that works today is served. Of the JSON-RPC
+ * body the transport owns, only a `tools/call` tool name is ever read (see
+ * `readCallToolNameFromRequestBody`).
+ *
+ * Reading the response body and writing the record are purely observational, so
+ * both are fenced, in two phases that keep the invariant above unconditional.
+ * Phase one resolves the field values: every step that can fail -- today only
+ * the response body measurement -- carries its own boundary and degrades to
+ * `null`, so a value we could not resolve costs its field and not the record.
+ * Phase two is the emit, and nothing awaited, optional, or computed for a field
+ * sits inside it: once phase one has run, the record is written. Its fence
+ * exists only so writing the record can neither fail a request that was already
+ * answered, nor escape into a caller's catch and produce a second record for
+ * one request.
+ */
+async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void> {
+  // Phase one: resolve the field values. The duration is taken before the body
+  // is measured, so it stays the time spent serving the request rather than the
+  // time spent observing it.
+  const durationMs = Date.now() - input.startedAtMs;
+  const responseChars = await resolveResponseBodyChars(input.response);
+  const record = {
+    requestId: input.requestId,
+    httpMethod: input.request.method,
+    userId: input.connection.userId,
+    workspaceId: input.connection.selectedWorkspaceId,
+    connectionId: input.connection.connectionId,
+    caller: normalizeMcpTelemetryValue(input.request.headers.get("user-agent")),
+    protocolVersion: normalizeMcpTelemetryValue(
+      input.request.headers.get("mcp-protocol-version"),
+    ),
+    jsonRpcMethod: normalizeMcpTelemetryValue(input.request.headers.get("mcp-method")),
+    toolName: input.toolName,
+    toolExecuted: input.toolExecuted,
+    toolCallArguments: input.toolCallArguments,
+    toolIsError: input.toolIsError,
+    toolErrorCode: input.toolErrorCode,
+    statusCode: input.statusCode,
+    durationMs,
+    responseChars,
+  };
+
+  // Phase two: emit the resolved record.
+  try {
+    logMcpRequestEvent(record);
+  } catch {
+    // Observability must not change the response the client receives.
+  }
+}
+
+/**
+ * Runs one stateless MCP request: a fresh server + Web Standard Streamable HTTP
+ * transport per call, with `enableJsonResponse` so the buffered API Gateway
+ * Lambda integration returns a single JSON-RPC response instead of an SSE
+ * stream. The transport is closed after the response is produced.
+ *
+ * DNS-rebinding protection is enabled with the configured MCP hosts on the
+ * allowlist (MCP spec recommendation for Streamable HTTP servers): the canonical
+ * `mcp.<domain>` and, when configured, the alternate host. Real client traffic
+ * arrives on one of those custom domains (API Gateway forwards the custom-domain
+ * Host to the Lambda); the non-canonical execute-api host is not used by real
+ * clients because issued tokens bind to a custom-domain `resource` and would 401
+ * on any other host.
+ *
+ * Exactly one `mcp_request` telemetry record is emitted per request through the
+ * shared `emitMcpRequestRecord` above, on the response path and on the
+ * transport-fault path alike. The record names the tool the handlers report in
+ * process; when no handler ran it falls back to the tool the `tools/call` body
+ * names and then to the `Mcp-Name` header, and marks the record `toolExecuted:
+ * false` when a tool was named and `null` when none was, so a call the SDK
+ * refused before execution is countable instead of being indistinguishable
+ * from a request that named no tool at all.
+ *
+ * The request id is the one the `X-Request-Id` middleware below generated for
+ * this request, so it is on every response of this surface including the ones
+ * `app.onError` builds. It is published for the duration of the transport call,
+ * so the `agent_sql` records the SQL tools emit underneath it and the Sentry
+ * captures the tool layer makes both carry it and join to this record.
+ */
+async function handleMcpTransportRequest(
+  request: Request,
+  connection: AuthenticatedMcpConnection,
+  mcpHost: string,
+  baseDomain: string,
+  requestId: string,
+  startedAtMs: number,
+): Promise<Response> {
+  const caller = normalizeMcpTelemetryValue(request.headers.get("user-agent"));
+  const headerToolName = normalizeMcpTelemetryValue(request.headers.get("mcp-name"));
+  const bodyToolName = await readCallToolNameFromRequestBody(request);
+  // Every tool the request runs, in call order, with its serialized arguments.
+  // The last one is what the record names, so a batched request still produces
+  // exactly one record.
+  const invokedTools: Array<Readonly<{ toolName: string; toolCallArguments: string | null }>> = [];
+  // Every outcome a handler reports, kept and chosen the same way.
+  const toolOutcomes: Array<McpToolOutcome> = [];
+  const server = createMcpServer(
+    connection,
+    getWebsiteUrl(baseDomain),
+    getIconUrl(baseDomain),
+    {
+      caller,
+      recordInvokedTool: (toolName, toolCallArguments) => {
+        invokedTools.push({ toolName, toolCallArguments });
+      },
+      recordToolOutcome: (outcome) => {
+        toolOutcomes.push(outcome);
+      },
+    },
+  );
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+    maxRequestBodySize: MAX_MCP_REQUEST_BODY_BYTES,
+    enableDnsRebindingProtection: true,
+    allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
+  });
+  const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> => {
+    const invokedTool = invokedTools.at(-1) ?? null;
+    const invokedToolName = invokedTool === null ? null : invokedTool.toolName;
+    const toolName = invokedToolName ?? bodyToolName ?? headerToolName;
+    const toolOutcome = toolOutcomes.at(-1) ?? null;
+    return emitMcpRequestRecord({
+      request,
+      connection,
+      requestId,
+      startedAtMs,
+      statusCode,
+      response,
+      toolName,
+      toolExecuted: toolName === null ? null : invokedToolName !== null,
+      toolCallArguments: invokedTool === null ? null : invokedTool.toolCallArguments,
+      toolIsError: toolOutcome === null ? null : toolOutcome.isError,
+      toolErrorCode: toolOutcome === null ? null : toolOutcome.errorCode,
+    });
+  };
+
+  try {
+    await server.connect(transport);
+    const response = await runWithMcpRequestId(requestId, () => transport.handleRequest(request));
+    // The transport builds its own Response rather than one built through the
+    // Hono context, so the middleware's request id is carried over onto it.
+    response.headers.set("X-Request-Id", requestId);
+    await emitRequestRecord(response.status, response);
+
+    return response;
+  } catch (error) {
+    // A transport-layer fault produces no response here; app.onError below turns
+    // it into the client-facing status this records.
+    await emitRequestRecord(error instanceof HttpError ? error.statusCode : 500, null);
+
+    throw error;
+  } finally {
+    await transport.close();
+    await server.close();
+  }
+}
+
+function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
+  app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/.well-known/openai-apps-challenge", (c) => {
+    // This public ownership proof belongs only to the Nibomo submission, never to self-hosters.
+    const verificationHost = "mcp.nibomo.com";
+    const requestHost = c.req.header("host")?.toLowerCase();
+    const allowedHosts = getAllowedMcpHosts(getBaseDomain(), getAlternateMcpHost());
+    if (requestHost !== verificationHost || !allowedHosts.includes(verificationHost)) {
+      return c.notFound();
+    }
+    return c.text("y6BqD7-KrszllIQHROBAyp4dNbif44LcpJWK21K4agw");
+  });
+  app.get("/robots.txt", (c) =>
+    c.body("User-agent: *\nDisallow:\n", 200, {
+      "Content-Type": "text/plain; charset=utf-8",
+    }),
+  );
+
+  // Serve PRM at both the RFC 9728 path-aware location (`/mcp` suffix, used by
+  // spec-current clients) and the legacy path-less location (older clients).
+  // Both return the same document, whose `resource` names the configured host
+  // the request arrived on: https://mcp.<domain>/mcp on the primary host, and
+  // the alternate host's own identifier there.
+  const protectedResourceMetadata = (c: Context) => {
+    const baseDomain = getBaseDomain();
+    return c.json(buildProtectedResourceMetadata(getRequestMcpHost(c, baseDomain), baseDomain));
+  };
+
+  app.get("/.well-known/oauth-protected-resource/mcp", protectedResourceMetadata);
+  app.get("/.well-known/oauth-protected-resource", protectedResourceMetadata);
+
+  app.all("/mcp", async (c) => {
+    const baseDomain = getBaseDomain();
+    // Both the challenge and the expected token audience are the host this
+    // request arrived on, so an OAuth token is accepted only on the host whose
+    // resource identifier it carries.
+    const mcpHost = getRequestMcpHost(c, baseDomain);
+    const authorization = c.req.header("authorization");
+    const token = authorization === undefined ? null : extractBearerToken(authorization);
+    // The dispatcher answers most of these itself; see lambda-mcp-dispatcher.ts.
+    if (token === null) {
+      return buildBearerChallenge(c, mcpHost);
+    }
+
+    let connection: AuthenticatedMcpConnection;
+    try {
+      connection = await authenticateMcpBearerToken(token, getMcpResourceUrl(mcpHost));
+    } catch (error) {
+      if (error instanceof HttpError && error.statusCode === 401) {
+        return buildBearerChallenge(c, mcpHost);
+      }
+
+      throw error;
+    }
+
+    const requestId = c.get("requestId");
+    // One clock for both branches below, started where the request is known to
+    // be authenticated, so `durationMs` measures the same thing on every record.
+    const startedAtMs = Date.now();
+
+    // Stateless JSON mode only services request/response POSTs. A GET would make
+    // the transport open a never-ending SSE stream that the buffered Lambda then
+    // closes empty, and DELETE has no session to terminate, so reject non-POST
+    // methods cleanly instead of routing them into the transport.
+    if (c.req.method !== "POST") {
+      const response = c.json(
+        {
+          error: "method_not_allowed",
+          error_description: "The MCP resource only accepts POST in stateless JSON mode.",
+        },
+        405,
+        { Allow: "POST" },
+      );
+      // MCP revisions 2025-03-26 through 2025-11-25 let a client open the
+      // standalone notification stream with `GET /mcp`, so a client that keeps
+      // attempting it and accepting the rejection is ordinary authenticated
+      // traffic here, and exactly the client-compatibility signal this record
+      // exists to surface. Emitted from the route because the transport helper
+      // never sees these requests, and awaited before returning so one
+      // authenticated request still means exactly one record.
+      await emitMcpRequestRecord({
+        request: c.req.raw,
+        connection,
+        requestId,
+        startedAtMs,
+        statusCode: 405,
+        response,
+        toolName: null,
+        toolExecuted: null,
+        toolCallArguments: null,
+        toolIsError: null,
+        toolErrorCode: null,
+      });
+
+      return response;
+    }
+
+    return handleMcpTransportRequest(
+      c.req.raw,
+      connection,
+      mcpHost,
+      baseDomain,
+      requestId,
+      startedAtMs,
+    );
+  });
+
+  return app;
+}
+
+export function createMcpApp(): Hono<McpAppEnv> {
+  const app = new Hono<McpAppEnv>();
+  // Mirrors the HTTP surface (apps/backend/src/server/app.ts): the request id is
+  // generated and put on the response before any handler runs, so it survives
+  // onto the error responses `app.onError` builds below and not only onto the
+  // successful transport response.
+  app.use("*", async (context, next) => {
+    const requestId = crypto.randomUUID();
+    context.set("requestId", requestId);
+    context.header("X-Request-Id", requestId);
+    await next();
+  });
+  // Mount at `/` (custom domain root) and `/v1` (execute-api stage path).
+  app.route("/", buildMcpRoutes(new Hono<McpAppEnv>()));
+  app.route("/", buildMcpRoutes(new Hono<McpAppEnv>().basePath("/v1")));
+
+  // Mirror the HTTP agent surface (apps/backend/src/server/app.ts `app.onError`):
+  // errors that escape the tool try/catch -- transport-layer faults
+  // (`server.connect`, `transport.handleRequest`, `transport.close`) and any
+  // non-401 error rethrown from the `/mcp` auth catch -- are captured to Sentry,
+  // dedup-guarded, instead of falling through to Hono's default unreported 500.
+  // An HttpError preserves its real statusCode/code and the same Retry-After
+  // header the HTTP surface emits (getHttpErrorResponseHeaders), so a transient
+  // 503 SERVICE_UNAVAILABLE from the auth-layer DB boundary surfaces as a
+  // retryable signal rather than an opaque 500, and a future 4xx HttpError keeps
+  // its real status. Any non-HttpError/unknown failure collapses to a generic
+  // sanitized 500 (no driver/stack internals). The 401 Bearer challenge and
+  // tool-layer error handling are unchanged.
+  app.onError((error, context) => {
+    const normalizedError = normalizeCaughtError(error);
+    // Mirror the HTTP surface's shouldCaptureRequestFailureException core rule
+    // (apps/backend/src/server/app.ts): only report unexpected/5xx errors. A
+    // future 4xx HttpError thrown from a /mcp PRM/transport path stays unreported,
+    // matching the HTTP agent surface. The benign-code exclusions there
+    // (AuthError, CHAT_LIVE_RESUME_CONTRACT_VIOLATION, ...) are not reachable on
+    // the MCP transport, so they are not replicated.
+    const shouldCapture = error instanceof HttpError ? error.statusCode >= 500 : true;
+    if (shouldCapture && hasReportedBackendException(normalizedError) === false) {
+      captureBackendException({
+        action: "request_failed",
+        error: normalizedError,
+        scope: createBackendObservationScope(
+          "backend-api",
+          context.get("requestId"),
+          "mcp",
+          context.req.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ),
+        details: {
+          statusCode: error instanceof HttpError ? error.statusCode : 500,
+          code: error instanceof HttpError ? (error.code ?? "INTERNAL_ERROR") : "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : String(error),
+          validationIssues: [],
+        },
+      });
+    }
+
+    if (error instanceof HttpError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      for (const [name, value] of getHttpErrorResponseHeaders(error)) {
+        context.header(name, value);
+      }
+      return context.json({ error: error.message, code: error.code ?? "INTERNAL_ERROR" });
+    }
+
+    return context.json({ error: "Internal Server Error", code: "INTERNAL_ERROR" }, 500);
+  });
+
+  return app;
+}

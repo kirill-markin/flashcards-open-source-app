@@ -17,7 +17,8 @@
  * and the reverse. The authorization server is the same for both hosts.
  *
  * These are pure functions over explicit arguments so the environment is read
- * only by the Lambda entrypoints (apps/backend/src/entrypoints/lambda-mcp*.ts).
+ * only by the MCP app (apps/backend/src/mcp/httpApp.ts) and the dispatcher
+ * (apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts).
  */
 
 import { normalizeRequestHost } from "../shared/requestHost";

@@ -77,7 +77,7 @@
     "sources": [
       "../apps/backend/src/aiTools/toolRegistry/specs.ts",
       "../apps/backend/src/mcp/server.ts",
-      "../apps/backend/src/entrypoints/lambda-mcp.ts",
+      "../apps/backend/src/mcp/httpApp.ts",
       "../apps/backend/src/aiTools/agentSql.ts",
       "agent-sql-telemetry.md"
     ]

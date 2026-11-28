@@ -1,6 +1,6 @@
 # Agent SQL and MCP Telemetry
 
-Every agent SQL execution emits one `agent_sql` CloudWatch record, on success and on failure alike, so the failure rate of foreign models against our SQL dialect is measurable; every authenticated `/mcp` request emits one `mcp_request` record, so MCP traffic that runs no SQL is measurable too. What each field means is owned by `AgentSqlDetails` and `McpRequestDetails` in [`operations.ts`](../apps/backend/src/observability/sentry/events/operations.ts); the emitters are `withAgentSqlTelemetry` in [`agentSql.ts`](../apps/backend/src/aiTools/agentSql.ts) and the `/mcp` route in [`lambda-mcp.ts`](../apps/backend/src/entrypoints/lambda-mcp.ts).
+Every agent SQL execution emits one `agent_sql` CloudWatch record, on success and on failure alike, so the failure rate of foreign models against our SQL dialect is measurable; every authenticated `/mcp` request emits one `mcp_request` record, so MCP traffic that runs no SQL is measurable too. What each field means is owned by `AgentSqlDetails` and `McpRequestDetails` in [`operations.ts`](../apps/backend/src/observability/sentry/events/operations.ts); the emitters are `withAgentSqlTelemetry` in [`agentSql.ts`](../apps/backend/src/aiTools/agentSql.ts) and the `/mcp` route in [`httpApp.ts`](../apps/backend/src/mcp/httpApp.ts).
 
 ## Reading the records
 

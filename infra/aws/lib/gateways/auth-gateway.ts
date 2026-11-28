@@ -346,7 +346,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       // (apps/auth/src/routes/oauth/metadata.ts,
       // apps/auth/src/routes/oauth/authorize.ts). Shipped MCP clients compare it,
       // and the backend names the same string in every protected-resource
-      // document (apps/backend/src/entrypoints/lambda-mcp.ts), so it is pinned to
+      // document (apps/backend/src/mcp/httpApp.ts), so it is pinned to
       // baseDomain and has no override.
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
