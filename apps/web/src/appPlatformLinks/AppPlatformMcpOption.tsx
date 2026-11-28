@@ -1,8 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { copiedFeedbackDurationMs } from "../access/browserAccess";
+import { getAppConfig } from "../config";
 import { useI18n } from "../i18n";
-
-export const publicMcpServerUrl: string = "https://mcp.nibomo.com/mcp";
 
 type AppPlatformMcpCopyStatus = "idle" | "copied" | "failed";
 
@@ -15,6 +14,7 @@ export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactEle
   const { label, testIdPrefix } = props;
   const { direction, t } = useI18n();
   const [copyStatus, setCopyStatus] = useState<AppPlatformMcpCopyStatus>("idle");
+  const { mcpServerUrl } = getAppConfig();
   // Several grids can share one page, so the heading id is derived from the caller's prefix.
   const titleElementId: string = `${testIdPrefix}-mcp-title`;
   const copyButtonLabel: string = copyStatus === "copied"
@@ -41,7 +41,7 @@ export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactEle
     }
 
     try {
-      await navigator.clipboard.writeText(publicMcpServerUrl);
+      await navigator.clipboard.writeText(mcpServerUrl);
       setCopyStatus("copied");
     } catch {
       setCopyStatus("failed");
@@ -68,7 +68,7 @@ export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactEle
         <p className="app-platform-links-mcp-caption">{t("appPlatformLinks.mcp.caption")}</p>
         <div className="app-platform-links-mcp-copy-row">
           <code className="app-platform-links-mcp-url" data-testid={`${testIdPrefix}-mcp-url`}>
-            {publicMcpServerUrl}
+            {mcpServerUrl}
           </code>
           <button
             className="ghost-btn app-platform-links-mcp-copy-button"

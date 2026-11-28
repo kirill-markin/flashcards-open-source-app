@@ -15,15 +15,9 @@ type BridgeReply = Readonly<{ protocol: "nibomo-auth-hints-v1"; requestId: strin
 
 function bridgeOrigin(): string {
   const authUrl = new URL(getAppConfig().authBaseUrl);
-  const pairs: Readonly<Record<string, string>> = {
-    "https://app.nibomo.com": "https://auth.nibomo.com",
-    "https://app.flashcards-open-source-app.com": "https://auth.flashcards-open-source-app.com",
-    "http://localhost:3000": "http://localhost:8081",
-    "http://127.0.0.1:3000": "http://127.0.0.1:8081",
-  };
-  if (pairs[window.location.origin] !== authUrl.origin || authUrl.username !== "" || authUrl.password !== ""
+  if (authUrl.username !== "" || authUrl.password !== ""
     || authUrl.pathname !== "/" || authUrl.search !== "" || authUrl.hash !== "") {
-    throw new Error("Browser sign-in hints require this app's matching auth origin. Check the app auth URL configuration.");
+    throw new Error("Browser sign-in hints require the app auth URL to be a bare origin. Check the app auth URL configuration.");
   }
   return authUrl.origin;
 }

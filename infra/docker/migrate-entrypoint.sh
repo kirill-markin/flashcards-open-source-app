@@ -6,5 +6,5 @@ export PGPASSWORD="$DB_PASSWORD"
 export PGHOST="$DB_HOST"
 export PGPORT=5432
 export PGDATABASE="$DB_NAME"
-export PGSSLMODE=require
+export PGSSLMODE="${PGSSLMODE:-require}"
 exec bash /scripts/deploy/migrate.sh

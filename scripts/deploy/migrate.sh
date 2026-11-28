@@ -43,9 +43,11 @@ for f in "$ROOT_DIR"/db/migrations/*.sql; do
   # DEFERRED specifically so a circular insert order across two tables can
   # be checked once at commit instead of per statement. Without this flag,
   # psql autocommits each statement individually and both patterns break on
-  # a from-scratch migrate run.
-  run_psql --single-transaction -v ON_ERROR_STOP=1 -f "$f"
-  echo "INSERT INTO schema_migrations (filename) VALUES (:'fname')" | run_psql -v "fname=$BASENAME"
+  # a from-scratch migrate run. The schema_migrations record is written in the
+  # same transaction, so an interrupted run never leaves a migration applied
+  # but unrecorded, or recorded but unapplied.
+  echo "INSERT INTO schema_migrations (filename) VALUES (:'fname')" |
+    run_psql --single-transaction -v ON_ERROR_STOP=1 -v "fname=$BASENAME" -f "$f" -f -
 done
 
 echo "Applying views..."
