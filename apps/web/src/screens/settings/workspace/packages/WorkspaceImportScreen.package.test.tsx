@@ -161,6 +161,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       preferences: {
         accentColor: "#FF6719",
         theme: "dark",
+        followSystemAppearance: false,
         reviewReactionAnimationsEnabled: true,
         firstReviewOnboardingCompleted: true,
       },

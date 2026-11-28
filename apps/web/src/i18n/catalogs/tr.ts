@@ -59,6 +59,7 @@ const trCatalog: TranslationCatalog = {
     subtitle: "Uygulama için koyu veya açık görünüm seçin.",
     dark: "Koyu",
     light: "Açık",
+    system: "Sistem",
     premiumNote: "Açık tema Premium’a dahildir. Kaydettiğiniz seçim Premium etkin olduğunda geri gelir.",
   },
   accentColorSettings: {

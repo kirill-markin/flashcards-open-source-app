@@ -59,6 +59,7 @@ const mrCatalog: TranslationCatalog = {
     subtitle: "अॅपसाठी गडद किंवा फिकट रूप निवडा.",
     dark: "गडद",
     light: "फिकट",
+    system: "सिस्टम",
     premiumNote: "फिकट थीम Premium मध्ये समाविष्ट आहे. Premium सक्रिय असताना तुमची जतन केलेली निवड पुन्हा लागू होते.",
   },
   accentColorSettings: {

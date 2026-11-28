@@ -59,6 +59,7 @@ const skCatalog: TranslationCatalog = {
     subtitle: "Vyberte tmavý alebo svetlý vzhľad aplikácie.",
     dark: "Tmavý",
     light: "Svetlý",
+    system: "Podľa systému",
     premiumNote: "Svetlý motív je súčasťou Premium. Vaša uložená voľba sa vráti, keď bude Premium aktívne.",
   },
   accentColorSettings: {

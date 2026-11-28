@@ -59,6 +59,7 @@ const huCatalog: TranslationCatalog = {
     subtitle: "Válassz sötét vagy világos megjelenést az alkalmazáshoz.",
     dark: "Sötét",
     light: "Világos",
+    system: "Rendszer",
     premiumNote: "A világos téma a Premium része. A mentett választásod visszatér, amikor a Premium aktív.",
   },
   accentColorSettings: {

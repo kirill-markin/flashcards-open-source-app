@@ -87,6 +87,7 @@ const session: SessionInfo = {
   preferences: {
     accentColor: "#FF6719",
     theme: "dark",
+    followSystemAppearance: false,
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: true,
     analyticsConsent: null,

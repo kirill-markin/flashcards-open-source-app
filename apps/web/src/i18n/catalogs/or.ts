@@ -59,6 +59,7 @@ const orCatalog: TranslationCatalog = {
     subtitle: "ଆପ୍ ପାଇଁ ଗାଢ଼ କିମ୍ବା ହାଲୁକା ରୂପ ବାଛନ୍ତୁ।",
     dark: "ଗାଢ଼",
     light: "ହାଲୁକା",
+    system: "ସିଷ୍ଟମ୍",
     premiumNote: "ହାଲୁକା ଥିମ୍ Premiumରେ ମିଳେ। Premium ସକ୍ରିୟ ହେଲେ ଆପଣଙ୍କ ସଞ୍ଚିତ ପସନ୍ଦ ପୁଣି ଲାଗୁ ହେବ।",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const hiCatalog: TranslationCatalog = {
     subtitle: "ऐप के लिए डार्क या लाइट रूप चुनें।",
     dark: "डार्क",
     light: "लाइट",
+    system: "सिस्टम",
     premiumNote: "लाइट थीम Premium में शामिल है। Premium सक्रिय होने पर आपकी सहेजी गई पसंद फिर से लागू हो जाती है।",
   },
   accentColorSettings: {

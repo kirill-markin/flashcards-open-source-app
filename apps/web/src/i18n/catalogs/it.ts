@@ -59,6 +59,7 @@ const itCatalog: TranslationCatalog = {
     subtitle: "Scegli un aspetto scuro o chiaro per l’app.",
     dark: "Scuro",
     light: "Chiaro",
+    system: "Sistema",
     premiumNote: "Il tema chiaro è incluso in Premium. La tua scelta salvata viene ripristinata quando Premium è attivo.",
   },
   accentColorSettings: {

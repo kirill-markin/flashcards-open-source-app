@@ -59,6 +59,7 @@ const nlCatalog: TranslationCatalog = {
     subtitle: "Kies een donkere of lichte weergave voor de app.",
     dark: "Donker",
     light: "Licht",
+    system: "Systeem",
     premiumNote: "Het lichte thema is inbegrepen bij Premium. Je opgeslagen keuze keert terug zodra Premium actief is.",
   },
   accentColorSettings: {

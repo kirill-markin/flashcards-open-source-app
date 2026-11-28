@@ -1,15 +1,41 @@
 import { useLayoutEffect, useSyncExternalStore, type ReactElement } from "react";
 import { useAppData } from "../appData";
-import { defaultAppTheme, type AppTheme } from "../types/account";
+import { defaultAppTheme, type AppTheme, type AppThemeSelection } from "../types/account";
 import { useCanCustomizeStyle } from "./styleSettings";
+import { readThemeSelection } from "./themeSelection";
 
-export const appThemes: ReadonlyArray<AppTheme> = ["dark", "light"];
+const systemDarkQuery = "(prefers-color-scheme: dark)";
 
-export function useAccountTheme(): Readonly<{ selectedTheme: AppTheme; effectiveTheme: AppTheme; canCustomize: boolean }> {
-  const session = useAppData().session;
-  const selectedTheme = session?.preferences.theme ?? defaultAppTheme;
+function subscribeToSystemTheme(onChange: () => void): () => void {
+  const media = window.matchMedia(systemDarkQuery);
+  media.addEventListener("change", onChange);
+  return (): void => media.removeEventListener("change", onChange);
+}
+
+function readSystemTheme(): AppTheme {
+  return window.matchMedia(systemDarkQuery).matches ? "dark" : "light";
+}
+
+function subscribeToNothing(): () => void {
+  return (): void => {};
+}
+
+function readDefaultTheme(): AppTheme {
+  return defaultAppTheme;
+}
+
+export function useAccountTheme(): Readonly<{ effectiveSelection: AppThemeSelection; effectiveTheme: AppTheme; canCustomize: boolean }> {
+  const preferences = useAppData().session?.preferences ?? null;
   const canCustomize = useCanCustomizeStyle();
-  return { selectedTheme, effectiveTheme: canCustomize ? selectedTheme : defaultAppTheme, canCustomize };
+  const effectiveSelection = canCustomize && preferences !== null ? readThemeSelection(preferences) : defaultAppTheme;
+  const isFollowingSystem = effectiveSelection === "system";
+  // The browser's scheme is read and listened to only while it decides the theme.
+  const systemTheme = useSyncExternalStore(
+    isFollowingSystem ? subscribeToSystemTheme : subscribeToNothing,
+    isFollowingSystem ? readSystemTheme : readDefaultTheme,
+  );
+  const effectiveTheme = effectiveSelection === "system" ? systemTheme : effectiveSelection;
+  return { effectiveSelection, effectiveTheme, canCustomize };
 }
 
 export function AccountThemeAttribute(): ReactElement | null {

@@ -59,6 +59,7 @@ const ltCatalog: TranslationCatalog = {
     subtitle: "Pasirinkite tamsią arba šviesią programėlės išvaizdą.",
     dark: "Tamsi",
     light: "Šviesi",
+    system: "Pagal sistemą",
     premiumNote: "Šviesi tema įtraukta į Premium. Jūsų išsaugotas pasirinkimas grįžta, kai Premium aktyvus.",
   },
   accentColorSettings: {

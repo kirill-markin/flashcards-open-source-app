@@ -85,7 +85,7 @@ export function SettingsScreen(): ReactElement {
   } = useAppData();
   const workspacePath = useWorkspacePath();
   const { effectiveColor } = useAccountAccentColor();
-  const { effectiveTheme } = useAccountTheme();
+  const { effectiveSelection } = useAccountTheme();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, getLocaleName, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
@@ -286,7 +286,7 @@ export function SettingsScreen(): ReactElement {
           <SettingsNavigationCard
             title={t("themeSettings.title")}
             description={t("themeSettings.subtitle")}
-            value={t(`themeSettings.${effectiveTheme}`)}
+            value={t(`themeSettings.${effectiveSelection}`)}
             to={workspacePath(settingsThemeRoute)}
             testId="settings-row-theme"
           />

@@ -59,6 +59,7 @@ const viCatalog: TranslationCatalog = {
     subtitle: "Chọn giao diện tối hoặc sáng cho ứng dụng.",
     dark: "Tối",
     light: "Sáng",
+    system: "Hệ thống",
     premiumNote: "Chủ đề sáng được bao gồm trong Premium. Lựa chọn bạn đã lưu sẽ được áp dụng lại khi Premium đang hoạt động.",
   },
   accentColorSettings: {

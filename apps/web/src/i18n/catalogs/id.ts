@@ -59,6 +59,7 @@ const idCatalog: TranslationCatalog = {
     subtitle: "Pilih tampilan gelap atau terang untuk aplikasi.",
     dark: "Gelap",
     light: "Terang",
+    system: "Sistem",
     premiumNote: "Tema terang disertakan dalam Premium. Pilihan tersimpan Anda kembali berlaku saat Premium aktif.",
   },
   accentColorSettings: {

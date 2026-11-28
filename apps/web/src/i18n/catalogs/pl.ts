@@ -59,6 +59,7 @@ const plCatalog: TranslationCatalog = {
     subtitle: "Wybierz ciemny lub jasny wygląd aplikacji.",
     dark: "Ciemny",
     light: "Jasny",
+    system: "Systemowy",
     premiumNote: "Jasny motyw jest dostępny w Premium. Twój zapisany wybór wróci, gdy Premium będzie aktywne.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const elCatalog: TranslationCatalog = {
     subtitle: "Επιλέξτε σκούρα ή φωτεινή εμφάνιση για την εφαρμογή.",
     dark: "Σκούρο",
     light: "Φωτεινό",
+    system: "Σύστημα",
     premiumNote: "Το φωτεινό θέμα περιλαμβάνεται στο Premium. Η αποθηκευμένη επιλογή σας επανέρχεται όταν το Premium είναι ενεργό.",
   },
   accentColorSettings: {

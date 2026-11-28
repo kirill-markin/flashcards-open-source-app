@@ -59,6 +59,7 @@ const slCatalog: TranslationCatalog = {
     subtitle: "Izberite temen ali svetel videz aplikacije.",
     dark: "Temna",
     light: "Svetla",
+    system: "Sistemska",
     premiumNote: "Svetla tema je vključena v Premium. Vaša shranjena izbira se vrne, ko je Premium aktiven.",
   },
   accentColorSettings: {

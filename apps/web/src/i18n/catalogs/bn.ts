@@ -59,6 +59,7 @@ const bnCatalog: TranslationCatalog = {
     subtitle: "অ্যাপের জন্য গাঢ় বা হালকা চেহারা বেছে নিন।",
     dark: "গাঢ়",
     light: "হালকা",
+    system: "সিস্টেম",
     premiumNote: "হালকা থিম Premium-এ অন্তর্ভুক্ত। Premium সক্রিয় থাকলে আপনার সংরক্ষিত পছন্দ ফিরে আসে।",
   },
   accentColorSettings: {

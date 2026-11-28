@@ -9,9 +9,13 @@ export type AppTheme = "dark" | "light";
 
 export const defaultAppTheme: AppTheme = "dark";
 
+/** The Theme choice: a stored `theme`, or following the browser while `followSystemAppearance` is on. */
+export type AppThemeSelection = AppTheme | "system";
+
 export type AccountPreferences = Readonly<{
   accentColor: string;
   theme: AppTheme;
+  followSystemAppearance: boolean;
   reviewReactionAnimationsEnabled: boolean;
   firstReviewOnboardingCompleted: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
@@ -39,6 +43,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
 export type AccountPreferencesUpdate = Readonly<{
   accentColor?: string;
   theme?: AppTheme;
+  followSystemAppearance?: true;
   reviewReactionAnimationsEnabled?: boolean;
   firstReviewOnboardingCompleted?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
