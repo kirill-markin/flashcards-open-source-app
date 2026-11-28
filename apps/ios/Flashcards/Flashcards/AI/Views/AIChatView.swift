@@ -5,7 +5,9 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct AIChatView: View {
-    #if !targetEnvironment(macCatalyst)
+    #if targetEnvironment(macCatalyst)
+    @Environment(\.macWindowPresentation) private var macWindowPresentation
+    #else
     @Environment(AICompanionComposerHost.self) var companionComposerHost
     #endif
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
@@ -21,7 +23,7 @@ struct AIChatView: View {
     let companionHostTab: AppTab?
 
     var isPresentationActive: Bool {
-        self.navigation.isLiveAIChatVisible && (
+        self.allowsCatalogAIPresentation && self.navigation.isLiveAIChatVisible && (
             self.isCompanion
                 ? self.navigation.selectedTab == self.companionHostTab && self.companionPageIsTop
                 : self.navigation.selectedTab == .ai
@@ -46,6 +48,7 @@ struct AIChatView: View {
     @State var isComposerFocused: Bool
     #if targetEnvironment(macCatalyst)
     @State var macComposerReturnKeyOwner = MacComposerReturnKeyOwner()
+    @State var macCatalogComposerFocusRequest: MacCatalogComposerFocusRequest?
     @State private var restoresMacComposerFocus = false
     #else
     @State var tabComposerShellWidth = AIChatComposerShellWidth()
@@ -89,7 +92,21 @@ struct AIChatView: View {
             }
             .photosPicker(
                 isPresented: self.$isPhotoPickerPresented,
-                selection: self.$selectedPhotoItem,
+                selection: Binding(
+                    get: { self.selectedPhotoItem },
+                    set: { item in
+                        guard self.selectedPhotoItem != item else { return }
+                        self.selectedPhotoItem = item
+                        if let item {
+                            let started = self.loadAttachmentTransfer { scope in
+                                await self.handleSelectedPhotoItem(item, scope: scope)
+                            }
+                            if started == false {
+                                self.selectedPhotoItem = nil
+                            }
+                        }
+                    }
+                ),
                 matching: .images,
                 preferredItemEncoding: .current,
                 photoLibrary: .shared()
@@ -113,9 +130,17 @@ struct AIChatView: View {
         self.bodyBaseModifiers
             .onAppear(perform: self.handleViewAppear)
             .onDisappear {
+                #if targetEnvironment(macCatalyst)
+                self.macCatalogComposerFocusRequest = nil
+                #endif
                 self.recordComposerPresentation(operation: .presentation, isVisible: false)
             }
             .onChange(of: self.isComposerFocused) { _, isFocused in
+                #if targetEnvironment(macCatalyst)
+                if isFocused == false {
+                    self.macCatalogComposerFocusRequest = nil
+                }
+                #endif
                 self.recordComposerPresentation(operation: .focus, isVisible: self.isPresentationActive)
                 self.recordComposerFocusOwner(isFocused: isFocused)
             }
@@ -124,6 +149,12 @@ struct AIChatView: View {
             }
             .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
                 self.handlePresentationRequestChange(request: request)
+            }
+            .onChange(of: self.catalogDraftBlocker) { _, blocker in
+                if blocker == nil, self.isPresentationActive,
+                   let request = self.pendingCatalogDraftRequest {
+                    self.handleAIChatPresentationRequest(request: request, source: .catalogDraftReady)
+                }
             }
             .onChange(of: self.readyAIImportRequestID, initial: true) { _, requestID in
                 self.handleAIImportRequest(id: requestID)
@@ -165,9 +196,6 @@ struct AIChatView: View {
             }
             .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
                 self.handleCompletedDictationTranscriptChange(nextTranscript: nextTranscript)
-            }
-            .onChange(of: self.selectedPhotoItem) { _, newItem in
-                self.handleSelectedPhotoItemChange(newItem: newItem)
             }
     }
 
@@ -318,9 +346,25 @@ struct AIChatView: View {
 
     var bodyContent: some View {
         VStack(spacing: 0) {
+            if self.isPresentationActive, let request = self.pendingCatalogDraftRequest {
+                self.pendingCatalogDraftBanner(request: request)
+            } else if self.isPresentationActive, self.accessState == .ready, self.chatStore.isChatInteractive,
+                      self.chatStore.isLiveReconciliationPending, self.chatStore.activeBootstrapTask == nil {
+                HStack {
+                    Text(aiSettingsLocalized("ai.failed.title", "Chat unavailable"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    self.retryLiveReconciliationButton
+                }
+                .padding(.horizontal, self.chatContentHorizontalPadding)
+                .padding(.vertical, 8)
+            }
             switch self.accessState {
             case .consentRequired:
-                self.consentGate
+                if self.allowsCatalogAIPresentation {
+                    self.consentGate
+                }
             case .ready:
                 if self.isPresentationActive && self.navigation.aiImportRequest != nil {
                     HStack {
@@ -336,8 +380,69 @@ struct AIChatView: View {
         }
     }
 
+    private var pendingCatalogDraftRequest: AIChatPresentationRequest? {
+        let request = self.scenePresentationRequest
+        guard case .createCatalogDeck = request else { return nil }
+        return request
+    }
+
+    private var catalogDraftBlocker: AIChatCatalogDraftBlocker? {
+        guard self.isPresentationActive, self.pendingCatalogDraftRequest != nil else { return nil }
+        return self.chatStore.catalogDraftBlocker
+    }
+
+    private func pendingCatalogDraftBanner(request: AIChatPresentationRequest) -> some View {
+        HStack {
+            Text(self.pendingCatalogDraftStatus)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            if self.catalogDraftBlocker == .retryLiveReconciliation {
+                self.retryLiveReconciliationButton
+            } else if self.catalogDraftBlocker == .retryRunSync {
+                Button(aiSettingsLocalized("common.retry", "Retry"), action: self.chatStore.syncLinkedDataAfterTerminalRunIfNeeded)
+            }
+            Button(aiSettingsLocalized("common.cancel", "Cancel")) {
+                self.navigation.clearAIChatPresentationRequest(request: request)
+            }
+            .accessibilityIdentifier(UITestIdentifier.aiCatalogDraftCancelButton)
+        }
+        .padding(.horizontal, self.chatContentHorizontalPadding)
+        .padding(.vertical, 8)
+    }
+
+    private var retryLiveReconciliationButton: some View {
+        Button(aiSettingsLocalized("common.retry", "Retry"), action: self.chatStore.retryLiveConversationReconciliation)
+    }
+
+    private var pendingCatalogDraftStatus: String {
+        switch self.catalogDraftBlocker {
+        case .consent:
+            return aiSettingsLocalized("ai.consent.dataSharingTitle", "AI data sharing")
+        case .loadingChat, nil:
+            return aiSettingsLocalized("ai.loading.title", "Loading chat")
+        case .chatUnavailable, .retryLiveReconciliation:
+            return aiSettingsLocalized("ai.failed.title", "Chat unavailable")
+        case .run:
+            return aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
+        case .syncingRun:
+            return aiSettingsLocalized("settings.sync.syncing", "Syncing")
+        case .retryRunSync:
+            return aiSettingsLocalized("settings.sync.failed.generic", "Sync failed")
+        case .attachmentTransfer:
+            return String(localized: "catalog.list.ai_deck.loading_attachment", table: "Foundation")
+        case .dictation:
+            return self.dictationStatusText
+        case .draft:
+            return String(localized: "catalog.list.ai_deck.pending", table: "Foundation")
+        }
+    }
+
     var isNewChatDisabled: Bool {
         self.chatStore.canStartNewChat == false
+            || (self.navigation.pendingCatalogAIDeckRequest != nil
+                && (self.chatStore.hasUnsettledRun || self.chatStore.activeBootstrapTask != nil
+                    || self.chatStore.activeAttachmentTransferCount > 0))
     }
 
     var composerSelection: TextSelection? {
@@ -542,7 +647,11 @@ struct AIChatView: View {
     }
 
     var consentGate: some View {
-        AIConsentDisclosureView(onAllowed: self.acceptExternalAIConsent, onNotNow: self.leaveAIAfterDecliningConsent)
+        AIConsentDisclosureView(
+            canChangeConsent: { self.allowsCatalogAIPresentation },
+            onAllowed: self.acceptExternalAIConsent,
+            onNotNow: self.leaveAIAfterDecliningConsent
+        )
     }
 
     @ViewBuilder
@@ -681,15 +790,23 @@ struct AIChatView: View {
     }
 
     func leaveAIAfterDecliningConsent() {
-        let wasAIImport = self.navigation.aiImportRequest != nil
+        guard self.allowsCatalogAIPresentation else { return }
+        let isCatalogRequest = self.navigation.pendingCatalogAIDeckRequest != nil
+        let returnsToLibrary = self.navigation.aiImportRequest != nil || isCatalogRequest
         self.navigation.cancelAIImport()
         self.presentationRequestCoordinator.clearDeferredPresentationRequest()
-        if let request = self.navigation.aiChatPresentationRequest {
+        if let request = self.scenePresentationRequest {
             self.navigation.clearAIChatPresentationRequest(request: request)
         }
+        #if targetEnvironment(macCatalyst)
+        if isCatalogRequest == false {
+            self.navigation.isAICompanionPresented = false
+        }
+        #else
         self.navigation.isAICompanionPresented = false
+        #endif
         if self.navigation.selectedTab == .ai {
-            self.navigation.selectTab(wasAIImport ? .library : .review)
+            self.navigation.selectTab(returnsToLibrary ? .library : .review)
         }
     }
 
@@ -699,6 +816,7 @@ struct AIChatView: View {
     }
 
     func syncChatSurface(refreshConsent: Bool) {
+        guard self.allowsCatalogAIPresentation else { return }
         if refreshConsent {
             self.chatStore.refreshExternalProviderConsentState()
         }
@@ -737,13 +855,15 @@ struct AIChatView: View {
             return nil
         }
 
-        if self.matchesCurrentAccessContext(request) == false {
+        if self.matchesCurrentAccessContext(request.accessContext) == false {
             return request.id
         }
 
         guard self.chatStore.hasExternalProviderConsent,
               self.chatStore.isChatInteractive,
               self.chatStore.composerPhase == .idle,
+              self.chatStore.isLiveReconciliationPending == false,
+              self.chatStore.activeAttachmentTransferCount == 0,
               self.chatStore.dictationState == .idle else {
             return nil
         }
@@ -760,7 +880,7 @@ struct AIChatView: View {
               let request = self.navigation.takeAIImportRequest() else {
             return
         }
-        guard self.matchesCurrentAccessContext(request) else {
+        guard self.matchesCurrentAccessContext(request.accessContext) else {
             aiChatRemoveAttachmentFiles(attachments: request.attachments)
             self.chatStore.showGeneralError(message: aiImportWorkspaceChangedMessage())
             return
@@ -778,17 +898,45 @@ struct AIChatView: View {
         self.chatStore.startAIImport(attachments: request.attachments, requestText: request.requestText)
     }
 
-    private func matchesCurrentAccessContext(_ request: AIImportPresentationRequest) -> Bool {
-        request.matches(
-            accessContext: self.chatStore.currentAccessContext(),
+    private func matchesCurrentAccessContext(_ accessContext: AIChatAccessContext) -> Bool {
+        accessContext.matches(
+            current: self.chatStore.currentAccessContext(),
             preservedGuestLink: self.flashcardsStore.preservedGuestWorkspaceLink
         )
     }
 
+    private var allowsCatalogAIPresentation: Bool {
+        #if targetEnvironment(macCatalyst)
+        self.navigation.allowsCatalogAIPresentation(in: self.macWindowPresentation?.sceneID)
+        #else
+        true
+        #endif
+    }
+
+    private var scenePresentationRequest: AIChatPresentationRequest? {
+        guard self.allowsCatalogAIPresentation else { return nil }
+        let request = self.navigation.aiChatPresentationRequest
+        if case .createCatalogDeck(let catalogRequest) = request,
+           catalogRequest.accessContext.matches(
+               current: self.chatStore.currentCatalogDeckAccessContext(),
+               preservedGuestLink: self.flashcardsStore.preservedGuestWorkspaceLink
+           ) == false {
+            return nil
+        }
+        return request
+    }
+
     private var presentationRequestContext: AIChatPresentationRequestContext {
-        AIChatPresentationRequestContext(
-            isPresentationActive: self.isPresentationActive,
-            navigationRequest: self.navigation.aiChatPresentationRequest,
+        let request = self.scenePresentationRequest
+        var isActive = self.isPresentationActive
+        #if targetEnvironment(macCatalyst)
+        if case .createCatalogDeck(let catalogRequest) = request, catalogRequest.sceneID != nil {
+            isActive = isActive && self.scenePhase == .active
+        }
+        #endif
+        return AIChatPresentationRequestContext(
+            isPresentationActive: isActive,
+            navigationRequest: request,
             chatStore: self.chatStore,
             syncChatSurface: { self.syncChatSurface(refreshConsent: false) },
             selectedTab: self.navigation.selectedTab,
@@ -803,7 +951,7 @@ struct AIChatView: View {
         source: AIChatPresentationLifecycleSource
     ) {
         self.presentationRequestCoordinator.capture(
-            request: request,
+            request: request == self.scenePresentationRequest ? request : nil,
             source: source,
             context: self.presentationRequestContext
         )
@@ -813,6 +961,10 @@ struct AIChatView: View {
         request: AIChatPresentationRequest?,
         source: AIChatPresentationLifecycleSource
     ) {
+        self.navigation.retireStaleCatalogAIDeckRequest(
+            accessContext: self.chatStore.currentCatalogDeckAccessContext(),
+            preservedGuestLink: self.flashcardsStore.preservedGuestWorkspaceLink
+        )
         guard self.navigation.aiImportRequest == nil else {
             self.presentationRequestCoordinator.clearDeferredPresentationRequest()
             return
@@ -820,7 +972,7 @@ struct AIChatView: View {
         self.retireStaleDeferredPresentationRequest()
 
         guard let completedRequest = self.presentationRequestCoordinator.handle(
-            request: request == self.navigation.aiChatPresentationRequest ? request : nil,
+            request: request == self.scenePresentationRequest ? request : nil,
             source: source,
             context: self.presentationRequestContext
         ) else {
@@ -831,6 +983,15 @@ struct AIChatView: View {
             self.chatStore.inputText = draftText
             self.isComposerFocused = false
         } else {
+            if case .createCatalogDeck = completedRequest {
+                #if targetEnvironment(macCatalyst)
+                if case .createCatalogDeck(let catalogRequest) = completedRequest, let sceneID = catalogRequest.sceneID {
+                    self.macCatalogComposerFocusRequest = MacCatalogComposerFocusRequest(id: catalogRequest.id, sceneID: sceneID)
+                }
+                #endif
+                let end = self.chatStore.inputText.endIndex
+                self.composerSelection = TextSelection(range: end..<end)
+            }
             self.isComposerFocused = true
         }
         self.navigation.clearAIChatPresentationRequest(request: completedRequest)
@@ -876,6 +1037,7 @@ struct AIChatView: View {
 
     func dismissComposerFocus() {
         #if targetEnvironment(macCatalyst)
+        self.macCatalogComposerFocusRequest = nil
         self.restoresMacComposerFocus = false
         #endif
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
@@ -980,7 +1142,7 @@ struct AIChatView: View {
     /// longer matches was applied by another chat or replaced, and must never replay.
     private func retireStaleDeferredPresentationRequest() {
         guard let deferredRequest = self.presentationRequestCoordinator.deferredPresentationRequest,
-              deferredRequest != self.navigation.aiChatPresentationRequest else { return }
+              deferredRequest != self.scenePresentationRequest else { return }
         self.presentationRequestCoordinator.clearDeferredPresentationRequest()
     }
 
@@ -1107,6 +1269,7 @@ struct AIChatView: View {
         self.recordComposerPresentation(operation: .presentation, isVisible: isVisible)
         guard isVisible else {
             #if targetEnvironment(macCatalyst)
+            self.macCatalogComposerFocusRequest = nil
             self.restoresMacComposerFocus = false
             #endif
             self.frozenTranscriptMessages = self.chatStore.messages
@@ -1162,16 +1325,6 @@ struct AIChatView: View {
         self.handleCompletedDictationTranscript(nextTranscript)
     }
 
-    func handleSelectedPhotoItemChange(newItem: PhotosPickerItem?) {
-        guard let newItem else {
-            return
-        }
-
-        Task {
-            await self.handleSelectedPhotoItem(newItem)
-        }
-    }
-
     func handleCameraCapture(data: Data) {
         self.isCameraPresented = false
         self.handleCapturedPhotoData(data)
@@ -1198,9 +1351,7 @@ struct AIChatView: View {
     func handleFileImportResult(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            Task {
-                await self.handleImportedFiles(urls)
-            }
+            self.handleImportedFiles(urls)
         case .failure(let error):
             self.handleFileImportFailure(error)
         }

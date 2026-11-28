@@ -20,7 +20,6 @@ extension AIChatStore {
         self.lastBootstrapFailureWasRetryable = false
 
         let bootstrapContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
-        let preservesPendingLocalSessionDraft = self.shouldPreservePendingLocalSessionDraftOnBootstrapFailure()
         self.activeBootstrapTask = Task {
             defer {
                 if self.isCurrentBootstrapRequest(sequence: requestSequence) {
@@ -74,7 +73,7 @@ extension AIChatStore {
                 ) else {
                     return
                 }
-                if preservesPendingLocalSessionDraft == false {
+                if self.shouldPreservePendingLocalSessionDraftOnBootstrapFailure() == false {
                     self.messages = []
                     self.clearOptimisticOutgoingTurnState()
                     let resolvedSessionId = aiChatResolvedSessionId(
@@ -248,11 +247,17 @@ extension AIChatStore {
     /// shown one only while the shown one is not yet provisioned there. A local run resumes its own session's stream,
     /// and a forced reload, such as after a rejected Stop, reloads the chat it was started for.
     private func shouldBootstrapCurrentChat(forceReloadState: Bool) -> Bool {
-        forceReloadState == false
+        let draft = self.currentComposerDraft()
+        return forceReloadState == false
             && self.chatSessionId.isEmpty == false
             && self.requiresRemoteSessionProvisioning == false
             && self.composerPhase == .idle
-            && self.currentComposerDraft().origin != .aiImport
+            && self.activeRunId == nil
+            && self.isLiveReconciliationPending == false
+            && self.pendingToolRunPostSync == false
+            && self.activeAttachmentTransferCount == 0
+            && draft.isEmpty
+            && draft.origin != .aiImport
     }
 
     private func shouldPreservePendingLocalSessionDraftOnBootstrapFailure() -> Bool {
@@ -262,8 +267,6 @@ extension AIChatStore {
         }
         return self.chatSessionId.isEmpty == false
             && self.conversationScopeId == self.chatSessionId
-            && self.messages.isEmpty
-            && self.activeRunId == nil
             && draft.isEmpty == false
     }
 

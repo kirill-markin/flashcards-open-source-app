@@ -50,6 +50,7 @@ extension FlashcardsStore {
         self.clearLastReportedWidgetPlacementForCloudIdentityReset()
         #endif
         try self.resetAIConsentIdentity()
+        self.cloudServerIdentityRevision = UUID()
         self.cloudRuntime.cancelForAccountDeletion()
         self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()

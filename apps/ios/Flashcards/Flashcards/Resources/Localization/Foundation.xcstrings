@@ -14480,6 +14480,2124 @@
         }
       }
     },
+    "catalog.list.ai_deck.description" : {
+      "comment" : "Deck catalog search action subtitle",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your search as the topic for a new deck."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your search as the topic for a new deck."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your search as the topic for a new deck."
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez votre recherche comme sujet d’un nouveau paquet."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將搜尋內容用作新牌組的主題。"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a sua pesquisa como tema de um novo baralho."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gunakan carian anda sebagai topik untuk dek baharu."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆପଣଙ୍କ ଖୋଜକୁ ନୂଆ ଡେକ୍‌ର ବିଷୟ ଭାବରେ ବ୍ୟବହାର କରନ୍ତୁ।"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدم عبارة البحث موضوعًا لمجموعة جديدة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Използвай търсенето си като тема за ново тесте."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার অনুসন্ধানকে নতুন ডেকের বিষয় হিসেবে ব্যবহার করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fes servir la cerca com a tema d’una baralla nova."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Použijte svůj dotaz jako téma nového balíčku."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brug din søgning som emne for et nyt sæt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende deine Suche als Thema für einen neuen Stapel."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Χρησιμοποίησε την αναζήτησή σου ως θέμα για μια νέα τράπουλα."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your search as the topic for a new deck."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa tu búsqueda como tema de un mazo nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa tu búsqueda como tema de un mazo nuevo."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kasuta otsingut uue kaardipaki teemana."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "از جست‌وجوی خود به‌عنوان موضوع یک دستهٔ جدید استفاده کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käytä hakuasi uuden pakan aiheena."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez votre recherche comme sujet d’un nouveau paquet."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "તમારી શોધને નવા ડેકના વિષય તરીકે વાપરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "אפשר להשתמש בחיפוש כנושא לחפיסה חדשה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपनी खोज को नए डेक का विषय बनाएँ।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upotrijebi pretraživanje kao temu za novi špil."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Használd a keresésedet egy új pakli témájaként."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gunakan pencarianmu sebagai topik dek baru."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notaðu leitina þína sem efni fyrir nýjan stokk."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la tua ricerca come argomento per un nuovo mazzo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索した内容を新しいデッキのテーマにします。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಹುಡುಕಾಟವನ್ನು ಹೊಸ ಡೆಕ್‌ನ ವಿಷಯವಾಗಿ ಬಳಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색어를 새 덱의 주제로 사용하세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paieškos užklausą naudokite kaip naujo rinkinio temą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izmanto meklējumu kā jaunā komplekta tēmu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തിരഞ്ഞത് പുതിയ ഡെക്കിന്റെ വിഷയമാക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमचा शोध नव्या डेकचा विषय म्हणून वापरा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruk søket ditt som tema for en ny kortstokk."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik je zoekopdracht als onderwerp voor een nieuwe set."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣੀ ਖੋਜ ਨੂੰ ਨਵੇਂ ਡੈੱਕ ਦਾ ਵਿਸ਼ਾ ਬਣਾਓ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj swojego wyszukiwania jako tematu nowej talii."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use sua busca como tema de um novo baralho."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folosește căutarea ca subiect pentru un pachet nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте поисковый запрос как тему новой колоды."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Použite svoj dopyt ako tému nového balíčka."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uporabi iskanje kot temo novega kompleta."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Använd din sökning som ämne för en ny kortlek."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tumia utafutaji wako kama mada ya staha mpya."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் தேடலைப் புதிய அட்டைத் தொகுப்பின் தலைப்பாகப் பயன்படுத்துங்கள்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ శోధనను కొత్త డెక్ అంశంగా ఉపయోగించండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ใช้คำค้นหาของคุณเป็นหัวข้อสำหรับสำรับใหม่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aramanı yeni bir destenin konusu olarak kullan."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Використайте пошуковий запит як тему нової колоди."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اپنی تلاش کو نئے ڈیک کا موضوع بنائیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng nội dung tìm kiếm làm chủ đề cho bộ thẻ mới."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将搜索内容用作新牌组的主题。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sebenzisa okuseshile njengesihloko senqwaba entsha."
+          }
+        }
+      }
+    },
+    "catalog.list.ai_deck.import_blocked" : {
+      "comment" : "Shown on the AI import screen when an open catalog request must be resolved before another AI request can start.",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish or cancel the pending catalogue request in AI, then try importing again."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish or cancel the pending catalogue request in AI, then try importing again."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish or cancel the pending catalogue request in AI, then try importing again."
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez ou annulez la demande du catalogue en attente dans l’IA, puis réessayez l’importation."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先在 AI 中完成或取消待處理的目錄請求，再試一次匯入。"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conclua ou cancele o pedido pendente do catálogo na IA e tente importar novamente."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesaikan atau batalkan permintaan katalog yang belum selesai dalam AI, kemudian cuba import semula."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIରେ ବାକି ଥିବା କ୍ୟାଟାଲଗ୍ ଅନୁରୋଧଟି ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ କିମ୍ବା ବାତିଲ୍ କରନ୍ତୁ, ତା’ପରେ ପୁଣି ଆମଦାନି କରିବାକୁ ଚେଷ୍ଟା କରନ୍ତୁ।"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أكمل طلب الكتالوج المعلّق أو ألغِه في الذكاء الاصطناعي، ثم حاول الاستيراد مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завършете или отменете чакащата заявка от каталога в ИИ, след което опитайте да импортирате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-তে অপেক্ষমাণ ক্যাটালগ অনুরোধটি শেষ করুন বা বাতিল করুন, তারপর আবার আমদানির চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acaba o cancel·la la sol·licitud pendent del catàleg a la IA i torna a provar la importació."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončete nebo zrušte nevyřízený požadavek z katalogu v AI a potom zkuste import znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afslut eller annuller den ventende kataloganmodning i AI, og prøv derefter at importere igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließe die ausstehende Kataloganfrage in der KI ab oder brich sie ab. Versuche dann erneut zu importieren."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ολοκληρώστε ή ακυρώστε το εκκρεμές αίτημα από τον κατάλογο στην ΤΝ και δοκιμάστε ξανά την εισαγωγή."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish or cancel the pending catalog request in AI, then try importing again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa o cancela la solicitud pendiente del catálogo en IA y vuelve a intentar la importación."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa o cancela la solicitud pendiente del catálogo en IA y vuelve a intentar la importación."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lõpeta või tühista ootel kataloogipäring tehisaru vaates ja proovi seejärel uuesti importida."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در بخش هوش مصنوعی، درخواست در انتظارِ کاتالوگ را تکمیل یا لغو کنید، سپس دوباره وارد کردن را امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viimeistele tai peruuta odottava luettelopyyntö tekoälyssä ja yritä sitten tuontia uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez ou annulez la demande du catalogue en attente dans l’IA, puis réessayez l’importation."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIમાં બાકી રહેલી કૅટલૉગ વિનંતી પૂર્ણ કરો અથવા રદ કરો, પછી ફરી આયાત કરવાનો પ્રયાસ કરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "יש להשלים או לבטל את הבקשה הממתינה מהקטלוג בצ׳אט ה-AI, ואז לנסות לייבא שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI में लंबित कैटलॉग अनुरोध पूरा करें या रद्द करें, फिर से आयात करने की कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dovršite ili otkažite zahtjev iz kataloga na čekanju u AI-ju, a zatim ponovno pokušajte s uvozom."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fejezd be vagy vond vissza a függőben lévő katalóguskérést az MI-ben, majd próbáld meg újra az importálást."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesaikan atau batalkan permintaan katalog yang tertunda di AI, lalu coba impor lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ljúktu við eða hættu við beiðnina úr skránni í gervigreindinni og reyndu svo innflutning aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa o annulla la richiesta in sospeso dal catalogo nell’IA, poi riprova a importare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIで保留中のカタログリクエストを完了またはキャンセルしてから、もう一度インポートしてください。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ನಲ್ಲಿ ಬಾಕಿಯಿರುವ ಕ್ಯಾಟಲಾಗ್ ವಿನಂತಿಯನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ, ನಂತರ ಮತ್ತೆ ಆಮದು ಮಾಡಲು ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI에서 대기 중인 카탈로그 요청을 완료하거나 취소한 다음 다시 가져오세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Užbaikite arba atšaukite laukiančią katalogo užklausą DI skiltyje, tada bandykite importuoti dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pabeidziet vai atceliet gaidošo kataloga pieprasījumu MI sadaļā un mēģiniet importēt vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-യിൽ തീർപ്പാകാത്ത കാറ്റലോഗ് അഭ്യർത്ഥന പൂർത്തിയാക്കുകയോ റദ്ദാക്കുകയോ ചെയ്യുക. തുടർന്ന് വീണ്ടും ഇമ്പോർട്ട് ചെയ്യാൻ ശ്രമിക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI मधील प्रलंबित कॅटलॉग विनंती पूर्ण करा किंवा रद्द करा, नंतर पुन्हा आयात करण्याचा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fullfør eller avbryt den ventende katalogforespørselen i KI, og prøv deretter å importere på nytt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rond het openstaande catalogusverzoek in AI af of annuleer het. Probeer daarna opnieuw te importeren."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ਵਿੱਚ ਬਕਾਇਆ ਕੈਟਾਲਾਗ ਬੇਨਤੀ ਪੂਰੀ ਕਰੋ ਜਾਂ ਰੱਦ ਕਰੋ, ਫਿਰ ਦੁਬਾਰਾ ਆਯਾਤ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ lub anuluj oczekującą prośbę z katalogu w AI, a następnie spróbuj ponownie zaimportować dane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conclua ou cancele a solicitação pendente do catálogo na IA e tente importar novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finalizează sau anulează solicitarea în așteptare din catalog în IA, apoi încearcă din nou să imporți."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершите или отмените ожидающий запрос из каталога в чате с ИИ, затем повторите импорт."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončite alebo zrušte čakajúcu požiadavku z katalógu v AI a potom skúste import znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončajte ali prekličite čakajočo zahtevo iz kataloga v UI, nato znova poskusite uvoziti."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slutför eller avbryt den väntande katalogförfrågan i AI och försök sedan importera igen."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamilisha au ghairi ombi la katalogi linalosubiri katika AI, kisha jaribu kuingiza tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-இல் நிலுவையில் உள்ள பட்டியல் கோரிக்கையை முடிக்கவும் அல்லது ரத்துசெய்யவும். பிறகு மீண்டும் இறக்குமதி செய்ய முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIలో పెండింగ్‌లో ఉన్న క్యాటలాగ్ అభ్యర్థనను పూర్తి చేయండి లేదా రద్దు చేయండి. తర్వాత మళ్లీ దిగుమతి చేయడానికి ప్రయత్నించండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ดำเนินการตามคำขอจากแค็ตตาล็อกที่รอดำเนินการใน AI ให้เสร็จหรือยกเลิกคำขอ แล้วลองนำเข้าอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay zekâda bekleyen katalog isteğini tamamla veya iptal et, ardından tekrar içe aktarmayı dene."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершіть або скасуйте запит із каталогу, що очікує в чаті зі ШІ, а потім спробуйте імпортувати ще раз."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI میں کیٹلاگ کی زیرِ التوا درخواست مکمل یا منسوخ کریں، پھر دوبارہ درآمد کرنے کی کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoàn tất hoặc hủy yêu cầu đang chờ từ danh mục trong AI, rồi thử nhập lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在 AI 中完成或取消待处理的目录请求，然后重试导入。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qedela noma ukhansele isicelo sekhathalogi esisalindile ku-AI, bese uzama ukungenisa futhi."
+          }
+        }
+      }
+    },
+    "catalog.list.ai_deck.loading_attachment" : {
+      "comment" : "Status in AI chat while an attachment is loaded into the current draft.",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading attachment…"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading attachment…"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading attachment…"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement de la pièce jointe…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在載入附件…"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A carregar o anexo…"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memuatkan lampiran…"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସଂଲଗ୍ନକ ଲୋଡ୍ ହେଉଛି…"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ تحميل المرفق…"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прикаченият файл се зарежда…"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংযুক্তি লোড হচ্ছে…"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’està carregant el fitxer adjunt…"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Načítání přílohy…"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indlæser vedhæftning…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anhang wird geladen…"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Φόρτωση συνημμένου…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading attachment…"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando archivo adjunto…"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando archivo adjunto…"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuse laadimine…"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در حال بارگذاری پیوست…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladataan liitettä…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement de la pièce jointe…"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "જોડાણ લોડ થઈ રહ્યું છે…"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הקובץ המצורף בטעינה…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अटैचमेंट लोड हो रहा है…"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Učitavanje privitka…"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melléklet betöltése…"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memuat lampiran…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hleð viðhengi…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento dell’allegato…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添付ファイルを読み込み中…"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಗತ್ತನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "첨부 파일을 불러오는 중…"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įkeliamas priedas…"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ielādē pielikumu…"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അറ്റാച്ച്‌മെന്റ് ലോഡ് ചെയ്യുന്നു…"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संलग्नक लोड होत आहे…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laster vedlegg…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bijlage laden…"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਨੱਥੀ ਫ਼ਾਈਲ ਲੋਡ ਹੋ ਰਹੀ ਹੈ…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytywanie załącznika…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando anexo…"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se încarcă atașamentul…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка вложения…"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Načítava sa príloha…"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nalaganje priloge…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läser in bilaga…"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inapakia kiambatisho…"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைப்பு ஏற்றப்படுகிறது…"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అటాచ్‌మెంట్ లోడ్ అవుతోంది…"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กำลังโหลดไฟล์แนบ…"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ek yükleniyor…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження вкладення…"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "منسلکہ لوڈ ہو رہا ہے…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang tải tệp đính kèm…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载附件…"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ilayisha okunamathiselwe…"
+          }
+        }
+      }
+    },
+    "catalog.list.ai_deck.pending" : {
+      "comment" : "Shown in AI chat while the catalog draft waits for the current unsent draft.",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish your current draft to start the catalog deck."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish your current draft to start the catalog deck."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish your current draft to start the catalog deck."
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le brouillon en cours pour commencer le paquet depuis le catalogue."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先完成目前的草稿，再從目錄開始建立牌組。"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termine o rascunho atual para começar o baralho a partir do catálogo."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siapkan draf semasa untuk mula mencipta dek daripada katalog."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ୟାଟାଲଗ୍‌ରୁ ଡେକ୍ ତିଆରି ଆରମ୍ଭ କରିବାକୁ ବର୍ତ୍ତମାନର ଡ୍ରାଫ୍ଟ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ।"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنه مسودتك الحالية لبدء إنشاء مجموعة الكتالوج."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Довърши текущата чернова, за да започнеш тестето от каталога."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যাটালগের ডেকটি শুরু করতে বর্তমান খসড়াটি শেষ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acaba l’esborrany actual per començar la baralla del catàleg."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončete aktuální koncept, abyste mohli začít tvořit balíček z katalogu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gør din nuværende kladde færdig for at begynde på sættet fra kataloget."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließe deinen aktuellen Entwurf ab, um mit dem Stapel aus dem Katalog zu beginnen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ολοκλήρωσε το τρέχον προσχέδιο για να ξεκινήσεις την τράπουλα από τον κατάλογο."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish your current draft to start the catalog deck."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina el borrador actual para empezar el mazo desde el catálogo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina el borrador actual para empezar el mazo desde el catálogo."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lõpeta praegune mustand, et alustada kaardipaki loomist kataloogist."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای شروع ساخت دسته از کاتالوگ، پیش‌نویس فعلی را تمام کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viimeistele nykyinen luonnos, niin voit aloittaa pakan luomisen luettelosta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le brouillon en cours pour commencer le paquet depuis le catalogue."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "કૅટલૉગમાંથી ડેક બનાવવાનું શરૂ કરવા હાલનો ડ્રાફ્ટ પૂરો કરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כדי להתחיל ליצור חפיסה מהקטלוג, יש לסיים את הטיוטה הנוכחית."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैटलॉग से डेक बनाना शुरू करने के लिए मौजूदा ड्राफ़्ट पूरा करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dovrši trenutačni nacrt da započneš špil iz kataloga."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fejezd be az aktuális piszkozatot, hogy elkezdhesd a paklit a katalógusból."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesaikan draf saat ini untuk mulai membuat dek dari katalog."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ljúktu við núverandi drög til að byrja á stokknum úr skránni."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa la bozza in corso per iniziare il mazzo dal catalogo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カタログからデッキの作成を始めるには、現在の下書きを先に終えてください。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕ್ಯಾಟಲಾಗ್‌ನಿಂದ ಡೆಕ್ ರಚಿಸಲು ಈಗಿನ ಕರಡನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카탈로그에서 덱 만들기를 시작하려면 현재 초안을 마무리하세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Užbaikite dabartinį juodraštį, kad galėtumėte pradėti kurti rinkinį iš katalogo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pabeidz pašreizējo melnrakstu, lai sāktu veidot komplektu no kataloga."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കാറ്റലോഗിൽ നിന്ന് ഡെക്ക് സൃഷ്ടിക്കാൻ നിലവിലെ കരട് പൂർത്തിയാക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कॅटलॉगमधून डेक तयार करण्यासाठी सध्याचा मसुदा पूर्ण करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fullfør det gjeldende utkastet for å begynne på kortstokken fra katalogen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rond je huidige concept af om met de set uit de catalogus te beginnen."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੈਟਾਲਾਗ ਤੋਂ ਡੈੱਕ ਬਣਾਉਣਾ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਮੌਜੂਦਾ ਖਰੜਾ ਪੂਰਾ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokończ bieżący szkic, aby rozpocząć tworzenie talii z katalogu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termine o rascunho atual para começar o baralho pelo catálogo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termină ciorna curentă ca să începi pachetul din catalog."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершите текущий черновик, чтобы начать создавать колоду из каталога."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončite aktuálny koncept, aby ste mohli začať tvoriť balíček z katalógu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokončaj trenutni osnutek, da začneš ustvarjati komplet iz kataloga."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slutför det aktuella utkastet för att börja med kortleken från katalogen."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamilisha rasimu ya sasa ili uanze kuunda staha kutoka kwenye katalogi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பட்டியலிலிருந்து அட்டைத் தொகுப்பை உருவாக்க, தற்போதைய வரைவை முடிக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "క్యాటలాగ్ నుంచి డెక్ రూపొందించడానికి ప్రస్తుత ముసాయిదాను పూర్తి చేయండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เขียนฉบับร่างปัจจุบันให้เสร็จเพื่อเริ่มสร้างสำรับจากแค็ตตาล็อก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katalogdan deste oluşturmaya başlamak için mevcut taslağını bitir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершіть поточну чернетку, щоб почати створювати колоду з каталогу."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کیٹلاگ سے ڈیک بنانا شروع کرنے کے لیے موجودہ مسودہ مکمل کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoàn tất bản nháp hiện tại để bắt đầu tạo bộ thẻ từ danh mục."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先完成当前草稿，再从目录开始创建牌组。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qedela okusalungiswa kwamanje ukuze uqale ukudala inqwaba kukhathalogi."
+          }
+        }
+      }
+    },
+    "catalog.list.ai_deck.prompt %@" : {
+      "comment" : "Editable AI draft when opened from the deck catalog. The placeholder is the visitor’s search.",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a flashcard deck about %@"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a flashcard deck about %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a flashcard deck about %@"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée un paquet de cartes mémoire sur %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建立一套關於 %@ 的學習卡片"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cria um baralho de cartões de estudo sobre %@"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cipta dek kad imbas tentang %@"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ବିଷୟରେ ଏକ ଫ୍ଲାସ୍‌କାର୍ଡ ଡେକ୍ ତିଆରି କରନ୍ତୁ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ مجموعة بطاقات تعليمية عن %@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Създай тесте с учебни карти на тема %@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ নিয়ে একটি ফ্ল্যাশকার্ড ডেক তৈরি করো"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una baralla de targetes d’estudi sobre %@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvoř balíček výukových karet na téma %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret et sæt flashkort om %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle einen Lernkartenstapel zum Thema %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιούργησε μια τράπουλα με κάρτες μελέτης με θέμα %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a flashcard deck about %@"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazo de tarjetas de estudio sobre %@"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazo de tarjetas de estudio sobre %@"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loo õppekaartide pakk teemal %@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک دسته فلش‌کارت دربارهٔ %@ بساز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luo muistikorttipakka aiheesta %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée un paquet de cartes mémoire sur %@"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ વિશે ફ્લૅશકાર્ડનો ડેક બનાવો"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "צור חפיסת כרטיסיות לימוד בנושא %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ पर फ़्लैशकार्ड का डेक बनाओ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izradi špil kartica za učenje na temu %@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Készíts tanulókártya-paklit a következő témában: %@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buat dek kartu belajar tentang %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búðu til stokk af minnisspjöldum um %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazzo di flashcard su %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@についてのフラッシュカードデッキを作ってください"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ಕುರಿತು ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳ ಡೆಕ್ ರಚಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에 관한 플래시카드 덱을 만들어 줘"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sukurk mokymosi kortelių rinkinį tema %@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveido mācību kartīšu komplektu par %@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ എന്ന വിഷയത്തിൽ ഒരു ഫ്ലാഷ്‌കാർഡ് ഡെക്ക് സൃഷ്ടിക്കുക"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ यावर फ्लॅशकार्डचा डेक तयार कर"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lag en stokk med studiekort om %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak een set flashcards over %@"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ਬਾਰੇ ਫਲੈਸ਼ਕਾਰਡਾਂ ਦਾ ਇੱਕ ਡੈੱਕ ਬਣਾਓ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz talię fiszek na temat: %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie um baralho de cartões de estudo sobre %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creează un pachet de fișe de studiu despre %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создай колоду учебных карточек на тему «%@»"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvor balíček študijných kariet na tému %@"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustvari komplet učnih kartic o temi %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skapa en kortlek med instuderingskort om %@"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unda staha ya kadi za kujifunzia kuhusu %@"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ பற்றிய ஃபிளாஷ்கார்டு தொகுப்பை உருவாக்கு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ గురించి ఫ్లాష్‌కార్డ్ డెక్ రూపొందించు"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สร้างสำรับแฟลชการ์ดเกี่ยวกับ %@"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hakkında bir bilgi kartı destesi oluştur"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створи колоду навчальних карток на тему «%@»"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ کے بارے میں فلیش کارڈز کا ڈیک بناؤ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo một bộ thẻ học về %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建一套关于 %@ 的学习卡片"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dala inqwaba yamakhadi okufunda ngesihloko esithi %@"
+          }
+        }
+      }
+    },
+    "catalog.list.ai_deck.title" : {
+      "comment" : "Deck catalog search action title",
+      "localizations" : {
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a deck with AI"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a deck with AI"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a deck with AI"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un paquet avec l’IA"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 AI 建立牌組"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie um baralho com IA"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cipta dek dengan AI"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ଦ୍ୱାରା ଡେକ୍ ତିଆରି କରନ୍ତୁ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ مجموعة بالذكاء الاصطناعي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Създай тесте с ИИ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এআই দিয়ে ডেক তৈরি করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una baralla amb IA"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvořit balíček s AI"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret et sæt med AI"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stapel mit KI erstellen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία τράπουλας με AI"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a deck with AI"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazo con IA"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazo con IA"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loo kaardipakk tehisaruga"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ساخت دسته با هوش مصنوعی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luo pakka tekoälyllä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un paquet avec l’IA"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI વડે ડેક બનાવો"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "יצירת חפיסה בעזרת AI"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एआई से डेक बनाएँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izradi špil uz AI"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakli létrehozása MI-vel"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buat dek dengan AI"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búa til stokk með gervigreind"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un mazzo con l’IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIでデッキを作成"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ಬಳಸಿ ಡೆಕ್ ರಚಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI로 덱 만들기"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sukurkite rinkinį su DI"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveido komplektu ar MI"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ഉപയോഗിച്ച് ഡെക്ക് സൃഷ്ടിക്കുക"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एआयने डेक तयार करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lag en kortstokk med KI"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak een set met AI"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ਨਾਲ ਡੈੱਕ ਬਣਾਓ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz talię z AI"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie um baralho com IA"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creează un pachet cu IA"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать колоду с ИИ"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvoriť balíček s AI"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustvari komplet z umetno inteligenco"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skapa en kortlek med AI"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unda staha kwa AI"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI மூலம் அட்டைத் தொகுப்பை உருவாக்குங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIతో డెక్ రూపొందించండి"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สร้างสำรับด้วย AI"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay zekâyla deste oluştur"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створити колоду з ШІ"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اے آئی سے ڈیک بنائیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo bộ thẻ bằng AI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 AI 创建牌组"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dala inqwaba nge-AI"
+          }
+        }
+      }
+    },
     "catalog.list.card_count %lld" : {
       "comment" : "Number of cards in a deck: Deck catalog rows and the Decks list",
       "localizations" : {

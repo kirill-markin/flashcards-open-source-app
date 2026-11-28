@@ -185,6 +185,7 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// direct `track` measures poll cadence instead of failure incidence.
     case syncFailed(reason: AnalyticsSyncFailureReason)
     case catalogDeckInstallStarted(packageSlug: String)
+    case catalogAIDeckClicked(resultCount: Int)
     /// The premium offer sheet reaching the screen, once per presentation. The test-settings previews
     /// have no entry point and report nothing.
     case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String, accountKind: AnalyticsPaywallAccountKind?, offerType: AnalyticsPurchaseOfferType?, reviewPromptConfigVersion: String?)
@@ -754,6 +755,8 @@ extension AnalyticsEvent {
             return "sync_failed"
         case .catalogDeckInstallStarted:
             return "catalog_deck_install_started"
+        case .catalogAIDeckClicked:
+            return "catalog_ai_deck_clicked"
         case .paywallShown:
             return "paywall_shown"
         case .paywallChoice:
@@ -927,6 +930,8 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
             return ["package_slug": .string(packageSlug)]
+        case .catalogAIDeckClicked(let resultCount):
+            return ["result_count": .integer(max(0, resultCount))]
         case .paywallShown(let presentation, let localDate, let timeZone, let accountKind, let offerType, let reviewPromptConfigVersion):
             var properties = presentation.attributionProperties
             properties["local_date"] = .string(localDate)

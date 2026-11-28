@@ -2,6 +2,9 @@ import Foundation
 import Observation
 import SwiftUI
 import UIKit
+#if targetEnvironment(macCatalyst)
+import Combine
+#endif
 
 #if targetEnvironment(macCatalyst)
 /// The Mac split view keeps one navigation state for its detail column and compares the paths
@@ -150,6 +153,7 @@ final class AppNavigationModel {
     private(set) var aiTabVisitID: UUID
     #if targetEnvironment(macCatalyst)
     private(set) var cardSearchFocusRequestID: UUID? = nil
+    @ObservationIgnored private var catalogSceneDisconnectObservation: AnyCancellable?
     #endif
     var settingsPath: SettingsNavigationPath
     #if targetEnvironment(macCatalyst)
@@ -174,7 +178,8 @@ final class AppNavigationModel {
     /// The AI tab shows the chat itself; the Mac keeps Settings without the pane.
     var isAICompanionVisible: Bool {
         #if targetEnvironment(macCatalyst)
-        self.isAICompanionPaneOpen && (self.selectedTab != .ai && self.selectedTab != .settings)
+        self.isAICompanionPaneOpen && self.selectedTab != .ai && self.selectedTab != .settings
+            && self.pendingCatalogAIDeckRequest == nil
         #else
         self.isAICompanionPaneOpen && self.selectedTab != .ai
         #endif
@@ -282,10 +287,18 @@ final class AppNavigationModel {
         self.cardsPresentationRequest = .createCard
     }
 
-    func updateAICompanionAvailability(_ isAvailable: Bool) {
-        // Retain the pane preference and shared draft when a window gets smaller.
-        // A layout change should not switch the person's selected tab.
+    func updateAICompanionAvailability(_ isAvailable: Bool, sceneID: String?) {
+        #if targetEnvironment(macCatalyst)
+        guard self.allowsCatalogAIPresentation(in: sceneID) else { return }
         self.canPresentAICompanion = isAvailable
+        #else
+        let movesPendingCatalogRequestToTab = isAvailable == false
+            && self.isAICompanionVisible && self.pendingCatalogAIDeckRequest != nil
+        self.canPresentAICompanion = isAvailable
+        if movesPendingCatalogRequestToTab {
+            self.presentLiveAIChat()
+        }
+        #endif
     }
 
     func toggleAICompanion() {
@@ -319,36 +332,115 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
-        self.cancelAIImport()
-        if self.isAICompanionVisible == false {
-            self.selectTab(.ai)
-        }
-        self.popAIToLiveChat()
-        self.aiChatPresentationRequest = .createCard
+        self.openAIChatPresentation(.createCard)
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
+        self.openAIChatPresentation(.attachCard(card))
+    }
+
+    private func openAIChatPresentation(_ request: AIChatPresentationRequest) {
+        guard self.canStartOtherAIRequest() else { return }
+
         self.cancelAIImport()
-        // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
-        self.aiChatPresentationRequest = .attachCard(card)
+        // The transcript must see the handoff before a tab visit can enqueue a scroll.
+        self.aiChatPresentationRequest = request
+        self.presentLiveAIChat()
+    }
+
+    private func canStartOtherAIRequest() -> Bool {
+        guard self.pendingCatalogAIDeckRequest == nil else {
+            self.presentLiveAIChat()
+            return false
+        }
+        return true
+    }
+
+    private func presentLiveAIChat() {
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
         self.popAIToLiveChat()
     }
 
-    func openAIImport(request: AIImportPresentationRequest) -> Bool {
-        guard self.aiImportRequest == nil else {
-            return false
+    var canOpenCatalogAIDeck: Bool {
+        self.aiChatPresentationRequest == nil && self.aiImportRequest == nil
+    }
+
+    var pendingCatalogAIDeckRequest: AIChatPresentationRequest? {
+        guard case .createCatalogDeck = self.aiChatPresentationRequest else { return nil }
+        return self.aiChatPresentationRequest
+    }
+
+    #if targetEnvironment(macCatalyst)
+    func allowsCatalogAIPresentation(in sceneID: String?) -> Bool {
+        guard case .createCatalogDeck(let request) = self.pendingCatalogAIDeckRequest,
+              let ownerSceneID = request.sceneID else {
+            return true
         }
+        return sceneID == ownerSceneID
+    }
+    #endif
+
+    func openCatalogAIDeck(
+        prompt: String,
+        resultCount: Int,
+        originatingScene: UIWindowScene?,
+        accessContext: AICatalogDeckAccessContext
+    ) {
+        guard self.canOpenCatalogAIDeck else { return }
+
+        let request = AIChatPresentationRequest.createCatalogDeck(AICatalogDeckPresentationRequest(
+            id: UUID(),
+            prompt: prompt,
+            sceneID: originatingScene?.session.persistentIdentifier,
+            accessContext: accessContext
+        ))
+        #if targetEnvironment(macCatalyst)
+        if let originatingScene {
+            let wasCompanionAvailable = self.canPresentAICompanion
+            self.catalogSceneDisconnectObservation = NotificationCenter.default
+                .publisher(for: UIScene.didDisconnectNotification, object: originatingScene)
+                .sink { [weak self] _ in
+                    guard let self, self.pendingCatalogAIDeckRequest == request else { return }
+                    self.clearAIChatPresentationRequest(request: request)
+                    self.canPresentAICompanion = wasCompanionAvailable
+                    if self.selectedTab == .ai {
+                        self.selectTab(.library)
+                    }
+                }
+        }
+        #endif
+        Analytics.track(.catalogAIDeckClicked(resultCount: resultCount), screen: .catalog)
+        self.aiChatPresentationRequest = request
+        #if !targetEnvironment(macCatalyst)
+        if self.canPresentAICompanion {
+            self.isAICompanionPresented = true
+        }
+        #endif
+        self.presentLiveAIChat()
+    }
+
+    func retireStaleCatalogAIDeckRequest(
+        accessContext: AICatalogDeckAccessContext,
+        preservedGuestLink: PreservedGuestWorkspaceLink?
+    ) {
+        guard let request = self.aiChatPresentationRequest,
+              case .createCatalogDeck(let catalogRequest) = request,
+              catalogRequest.accessContext.matches(current: accessContext, preservedGuestLink: preservedGuestLink) == false else {
+            return
+        }
+        self.clearAIChatPresentationRequest(request: request)
+    }
+
+    func openAIImport(request: AIImportPresentationRequest) -> AIImportOpenResult {
+        guard self.pendingCatalogAIDeckRequest == nil else { return .catalogRequestPending }
+        guard self.aiImportRequest == nil else { return .importRequestPending }
 
         self.aiChatPresentationRequest = nil
         self.aiImportRequest = request
-        if self.isAICompanionVisible == false {
-            self.selectTab(.ai)
-        }
-        self.popAIToLiveChat()
-        return true
+        self.presentLiveAIChat()
+        return .opened
     }
 
     func takeAIImportRequest() -> AIImportPresentationRequest? {
@@ -475,6 +567,9 @@ final class AppNavigationModel {
             return
         }
 
+        #if targetEnvironment(macCatalyst)
+        self.catalogSceneDisconnectObservation = nil
+        #endif
         self.aiChatPresentationRequest = nil
     }
 

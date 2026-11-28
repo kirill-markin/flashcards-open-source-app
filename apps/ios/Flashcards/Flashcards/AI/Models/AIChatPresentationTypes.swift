@@ -2,7 +2,38 @@ import Foundation
 
 enum AIChatPresentationRequest: Hashable, Sendable {
     case createCard
+    case createCatalogDeck(AICatalogDeckPresentationRequest)
     case attachCard(AIChatCardReference)
+}
+
+struct AICatalogDeckPresentationRequest: Hashable, Sendable {
+    let id: UUID
+    let prompt: String
+    let sceneID: String?
+    let accessContext: AICatalogDeckAccessContext
+}
+
+struct AICatalogDeckAccessContext: Hashable, Sendable {
+    let chatAccess: AIChatAccessContext
+    let cloudServerIdentityRevision: UUID
+
+    func matches(current: Self, preservedGuestLink: PreservedGuestWorkspaceLink?) -> Bool {
+        self.cloudServerIdentityRevision == current.cloudServerIdentityRevision
+            && self.chatAccess.matches(current: current.chatAccess, preservedGuestLink: preservedGuestLink)
+    }
+}
+
+enum AIChatCatalogDraftBlocker: Equatable {
+    case consent
+    case loadingChat
+    case chatUnavailable
+    case run
+    case retryLiveReconciliation
+    case syncingRun
+    case retryRunSync
+    case attachmentTransfer
+    case dictation
+    case draft
 }
 
 func aiImportWorkspaceChangedMessage() -> String {
@@ -16,23 +47,31 @@ func aiImportWaitingMessage() -> String {
     aiSettingsLocalized("settings.workspace.import.aiImport.waiting", "Waiting to start import…")
 }
 
+enum AIImportOpenResult {
+    case opened
+    case catalogRequestPending
+    case importRequestPending
+}
+
 struct AIImportPresentationRequest: Equatable {
     let id: UUID
     let accessContext: AIChatAccessContext
     let attachments: [AIChatAttachment]
     let requestText: String
+}
 
-    func matches(accessContext current: AIChatAccessContext, preservedGuestLink: PreservedGuestWorkspaceLink?) -> Bool {
-        if self.accessContext == current {
+extension AIChatAccessContext {
+    func matches(current: AIChatAccessContext, preservedGuestLink: PreservedGuestWorkspaceLink?) -> Bool {
+        if self == current {
             return true
         }
 
         guard let link = preservedGuestLink,
-              self.accessContext.workspaceId == link.sourceWorkspaceId,
-              self.accessContext.activeWorkspaceId == nil || self.accessContext.activeWorkspaceId == link.sourceWorkspaceId,
-              self.accessContext.linkedUserId == nil,
-              self.accessContext.cloudState != .linked,
-              self.accessContext.cloudState != .guest else {
+              self.workspaceId == link.sourceWorkspaceId,
+              self.activeWorkspaceId == nil || self.activeWorkspaceId == link.sourceWorkspaceId,
+              self.linkedUserId == nil,
+              self.cloudState != .linked,
+              self.cloudState != .guest else {
             return false
         }
 

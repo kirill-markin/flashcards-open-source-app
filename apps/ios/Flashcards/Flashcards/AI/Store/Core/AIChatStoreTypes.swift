@@ -78,6 +78,11 @@ enum AIChatAttachmentSettingsSource: String, Equatable {
     }
 }
 
+struct AIChatSessionScope: Equatable {
+    let workspaceId: String?
+    let sessionId: String
+}
+
 enum AIChatAlert: Identifiable, Equatable {
     case microphoneSettings
     case attachmentSettings(source: AIChatAttachmentSettingsSource)
@@ -193,7 +198,7 @@ func aiChatShouldReuseCurrentSessionForHandoff(
         && currentSessionId.isEmpty == false
 }
 
-struct AIChatAccessContext: Equatable {
+struct AIChatAccessContext: Hashable, Sendable {
     let workspaceId: String?
     let cloudState: CloudAccountState?
     let linkedUserId: String?

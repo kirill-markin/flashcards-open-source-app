@@ -5,6 +5,8 @@ extension AIChatStore {
         switch request {
         case .createCard:
             return self.inputText == aiChatCreateCardDraftPrompt
+        case .createCatalogDeck(let request):
+            return self.appliedCatalogAIDeckRequestID == request.id && self.inputText == request.prompt
         case .attachCard(let card):
             return aiChatPendingAttachmentsContainMatchingCard(
                 pendingAttachments: self.pendingAttachments,
@@ -92,6 +94,55 @@ extension AIChatStore {
         self.schedulePersistCurrentDraftState()
         self.activeAlert = nil
         self.repairStatus = nil
+        return true
+    }
+
+    var hasUnsettledRun: Bool {
+        self.composerPhase != .idle || self.activeRunId != nil || self.isLiveReconciliationPending
+            || self.pendingToolRunPostSync || self.activeToolRunPostSyncTask != nil
+    }
+
+    var catalogDraftBlocker: AIChatCatalogDraftBlocker? {
+        guard self.hasExternalProviderConsent else { return .consent }
+        switch self.bootstrapPhase {
+        case .loading: return .loadingChat
+        case .failed: return .chatUnavailable
+        case .ready: break
+        }
+        if self.activeBootstrapTask != nil { return .loadingChat }
+        if self.isLiveReconciliationPending { return .retryLiveReconciliation }
+        if self.composerPhase != .idle || self.activeRunId != nil { return .run }
+        if self.activeToolRunPostSyncTask != nil { return .syncingRun }
+        if self.pendingToolRunPostSync { return .retryRunSync }
+        if self.activeAttachmentTransferCount > 0 { return .attachmentTransfer }
+        if self.dictationState != .idle { return .dictation }
+        if self.currentComposerDraft().isEmpty == false || self.completedDictationTranscript != nil {
+            return .draft
+        }
+        return nil
+    }
+
+    func prepareCatalogAIDeckDraft(id: UUID, prompt: String) -> Bool {
+        guard self.catalogDraftBlocker == nil, self.canEditDraft else {
+            return false
+        }
+
+        let composerDraft = self.currentComposerDraft()
+        let catalogDraft = AIChatComposerDraft(inputText: prompt, pendingAttachments: [])
+        if self.hasOlderMessages == false,
+           aiChatShouldReuseCurrentSessionForHandoff(
+               messages: self.messages,
+               composerDraft: composerDraft,
+               composerPhase: self.composerPhase,
+               activeRunId: self.activeRunId,
+               currentSessionId: self.chatSessionId
+           ) {
+            self.applyComposerDraft(catalogDraft, operation: .draftReplacement)
+            self.schedulePersistCurrentDraftState()
+        } else {
+            self.startFreshLocalDraftSession(draft: catalogDraft)
+        }
+        self.appliedCatalogAIDeckRequestID = id
         return true
     }
 
@@ -236,6 +287,10 @@ extension AIChatStore {
     }
 
     func retryLinkedBootstrap() {
+        if self.isLiveReconciliationPending {
+            self.retryLiveConversationReconciliation()
+            return
+        }
         self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
     }
 
@@ -263,6 +318,17 @@ extension AIChatStore {
             linkedUserId: self.flashcardsStore.cloudSettings?.linkedUserId,
             activeWorkspaceId: self.flashcardsStore.cloudSettings?.activeWorkspaceId
         )
+    }
+
+    func currentCatalogDeckAccessContext() -> AICatalogDeckAccessContext {
+        AICatalogDeckAccessContext(
+            chatAccess: self.currentAccessContext(),
+            cloudServerIdentityRevision: self.flashcardsStore.cloudServerIdentityRevision
+        )
+    }
+
+    func currentSessionScope() -> AIChatSessionScope {
+        AIChatSessionScope(workspaceId: self.historyWorkspaceId(), sessionId: self.chatSessionId)
     }
 
     func historyWorkspaceId() -> String? {
@@ -403,8 +469,9 @@ extension AIChatStore {
 
     func canAutoStartFreshLocalSession() -> Bool {
         self.isChatInteractive
-            && self.composerPhase == .idle
+            && self.hasUnsettledRun == false
             && self.dictationState == .idle
+            && self.activeAttachmentTransferCount == 0
             && self.activeSendTask == nil
             && self.activeDictationTask == nil
             && self.activeWarmUpTask == nil
@@ -413,7 +480,8 @@ extension AIChatStore {
     }
 
     func shouldAutoStartFreshLocalSession(persistedState: AIChatPersistedState) -> Bool {
-        guard self.canAutoStartFreshLocalSession(), self.currentComposerDraft().origin != .aiImport else {
+        let draft = self.currentComposerDraft()
+        guard self.canAutoStartFreshLocalSession(), draft.isEmpty, draft.origin != .aiImport else {
             return false
         }
 

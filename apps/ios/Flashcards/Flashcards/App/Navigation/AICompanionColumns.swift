@@ -9,6 +9,9 @@ struct AICompanionColumns<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
+    #if targetEnvironment(macCatalyst)
+    @Environment(\.macWindowPresentation) private var macWindowPresentation
+    #endif
     private let hostTab: AppTab
     private let content: Content
 
@@ -24,7 +27,8 @@ struct AICompanionColumns<Content: View>: View {
 
     private var isPaneShown: Bool {
         #if targetEnvironment(macCatalyst)
-        self.navigation.isAICompanionVisible && self.navigation.selectedTab == self.hostTab
+        self.navigation.allowsCatalogAIPresentation(in: self.macWindowPresentation?.sceneID)
+            && self.navigation.isAICompanionVisible && self.navigation.selectedTab == self.hostTab
         #else
         // Each section keeps its pane while the side chat is open, so switching sections never inserts or removes it;
         // only the toggle's own animation moves it.

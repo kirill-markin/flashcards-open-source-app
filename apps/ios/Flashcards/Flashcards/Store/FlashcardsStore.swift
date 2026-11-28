@@ -66,6 +66,7 @@ final class FlashcardsStore {
     }
     @ObservationIgnored let storageFullEpisode: StorageFullEpisode
     var preservedGuestWorkspaceLink: PreservedGuestWorkspaceLink? = nil
+    var cloudServerIdentityRevision: UUID = UUID()
     var firstReviewOnboardingCompleted: Bool? = nil
     var accountPreferences: AccountPreferences
     var pendingAccentColor: PendingAccountAccentColor? = nil

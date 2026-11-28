@@ -32,6 +32,7 @@ enum AIChatPresentationLifecycleSource: String {
     case surfaceInputsChanged = "surface_inputs_changed"
     case selectedAITab = "selected_ai_tab"
     case dictationIdle = "dictation_idle"
+    case catalogDraftReady = "catalog_draft_ready"
 }
 
 /// What the mounted chat view knows at the moment of one coordinator call.
@@ -50,6 +51,8 @@ private func aiChatPresentationRequestDiagnosticKind(_ request: AIChatPresentati
     switch request {
     case .createCard:
         return "create_card"
+    case .createCatalogDeck:
+        return "create_catalog_deck"
     case .attachCard:
         return "attach_card"
     }
@@ -57,7 +60,7 @@ private func aiChatPresentationRequestDiagnosticKind(_ request: AIChatPresentati
 
 private func aiChatPresentationRequestDiagnosticCardIdSuffix(_ request: AIChatPresentationRequest) -> String {
     switch request {
-    case .createCard:
+    case .createCard, .createCatalogDeck:
         return "-"
     case .attachCard(let card):
         return aiChatDiagnosticIdSuffix(card.cardId)
@@ -173,6 +176,9 @@ final class AIChatPresentationRequestCoordinator {
                 context: context
             )
             return nil
+        }
+        if case .createCatalogDeck = resolvedRequest {
+            context.syncChatSurface()
         }
         guard context.chatStore.isChatInteractive else {
             self.log(

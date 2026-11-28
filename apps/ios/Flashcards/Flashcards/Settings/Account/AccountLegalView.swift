@@ -116,6 +116,7 @@ struct AccountLegalView: View {
         .sheet(isPresented: self.$isDisclosurePresented) {
             NavigationStack {
                 AIConsentDisclosureView(
+                    canChangeConsent: { true },
                     onAllowed: { self.isDisclosurePresented = false },
                     onNotNow: { self.isDisclosurePresented = false }
                 )

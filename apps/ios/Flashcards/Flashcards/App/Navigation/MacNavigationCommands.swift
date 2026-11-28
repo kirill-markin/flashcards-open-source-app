@@ -9,6 +9,7 @@ import UIKit
 final class MacSidebarCommandTarget {
     var isSidebarVisible: Bool = true
     var toggleRequestID: UUID? = nil
+    var sceneID: String?
 }
 
 extension EnvironmentValues {
@@ -106,12 +107,16 @@ struct MacNavigationCommands: Commands {
                 .disabled(self.isAvailable == false)
             }
             Divider()
-            Button(String(localized: self.navigation.isAICompanionVisible ? "ai_companion.hide" : "ai_companion.show", table: "Foundation")) {
-                self.perform { self.navigation.toggleAICompanion() }
+            Button(String(localized: self.canControlCatalogAI && self.navigation.isAICompanionVisible ? "ai_companion.hide" : "ai_companion.show", table: "Foundation")) {
+                self.perform {
+                    guard self.canControlCatalogAI else { return }
+                    self.navigation.toggleAICompanion()
+                }
             }
             .keyboardShortcut("a", modifiers: [.command, .shift])
             .disabled(self.isAvailable == false || self.navigation.canPresentAICompanion == false
-                      || self.navigation.selectedTab == .ai || self.navigation.selectedTab == .settings)
+                      || self.canControlCatalogAI == false || self.navigation.selectedTab == .ai
+                      || self.navigation.selectedTab == .settings)
         }
         CommandGroup(replacing: .appSettings) {
             Button(AppTab.settings.localizedTitle) {
@@ -156,6 +161,10 @@ struct MacNavigationCommands: Commands {
             self.navigation.selectTab(.library)
         case .settings: self.navigation.selectTab(.settings)
         }
+    }
+
+    private var canControlCatalogAI: Bool {
+        self.navigation.allowsCatalogAIPresentation(in: self.sidebarTarget?.sceneID)
     }
 
     private func perform(_ action: () -> Void) {

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private let catalogStringsTableName: String = "Foundation"
 private let catalogDeckRowCoverSize: CGFloat = 56
@@ -7,6 +8,7 @@ private let catalogDeckRowCoverSize: CGFloat = 56
 struct CatalogListScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(CatalogIndexStore.self) private var catalog: CatalogIndexStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.locale) private var locale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -16,6 +18,7 @@ struct CatalogListScreen: View {
     @State private var languageChoice: CatalogLanguageFilter? = nil
     @State private var sortOrder: CatalogSortOrder = .relevance
     #if targetEnvironment(macCatalyst)
+    @Environment(\.macWindowPresentation) private var macWindowPresentation
     @State private var isOptionsPopoverPresented: Bool = false
     #endif
 
@@ -49,11 +52,12 @@ struct CatalogListScreen: View {
 
     var body: some View {
         let visibleDecks = self.matchingDecks()
+        let topic = self.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         List {
             if self.catalog.index == nil {
                 self.indexUnavailableContent
             } else {
-                self.indexContent(visibleDecks: visibleDecks)
+                self.indexContent(visibleDecks: visibleDecks, topic: topic)
             }
         }
         .listStyle(.insetGrouped)
@@ -108,17 +112,25 @@ struct CatalogListScreen: View {
                 .accessibilityIdentifier(UITestIdentifier.catalogListRetryButton)
             }
         } else {
-            HStack(spacing: 12) {
-                ProgressView()
-                Text(String(localized: "catalog.list.loading", table: catalogStringsTableName))
-                    .foregroundStyle(.secondary)
-            }
+            self.loadingRow
+        }
+    }
+
+    private var loadingRow: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(String(localized: "catalog.list.loading", table: catalogStringsTableName))
+                .foregroundStyle(.secondary)
         }
     }
 
     @ViewBuilder
-    private func indexContent(visibleDecks: [CatalogBrowseIndexDeck]) -> some View {
-        if let failureMessage = self.catalog.failureMessage {
+    private func indexContent(visibleDecks: [CatalogBrowseIndexDeck], topic: String) -> some View {
+        if self.catalog.isRefreshing {
+            Section {
+                self.loadingRow
+            }
+        } else if let failureMessage = self.catalog.failureMessage {
             Section {
                 Label(
                     String(localized: "catalog.list.refresh_failed", table: catalogStringsTableName),
@@ -131,7 +143,15 @@ struct CatalogListScreen: View {
         }
 
         Section {
-            if self.catalog.listedDecks.isEmpty {
+            ForEach(visibleDecks) { deck in
+                NavigationLink(value: LibraryNavigationDestination.catalogDeck(deck)) {
+                    CatalogDeckRow(deck: deck)
+                }
+                .accessibilityIdentifier(UITestIdentifier.catalogListDeckRow)
+            }
+            if topic.isEmpty == false {
+                self.createAIDeckButton(topic: topic, resultCount: visibleDecks.count)
+            } else if self.catalog.listedDecks.isEmpty {
                 ContentUnavailableView(
                     String(localized: "catalog.list.empty.title", table: catalogStringsTableName),
                     systemImage: "books.vertical"
@@ -142,15 +162,49 @@ struct CatalogListScreen: View {
                     systemImage: "magnifyingglass",
                     description: Text(String(localized: "catalog.list.no_matches.description", table: catalogStringsTableName))
                 )
-            } else {
-                ForEach(visibleDecks) { deck in
-                    NavigationLink(value: LibraryNavigationDestination.catalogDeck(deck)) {
-                        CatalogDeckRow(deck: deck)
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.catalogListDeckRow)
-                }
             }
         }
+    }
+
+    private func createAIDeckButton(topic: String, resultCount: Int) -> some View {
+        Button {
+            #if targetEnvironment(macCatalyst)
+            guard let originatingScene = self.macWindowPresentation?.windowScene else { return }
+            #else
+            let originatingScene: UIWindowScene? = nil
+            #endif
+            self.navigation.openCatalogAIDeck(
+                prompt: String(localized: "catalog.list.ai_deck.prompt \(topic)", table: catalogStringsTableName),
+                resultCount: resultCount,
+                originatingScene: originatingScene,
+                accessContext: self.store.aiChatStore.currentCatalogDeckAccessContext()
+            )
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: catalogDeckRowCoverSize, height: catalogDeckRowCoverSize)
+                    .background(
+                        Color.accentColor.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: catalogDeckRowCoverSize / 5.6, style: .continuous)
+                    )
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "catalog.list.ai_deck.title", table: catalogStringsTableName))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(String(localized: "catalog.list.ai_deck.description", table: catalogStringsTableName))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier(UITestIdentifier.catalogListAIDeckButton)
+        .disabled(self.navigation.canOpenCatalogAIDeck == false)
     }
 
     @ViewBuilder
