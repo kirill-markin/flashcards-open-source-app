@@ -2,7 +2,7 @@ import { transactionWithUserScope, type DatabaseExecutor } from "../../database"
 import { isBrowserProductGuest } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import {
-  browserGuestAiTrialEnabled,
+  isBrowserGuestAiTrialEnabled,
   type BrowserGuestAiTrialFeature,
   type BrowserGuestAiTrialScope,
   type BrowserGuestTrialContext,
@@ -95,7 +95,7 @@ export async function readBrowserGuestAiTrialInExecutor(
   }
   return {
     version: 1,
-    enabled: browserGuestAiTrialEnabled,
+    enabled: isBrowserGuestAiTrialEnabled(),
     sharedResetsAt: chat.resets_at.toISOString(),
     maxRecordingSeconds: chat.max_recording_seconds,
     chat: featureStatus(chat),

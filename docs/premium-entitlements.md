@@ -59,6 +59,9 @@ that currently grant access, sandbox purchases included (see
 active purchases, even of the same purchase on two platforms, is a supported state, so no code may
 assume a single row ([`resolver.ts`](../apps/backend/src/billing/resolver.ts)).
 
+A standalone self-host has no billing and resolves every account to the highest rank
+(`resolveStandaloneEntitlement` in [`snapshot.ts`](../apps/backend/src/billing/snapshot.ts)).
+
 ## Derivation is a pure function; the snapshot is a cache
 
 The effective entitlement is a pure, server-owned function over the stored purchases and grants

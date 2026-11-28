@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { transactionWithUserScope, type DatabaseExecutor } from "../../database";
 import { assertGuestAiFundingAllowed, isBrowserProductGuest } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
-import { browserGuestAiTrialEnabled, type BrowserGuestAiTrialFeature, type BrowserGuestTrialContext } from "./policy";
+import { isBrowserGuestAiTrialEnabled, type BrowserGuestAiTrialFeature, type BrowserGuestTrialContext } from "./policy";
 import { acquireBrowserGuestTrialLifecycleInExecutor, reserveBrowserGuestAiTrialInExecutor, startBrowserGuestAiTrialProviderInExecutor,
   type BrowserGuestTrialOperation } from "./repository";
 
@@ -11,7 +11,7 @@ export function resolveFundedBrowserGuestTrial(
   hasOwnKey: boolean,
 ): BrowserGuestTrialContext | undefined {
   if (hasOwnKey || !isBrowserProductGuest(context)) return undefined;
-  if (!browserGuestAiTrialEnabled) assertGuestAiFundingAllowed(context, null);
+  if (!isBrowserGuestAiTrialEnabled()) assertGuestAiFundingAllowed(context, null);
   return context;
 }
 

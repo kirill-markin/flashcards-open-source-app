@@ -1,5 +1,6 @@
 import type { AuthTransport } from "../auth";
 import { unsafeTransaction } from "../database/unsafe";
+import { isStandaloneDeployment } from "../deployment/standalone";
 import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
@@ -24,6 +25,7 @@ import {
 import {
   getEntitlementTierDisplayName,
   getEntitlementTierRank,
+  highestEntitlementTier,
   isEntitlementTier,
   type EntitlementTier,
 } from "./tiers";
@@ -80,6 +82,43 @@ export function resolveAccountKindForTransport(transport: AuthTransport): Accoun
  */
 export function resolveAccountKindForSignedInAuth(initiatingAuthIsSignedIn: boolean): AccountKind {
   return initiatingAuthIsSignedIn ? "account" : "guest";
+}
+
+const standaloneAiMonthlyMessagesVariableName = "NIBOMO_STANDALONE_AI_MONTHLY_MESSAGES";
+
+/** The operator's optional monthly cap on platform-key chat messages per account; unset means uncapped. */
+function readStandaloneAiMonthlyMessages(): number | null {
+  const value = process.env[standaloneAiMonthlyMessagesVariableName];
+  if (value === undefined) {
+    return null;
+  }
+
+  if (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw new Error(`${standaloneAiMonthlyMessagesVariableName} must be unset or a positive integer, got "${value}".`);
+  }
+
+  return Number(value);
+}
+
+/**
+ * A standalone self-host has no billing: every account holds the highest tier for good, and the
+ * purchases, grants and cached snapshot are never read. A guest gets no platform-key AI messages, so a
+ * public server cannot spend the operator's key on anonymous visitors; its own key still works.
+ */
+function resolveStandaloneEntitlement(accountKind: AccountKind): ResolvedEntitlement {
+  return {
+    tier: highestEntitlementTier,
+    status: "active",
+    until: null,
+    isTrial: false,
+    willRenew: false,
+    source: "grant",
+    winningPurchase: null,
+    limits: {
+      aiMonthlyMessages: accountKind === "guest" ? 0 : readStandaloneAiMonthlyMessages(),
+      aiMonthlyWeightedTokens: null,
+    },
+  };
 }
 
 /**
@@ -235,6 +274,10 @@ export async function resolveEntitlementForUserWithoutRefresh(
   accountKind: AccountKind,
   now: Date,
 ): Promise<EntitlementWire> {
+  if (isStandaloneDeployment()) {
+    return toEntitlementWire(resolveStandaloneEntitlement(accountKind));
+  }
+
   const inputs = await loadEntitlementResolutionInputs(userId);
   return toEntitlementWire(resolveEntitlement(
     inputs.purchases,
@@ -267,6 +310,10 @@ export async function resolveEntitlementSnapshotForUser(
   accountKind: AccountKind,
   now: Date,
 ): Promise<EntitlementWire> {
+  if (isStandaloneDeployment()) {
+    return toEntitlementWire(resolveStandaloneEntitlement(accountKind));
+  }
+
   const inputs = await loadEntitlementResolutionInputs(userId);
   const resolved = resolveEntitlement(
     inputs.purchases,

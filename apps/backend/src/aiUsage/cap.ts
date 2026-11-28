@@ -8,6 +8,7 @@ import {
   type EntitlementTier,
 } from "../billing/tiers";
 import { unsafeQuery } from "../database/unsafe";
+import { isStandaloneDeployment } from "../deployment/standalone";
 import {
   captureBackendRuntimeWarning,
   createBackendRuntimeObservationScope,
@@ -256,6 +257,17 @@ export async function assertAiUsageAllowanceNotReached(
     }
 
     throw new HttpError(429, aiLimitReachedMessage, aiLimitReachedCode);
+  }
+}
+
+/**
+ * A standalone self-host spends the operator's key on signed-in accounts only, and a guest's chat turn
+ * is refused there by its zero allowance (`resolveStandaloneEntitlement` in ../billing/snapshot.ts).
+ * Dictation never meets that allowance, so it asks here and gets the same refusal.
+ */
+export function assertStandalonePlatformKeyServesAccountKind(accountKind: AccountKind): void {
+  if (isStandaloneDeployment() && accountKind === "guest") {
+    throw new HttpError(429, guestAiLimitReachedMessage, guestAiLimitReachedCode);
   }
 }
 

@@ -1,4 +1,4 @@
-import { browserGuestAiTrialEnabled } from "../aiUsage/browserGuestTrial/policy";
+import { isBrowserGuestAiTrialEnabled } from "../aiUsage/browserGuestTrial/policy";
 import { HttpError } from "../shared/errors";
 import type { UserOpenAIApiKey } from "../chat/userOpenAIApiKey";
 import type { AuthTransport } from "../auth";
@@ -66,7 +66,7 @@ export function assertGuestRequestSupportsProduct(context: GuestAccessContext): 
 
 export function getBrowserGuestCapabilities(context: GuestAccessContext): BrowserGuestCapabilities | null {
   return isBrowserProductGuest(context)
-    ? { isGuest: true, platformFundedAi: browserGuestAiTrialEnabled, ownKeyAi: true, requiresAccountLinking: true }
+    ? { isGuest: true, platformFundedAi: isBrowserGuestAiTrialEnabled(), ownKeyAi: true, requiresAccountLinking: true }
     : null;
 }
 

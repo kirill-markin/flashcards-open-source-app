@@ -14,6 +14,7 @@ export {
   aiLimitReachedCode,
   aiWeightedOutputTokenMultiplier,
   assertAiUsageAllowanceNotReached,
+  assertStandalonePlatformKeyServesAccountKind,
   countersCarryWeightedAiUsage,
   getAiUsageMonthWindow,
   guestAiLimitReachedCode,

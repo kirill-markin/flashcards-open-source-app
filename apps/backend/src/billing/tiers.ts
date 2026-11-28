@@ -26,6 +26,10 @@ const entitlementTierDefinitions: Readonly<Record<EntitlementTier, EntitlementTi
 
 export const freeEntitlementTier: EntitlementTier = "free";
 
+export const highestEntitlementTier: EntitlementTier = Object.keys(entitlementTierDefinitions)
+  .filter(isEntitlementTier)
+  .reduce((highest, tier) => (getEntitlementTierRank(tier) > getEntitlementTierRank(highest) ? tier : highest));
+
 export function getEntitlementTierRank(tier: EntitlementTier): number {
   return entitlementTierDefinitions[tier].rank;
 }

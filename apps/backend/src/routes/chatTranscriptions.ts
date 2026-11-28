@@ -22,6 +22,7 @@ import { readUserOpenAIApiKeyHeader } from "../chat/userOpenAIApiKey";
 import { HttpError } from "../shared/errors";
 import {
   appendAiUsageEvent,
+  assertStandalonePlatformKeyServesAccountKind,
   resolveAiUsageTierForFacts,
   type AiUsageCounters,
 } from "../aiUsage";
@@ -112,6 +113,9 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
     const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     assertGuestRequestSupportsProduct(requestContext);
     const browserGuestTrial = resolveFundedBrowserGuestTrial(requestContext, userOpenAIApiKey !== null);
+    if (userOpenAIApiKey === null) {
+      assertStandalonePlatformKeyServesAccountKind(resolveAccountKindForTransport(requestContext.transport));
+    }
     const aiConsentId = readAiConsentIdHeader(context.req.raw);
     await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
