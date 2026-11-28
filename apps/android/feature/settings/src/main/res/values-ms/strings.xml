@@ -311,6 +311,7 @@
     <string name="settings_server_apply_failed">Pelayan tersuai tidak dapat digunakan.</string>
     <string name="settings_server_validate_failed">Pengesahan pelayan tersuai gagal.</string>
     <string name="settings_server_reset_failed">Tidak dapat kembali ke pelayan rasmi.</string>
+    <string name="settings_server_switch_warning">Apabila anda menukar pelayan, anda akan log keluar dan ruang kerja, kad serta data tetamu akan dipadamkan daripada peranti ini. Perubahan yang belum disegerakkan mungkin hilang.</string>
 
     <string name="settings_agent_connections_title">Sambungan ejen</string>
     <string name="settings_agent_connections_intro">Semak dan batalkan sambungan bot jangka panjang yang dikaitkan dengan akaun awan ini.</string>

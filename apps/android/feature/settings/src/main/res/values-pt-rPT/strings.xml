@@ -307,6 +307,7 @@
     <string name="settings_server_apply_failed">Não foi possível aplicar o servidor personalizado.</string>
     <string name="settings_server_validate_failed">A validação do servidor personalizado falhou.</string>
     <string name="settings_server_reset_failed">Não foi possível repor o servidor oficial.</string>
+    <string name="settings_server_switch_warning">Ao mudar de servidor, termina sessão e os espaços de trabalho, os cartões e os dados de convidado são removidos deste dispositivo. As alterações ainda não sincronizadas podem perder-se.</string>
     <string name="settings_agent_connections_title">Ligações de agentes</string>
     <string name="settings_agent_connections_intro">Consulte e revogue ligações persistentes de agentes associadas a esta conta na nuvem.</string>
     <string name="settings_agent_connections_sign_in_guidance">Inicie sessão na conta na nuvem para gerir ligações persistentes de agentes.</string>

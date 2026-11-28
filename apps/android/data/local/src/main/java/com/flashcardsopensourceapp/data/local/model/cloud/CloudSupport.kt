@@ -60,6 +60,44 @@ fun isSameCloudService(
     }
 }
 
+/**
+ * Whether applying the custom server [requested] keeps the app on the server it already uses, so the
+ * local workspace and guest credential stay valid and must not be reset.
+ *
+ * Unlike [isSameCloudService] it ignores the mode, so it only gates applying a custom server:
+ * resetting to the official server is gated on the mode alone, because records minted under a
+ * custom mode stop matching once the mode changes.
+ */
+fun targetsSameServer(current: CloudServiceConfiguration, requested: CloudServiceConfiguration): Boolean {
+    val currentApiBaseUrl = canonicalApiBaseUrl(apiBaseUrl = current.apiBaseUrl)
+    val requestedApiBaseUrl = canonicalApiBaseUrl(apiBaseUrl = requested.apiBaseUrl)
+    if (currentApiBaseUrl == requestedApiBaseUrl) {
+        return true
+    }
+
+    val officialApiBaseUrls = officialCloudApiBaseUrls.map { apiBaseUrl ->
+        canonicalApiBaseUrl(apiBaseUrl = apiBaseUrl)
+    }.toSet()
+    return currentApiBaseUrl in officialApiBaseUrls && requestedApiBaseUrl in officialApiBaseUrls
+}
+
+private fun canonicalApiBaseUrl(apiBaseUrl: String): String {
+    val parsedUrl = URI(apiBaseUrl)
+    val scheme = requireNotNull(parsedUrl.scheme) {
+        "API base URL must include a scheme: $apiBaseUrl"
+    }.lowercase(Locale.US)
+    val host = requireNotNull(parsedUrl.host) {
+        "API base URL must include a host: $apiBaseUrl"
+    }.lowercase(Locale.US)
+    val portSuffix = if (parsedUrl.port == -1 || (scheme == "https" && parsedUrl.port == 443)) {
+        ""
+    } else {
+        ":${parsedUrl.port}"
+    }
+
+    return "$scheme://$host$portSuffix${parsedUrl.path.orEmpty()}"
+}
+
 fun makeCustomCloudServiceConfiguration(customOrigin: String): CloudServiceConfiguration {
     val normalizedOrigin = normalizeCustomCloudOrigin(customOrigin = customOrigin)
     val parsedOrigin = URI(normalizedOrigin)

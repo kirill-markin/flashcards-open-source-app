@@ -359,6 +359,7 @@
     <string name="settings_server_apply_failed">Could not apply custom server.</string>
     <string name="settings_server_validate_failed">Custom server validation failed.</string>
     <string name="settings_server_reset_failed">Could not reset the official server.</string>
+    <string name="settings_server_switch_warning">Switching servers logs you out and removes workspaces, cards, and guest data from this device. Unsynced changes may be lost.</string>
 
     <string name="settings_agent_connections_title">Agent Connections</string>
     <string name="settings_agent_connections_intro">Review and revoke long-lived bot connections tied to this cloud account.</string>

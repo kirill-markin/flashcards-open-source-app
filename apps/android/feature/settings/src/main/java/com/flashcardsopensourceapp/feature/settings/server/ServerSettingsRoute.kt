@@ -5,13 +5,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -24,6 +30,11 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 const val serverSettingsScreenTag: String = "server_settings_screen"
 
+private enum class ServerSwitchAction(val titleResId: Int) {
+    APPLY_PREVIEW_CONFIGURATION(titleResId = R.string.settings_server_apply_button),
+    RESET_TO_OFFICIAL_SERVER(titleResId = R.string.settings_server_reset_button)
+}
+
 @Composable
 fun ServerSettingsRoute(
     uiState: ServerSettingsUiState,
@@ -33,6 +44,26 @@ fun ServerSettingsRoute(
     onResetToOfficialServer: () -> Unit,
     onBack: () -> Unit
 ) {
+    var pendingServerSwitchAction: ServerSwitchAction? by rememberSaveable {
+        mutableStateOf<ServerSwitchAction?>(null)
+    }
+
+    pendingServerSwitchAction?.let { action ->
+        ServerSwitchConfirmationDialog(
+            action = action,
+            onConfirm = {
+                pendingServerSwitchAction = null
+                when (action) {
+                    ServerSwitchAction.APPLY_PREVIEW_CONFIGURATION -> onApplyPreviewConfiguration()
+                    ServerSwitchAction.RESET_TO_OFFICIAL_SERVER -> onResetToOfficialServer()
+                }
+            },
+            onDismiss = {
+                pendingServerSwitchAction = null
+            }
+        )
+    }
+
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_server_title),
         onBack = onBack,
@@ -112,8 +143,10 @@ fun ServerSettingsRoute(
 
             item {
                 Button(
-                    onClick = onApplyPreviewConfiguration,
-                    enabled = uiState.previewApiBaseUrl != null && uiState.isApplying.not(),
+                    onClick = {
+                        pendingServerSwitchAction = ServerSwitchAction.APPLY_PREVIEW_CONFIGURATION
+                    },
+                    enabled = uiState.canApplyPreviewConfiguration && uiState.isApplying.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.settings_server_apply_button))
@@ -122,8 +155,10 @@ fun ServerSettingsRoute(
 
             item {
                 OutlinedButton(
-                    onClick = onResetToOfficialServer,
-                    enabled = uiState.isApplying.not(),
+                    onClick = {
+                        pendingServerSwitchAction = ServerSwitchAction.RESET_TO_OFFICIAL_SERVER
+                    },
+                    enabled = uiState.canResetToOfficialServer && uiState.isApplying.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.settings_server_reset_button))
@@ -131,4 +166,31 @@ fun ServerSettingsRoute(
             }
         }
     }
+}
+
+@Composable
+private fun ServerSwitchConfirmationDialog(
+    action: ServerSwitchAction,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(action.titleResId))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_cancel))
+            }
+        },
+        title = {
+            Text(stringResource(action.titleResId))
+        },
+        text = {
+            Text(stringResource(R.string.settings_server_switch_warning))
+        }
+    )
 }

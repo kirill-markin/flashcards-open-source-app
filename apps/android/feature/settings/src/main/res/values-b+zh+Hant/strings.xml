@@ -311,6 +311,7 @@
     <string name="settings_server_apply_failed">無法套用自訂伺服器。</string>
     <string name="settings_server_validate_failed">自訂伺服器驗證失敗。</string>
     <string name="settings_server_reset_failed">無法重設為官方伺服器。</string>
+    <string name="settings_server_switch_warning">切換伺服器會登出，並移除此裝置上的工作區、卡片和訪客資料。尚未同步的變更可能會遺失。</string>
 
     <string name="settings_agent_connections_title">AI 助理連線</string>
     <string name="settings_agent_connections_intro">查看與撤銷此雲端帳號的長期機器人連線。</string>

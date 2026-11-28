@@ -312,6 +312,7 @@
     <string name="settings_server_apply_failed">ନିଜ ସର୍ଭର୍ ଲାଗୁ ହୋଇପାରିଲା ନାହିଁ।</string>
     <string name="settings_server_validate_failed">ନିଜ ସର୍ଭର୍ ଯାଞ୍ଚ ବିଫଳ ହେଲା।</string>
     <string name="settings_server_reset_failed">ଅଫିସିଆଲ୍ ସର୍ଭର୍‌କୁ ଫେରିହେଲା ନାହିଁ।</string>
+    <string name="settings_server_switch_warning">ସର୍ଭର୍ ବଦଳାଇଲେ ଲଗ୍ ଆଉଟ୍ ହେବ ଏବଂ ଏହି ଡିଭାଇସ୍‌ରୁ ୱର୍କସ୍ପେସ୍, କାର୍ଡ ଓ ଅତିଥି ଡାଟା ହଟିଯିବ। ସିଙ୍କ୍ ହୋଇନଥିବା ପରିବର୍ତ୍ତନ ହଜିଯାଇପାରେ।</string>
 
     <string name="settings_agent_connections_title">ଏଜେଣ୍ଟ ସଂଯୋଗ</string>
     <string name="settings_agent_connections_intro">ଏହି କ୍ଲାଉଡ୍ ଆକାଉଣ୍ଟ ସହ ଯୋଡ଼ା ଦୀର୍ଘମିଆଦି ବଟ୍ ସଂଯୋଗ ଦେଖନ୍ତୁ ଓ ରଦ୍ଦ କରନ୍ତୁ।</string>

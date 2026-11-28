@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.targetsSameServer
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
@@ -61,6 +62,10 @@ class ServerSettingsViewModel(
             authBaseUrl = configuration.authBaseUrl,
             previewApiBaseUrl = draft.previewConfiguration?.apiBaseUrl,
             previewAuthBaseUrl = draft.previewConfiguration?.authBaseUrl,
+            canApplyPreviewConfiguration = draft.previewConfiguration?.let { previewConfiguration ->
+                targetsSameServer(current = configuration, requested = previewConfiguration).not()
+            } ?: false,
+            canResetToOfficialServer = configuration.mode == CloudServiceConfigurationMode.CUSTOM,
             isApplying = draft.isApplying,
             errorMessage = draft.errorMessage
         )
@@ -74,6 +79,8 @@ class ServerSettingsViewModel(
             authBaseUrl = "",
             previewApiBaseUrl = null,
             previewAuthBaseUrl = null,
+            canApplyPreviewConfiguration = false,
+            canResetToOfficialServer = false,
             isApplying = false,
             errorMessage = ""
         )
