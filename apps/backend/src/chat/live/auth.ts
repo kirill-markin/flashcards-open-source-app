@@ -3,6 +3,7 @@ import { HttpError } from "../../shared/errors";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 import { assertAccountLiveSession } from "../../auth/principalSessions";
 import { getBackendChatLiveAuthSecret } from "../../aws/secrets";
+import { isStandaloneDeployment, readStandaloneSecretFile } from "../../deployment/standalone";
 
 const CHAT_LIVE_AUTH_TOKEN_VERSION = 1;
 const CHAT_LIVE_AUTH_TTL_MS = 10 * 60 * 1000;
@@ -41,13 +42,20 @@ function getChatLiveUrl(): string {
   return chatLiveUrl;
 }
 
-export function getBackendChatLiveAuthSecretArn(): string {
+function getBackendChatLiveAuthSecretArn(): string {
   const secretArn = process.env.BACKEND_CHAT_LIVE_AUTH_SECRET_ARN;
   if (secretArn === undefined || secretArn.trim() === "") {
     throw new Error("BACKEND_CHAT_LIVE_AUTH_SECRET_ARN is required for chat live auth");
   }
 
   return secretArn;
+}
+
+export async function loadChatLiveAuthSecret(): Promise<string> {
+  if (isStandaloneDeployment()) {
+    return readStandaloneSecretFile("BACKEND_CHAT_LIVE_AUTH_SECRET_FILE");
+  }
+  return getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
 }
 
 function encodePayload(payload: ChatLiveAuthPayload): string {
@@ -140,7 +148,7 @@ export async function createChatLiveStreamEnvelope(
     traceContext,
   };
   await assertAccountLiveSession(userId, Math.floor((expiresAt - CHAT_LIVE_AUTH_TTL_MS) / 1_000));
-  const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
+  const secret = await loadChatLiveAuthSecret();
   const encodedPayload = encodePayload(payload);
   const signature = signPayload(encodedPayload, secret);
 
@@ -175,7 +183,7 @@ export async function verifyChatLiveAuthorizationHeader(
     throw new HttpError(401, "Chat live auth token is malformed", "CHAT_LIVE_AUTH_INVALID");
   }
 
-  const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
+  const secret = await loadChatLiveAuthSecret();
   const expectedSignature = signPayload(encodedPayload, secret);
   if (isMatchingSignature(expectedSignature, providedSignature) === false) {
     throw new HttpError(401, "Chat live auth token signature is invalid", "CHAT_LIVE_AUTH_INVALID");

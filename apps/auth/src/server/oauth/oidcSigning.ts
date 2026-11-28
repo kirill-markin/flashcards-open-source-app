@@ -1,6 +1,8 @@
 import { createHash, createPublicKey } from "node:crypto";
 import { GetPublicKeyCommand, KMSClient, SignCommand } from "@aws-sdk/client-kms";
+import { isStandaloneDeployment } from "../deployment.js";
 import { logWarning } from "../logger.js";
+import { getFileOidcPublicKey, signFileOidcIdToken } from "./oidcFileSigning.js";
 
 const kms = new KMSClient({ maxAttempts: 3 });
 const signingAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256";
@@ -16,7 +18,7 @@ export type OidcClaims = Readonly<{
   email_verified?: boolean;
 }>;
 
-type OidcPublicKey = Readonly<{
+export type OidcPublicKey = Readonly<{
   kty: "RSA";
   n: string;
   e: string;
@@ -49,6 +51,9 @@ kms.middlewareStack.add((next, context) => async (args) => {
 }, { step: "finalizeRequest", priority: "low", name: "oidcKmsAttemptLogger" });
 
 export async function getOidcPublicKey(): Promise<OidcPublicKey> {
+  if (isStandaloneDeployment()) {
+    return getFileOidcPublicKey();
+  }
   if (cachedPublicKey !== undefined) {
     return cachedPublicKey;
   }
@@ -67,6 +72,9 @@ export async function getOidcPublicKey(): Promise<OidcPublicKey> {
 }
 
 export async function signOidcIdToken(claims: OidcClaims): Promise<string> {
+  if (isStandaloneDeployment()) {
+    return signFileOidcIdToken(claims);
+  }
   const keyArn = getSigningKeyArn();
   // KMS signs remotely; only JWS serialization and hashing happen in the Lambda.
   const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT", kid: keyArn })).toString("base64url");

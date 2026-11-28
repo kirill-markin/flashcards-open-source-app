@@ -1,8 +1,11 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "../server/app";
 import { initializeBackendSentry } from "../observability/sentry";
+import { isStandaloneDeployment } from "../deployment/standalone";
 
 async function main(): Promise<void> {
+  // A misconfigured deployment switch fails at boot rather than on the first request that reads it.
+  isStandaloneDeployment();
   initializeBackendSentry("backend-api");
   const app = createApp("/v1");
   const port = Number.parseInt(process.env.PORT ?? "8080", 10);

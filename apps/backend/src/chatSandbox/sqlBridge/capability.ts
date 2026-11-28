@@ -1,7 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { getBackendChatLiveAuthSecret } from "../../aws/secrets";
-import { getBackendChatLiveAuthSecretArn } from "../../chat/live/auth";
+import { loadChatLiveAuthSecret } from "../../chat/live/auth";
 import { HttpError } from "../../shared/errors";
 import type { ChatSandboxMediaBridge, ChatSandboxSqlBridge } from "../contract";
 
@@ -47,7 +46,7 @@ function createInvalidCapabilityError(reason: string): HttpError {
 }
 
 async function loadSigningKey(): Promise<Buffer> {
-  const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
+  const secret = await loadChatLiveAuthSecret();
   return createHmac("sha256", secret).update(signingKeyLabel).digest();
 }
 

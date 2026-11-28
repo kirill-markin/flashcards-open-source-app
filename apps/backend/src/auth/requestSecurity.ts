@@ -6,6 +6,7 @@ import {
   getBackendCsrfSecret,
   getBackendCsrfSecretWithAbortSignal,
 } from "../aws/secrets";
+import { isStandaloneDeployment, readStandaloneSecretFile } from "../deployment/standalone";
 
 /** The origin-bearing headers of a request, trimmed, and empty read as absent. */
 export type RequestOriginHeaders = Readonly<{
@@ -148,7 +149,9 @@ export function toAuthRequest(requestAuthInputs: RequestAuthInputs): AuthRequest
 
 /** HMAC binds CSRF proof to the actual registered or guest cookie credential. */
 export async function getSessionCsrfToken(sessionToken: string): Promise<string> {
-  const csrfSecret = await getBackendCsrfSecret(getBackendCsrfSecretArn());
+  const csrfSecret = isStandaloneDeployment()
+    ? readStandaloneSecretFile("BACKEND_CSRF_SECRET_FILE")
+    : await getBackendCsrfSecret(getBackendCsrfSecretArn());
   return createSessionCsrfToken(sessionToken, csrfSecret);
 }
 
@@ -156,10 +159,12 @@ async function getSessionCsrfTokenWithAbortSignal(
   sessionToken: string,
   abortSignal: AbortSignal,
 ): Promise<string> {
-  const csrfSecret = await getBackendCsrfSecretWithAbortSignal(
-    getBackendCsrfSecretArn(),
-    abortSignal,
-  );
+  const csrfSecret = isStandaloneDeployment()
+    ? readStandaloneSecretFile("BACKEND_CSRF_SECRET_FILE")
+    : await getBackendCsrfSecretWithAbortSignal(
+      getBackendCsrfSecretArn(),
+      abortSignal,
+    );
   return createSessionCsrfToken(sessionToken, csrfSecret);
 }
 

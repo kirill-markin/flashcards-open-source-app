@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
+import { isStandaloneDeployment } from "./server/deployment.js";
 import { runWithSocialSourceIp } from "./server/social/requestSource.js";
 
 const validateEnv = (): void => {
@@ -14,6 +15,9 @@ const validateEnv = (): void => {
     throw new Error(`Auth service missing required env vars: ${errors.join(", ")}`);
   }
 };
+
+// A misconfigured deployment switch fails at boot rather than on the first request that reads it.
+isStandaloneDeployment();
 
 if (process.env.NODE_ENV !== "development") {
   validateEnv();
