@@ -1559,6 +1559,8 @@ const roCatalog: TranslationCatalog = {
       attachmentsTooMany: "Un mesaj din chatul AI poate include cel mult {{limit}} fișiere și imagini. Trimite restul într-un alt mesaj.",
       microphoneUnavailable: "Înregistrarea cu microfonul nu este disponibilă în acest browser.",
     },
+    catalogDraftWaiting: "Cererea ta din catalog este în așteptare. Trimite sau șterge această ciornă pentru a o deschide.",
+    catalogTopicPrompt: "Creează un pachet de fișe de studiu despre {{topic}}.",
     composerPlaceholder: "Întreabă despre fișe, istoricul recapitulărilor sau atașează notițe...",
     currentChatRecovered: "Acest chat a fost înlocuit cu unul mai nou. Mesajul tău este încă în caseta de text — trimite-l din nou.",
     customInstructions: {

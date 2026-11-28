@@ -296,7 +296,7 @@ export type SessionAccountSwitchFailureDetails = Readonly<{
 }>;
 
 export type ChatSnapshotFailureDetails = Readonly<{
-  sessionId: string;
+  sessionId: string | null;
   workspaceId: string | null;
   trigger: string;
   resumeAttemptId: number | null;

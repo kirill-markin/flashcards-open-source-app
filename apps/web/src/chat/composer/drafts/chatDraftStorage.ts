@@ -5,6 +5,7 @@ import { appendLegacyEffortTag } from "../../../legacyEffort";
 export type ChatDraftContent = Readonly<{
   inputText: string;
   pendingAttachments: ReadonlyArray<PendingAttachment>;
+  catalogHandoffId?: string;
 }>;
 
 export type StoredChatDraft = ChatDraftContent & Readonly<{
@@ -115,7 +116,12 @@ function parseChatDraftContent(value: unknown): ChatDraftContent | null {
   return {
     inputText: value.inputText,
     pendingAttachments,
+    ...readCatalogHandoffId(value.catalogHandoffId),
   };
+}
+
+function readCatalogHandoffId(value: unknown): Pick<ChatDraftContent, "catalogHandoffId"> {
+  return typeof value === "string" && value !== "" ? { catalogHandoffId: value } : {};
 }
 
 function hasPersistedBinaryPendingAttachment(value: unknown): boolean {
@@ -159,8 +165,7 @@ function parseStoredChatDraftWorkspaceState(value: unknown): StoredChatDraftWork
     }
 
     draftsBySessionId[sessionId] = {
-      inputText: persistableDraft.inputText,
-      pendingAttachments: persistableDraft.pendingAttachments,
+      ...persistableDraft,
       updatedAt: draftValue.updatedAt,
     };
   }
@@ -204,6 +209,7 @@ export function toPersistableChatDraftContent(draft: ChatDraftContent): ChatDraf
   return {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments.filter(isPersistablePendingAttachment),
+    ...readCatalogHandoffId(draft.catalogHandoffId),
   };
 }
 
@@ -218,8 +224,7 @@ function toPersistableDraftsBySessionId(
     }
 
     nextDraftsBySessionId[sessionId] = {
-      inputText: persistableDraft.inputText,
-      pendingAttachments: persistableDraft.pendingAttachments,
+      ...persistableDraft,
       updatedAt: draft.updatedAt,
     };
   }
@@ -366,15 +371,15 @@ function loadWorkspaceDraftState(workspaceId: string | null): StoredChatDraftWor
 function storeWorkspaceDraftState(
   workspaceId: string | null,
   state: StoredChatDraftWorkspaceState,
-): void {
+): boolean {
   const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
   if (normalizedWorkspaceId === null) {
-    return;
+    return false;
   }
 
   const storage = getBrowserStorage();
   if (storage === null) {
-    return;
+    return false;
   }
 
   const storageKey = resolveWorkspaceStorageKey(normalizedWorkspaceId);
@@ -382,7 +387,7 @@ function storeWorkspaceDraftState(
 
   if (Object.keys(nextDraftsBySessionId).length === 0) {
     storage.removeItem(storageKey);
-    return;
+    return true;
   }
 
   try {
@@ -393,12 +398,13 @@ function storeWorkspaceDraftState(
         draftsBySessionId: nextDraftsBySessionId,
       }),
     );
+    return true;
   } catch (error) {
     if (isQuotaExceededError(error) === false) {
       throw error;
     }
 
-    storage.removeItem(storageKey);
+    return false;
   }
 }
 
@@ -432,8 +438,8 @@ export function loadChatDraftWorkspaceState(workspaceId: string | null): Readonl
 export function storeChatDraftWorkspaceState(
   workspaceId: string | null,
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
-): void {
-  storeWorkspaceDraftState(workspaceId, {
+): boolean {
+  return storeWorkspaceDraftState(workspaceId, {
     version: CHAT_DRAFT_STORAGE_VERSION,
     draftsBySessionId: { ...draftsBySessionId },
   });
@@ -465,10 +471,10 @@ export function clearStoredChatDraftForSessionIfUnchanged(
     sessionId,
     createChatDraftContent("", []),
   );
-  storeWorkspaceDraftState(workspaceId, {
+  if (!storeWorkspaceDraftState(workspaceId, {
     version: CHAT_DRAFT_STORAGE_VERSION,
     draftsBySessionId: { ...nextDraftsBySessionId },
-  });
+  })) return;
   notifyChatDraftWorkspaceStateChanged(workspaceId);
 }
 
@@ -535,6 +541,7 @@ export function createUpdatedChatDraft(draft: ChatDraftContent): StoredChatDraft
   return {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
+    ...readCatalogHandoffId(draft.catalogHandoffId),
     updatedAt: createNextDraftUpdatedAt(),
   };
 }
@@ -551,6 +558,7 @@ export function readChatDraftForSession(
   return {
     inputText: storedDraft.inputText,
     pendingAttachments: storedDraft.pendingAttachments,
+    ...readCatalogHandoffId(storedDraft.catalogHandoffId),
   };
 }
 
@@ -570,6 +578,7 @@ export function readStoredChatDraftForSession(
   return {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
+    ...readCatalogHandoffId(draft.catalogHandoffId),
     updatedAt: draft.updatedAt,
   };
 }

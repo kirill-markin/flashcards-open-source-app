@@ -1548,6 +1548,8 @@ const viCatalog: TranslationCatalog = {
       attachmentsTooMany: "Một tin nhắn trong trò chuyện AI có thể đính kèm tối đa {{limit}} tệp và hình ảnh. Hãy gửi phần còn lại trong tin nhắn khác.",
       microphoneUnavailable: "Trình duyệt này không hỗ trợ ghi âm bằng micrô.",
     },
+    catalogDraftWaiting: "Yêu cầu từ danh mục của bạn đang chờ. Hãy gửi hoặc xóa bản nháp này để mở yêu cầu.",
+    catalogTopicPrompt: "Tạo một bộ thẻ học về {{topic}}.",
     composerPlaceholder: "Hỏi về thẻ, lịch sử ôn tập hoặc đính kèm ghi chú...",
     currentChatRecovered: "Cuộc trò chuyện này đã được thay bằng một cuộc trò chuyện mới hơn. Tin nhắn của bạn vẫn còn trong ô nhập — hãy gửi lại.",
     customInstructions: {

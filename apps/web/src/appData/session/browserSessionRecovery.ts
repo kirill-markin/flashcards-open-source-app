@@ -2,6 +2,7 @@ import { forgetBrowserSignInInformation } from "../../api/browserHints";
 import { clearEntitlementState } from "../../premium/entitlementStore";
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
 import { analyticsEnabledStorageKey, productAnalyticsCollectionStorageKey } from "../../analytics/identity";
+import { clearCatalogChatHandoff } from "../../chat/handoff/catalogChatHandoff";
 import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/aiChatPreferencesStorage";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
@@ -247,6 +248,7 @@ export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<void> {
+  clearCatalogChatHandoff();
   if (reason === "account_deletion_submit" || reason === "account_deleted_marker") {
     await forgetBrowserSignInInformation();
     throwIfIndexedDbOpenRecoveryFailed();

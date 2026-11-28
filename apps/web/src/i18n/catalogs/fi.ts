@@ -1548,6 +1548,8 @@ const fiCatalog: TranslationCatalog = {
       attachmentsTooMany: "Yksi tekoälykeskustelun viesti voi sisältää enintään {{limit}} tiedostoa ja kuvaa. Lähetä loput toisessa viestissä.",
       microphoneUnavailable: "Mikrofonilla nauhoittaminen ei ole käytettävissä tässä selaimessa.",
     },
+    catalogDraftWaiting: "Luettelosta avaamasi pyyntö odottaa. Lähetä tai tyhjennä tämä luonnos avataksesi pyynnön.",
+    catalogTopicPrompt: "Luo muistikorttipakka aiheesta {{topic}}.",
     composerPlaceholder: "Kysy korteista tai kertaushistoriasta tai liitä muistiinpanoja...",
     currentChatRecovered: "Tämä keskustelu korvattiin uudemmalla. Viestisi on yhä tekstikentässä – lähetä se uudelleen.",
     customInstructions: {

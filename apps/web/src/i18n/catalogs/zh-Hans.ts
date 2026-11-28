@@ -1548,6 +1548,8 @@ export const zhHansCatalog = {
       attachmentsTooMany: "一条 AI 聊天消息最多可包含 {{limit}} 个文件和图片。请将其余内容放在另一条消息中发送。",
       microphoneUnavailable: "此浏览器不支持麦克风录音。",
     },
+    catalogDraftWaiting: "来自目录的请求正在等待。发送或清空此草稿即可打开请求。",
+    catalogTopicPrompt: "请创建一副关于「{{topic}}」的闪卡。",
     composerPlaceholder: "询问卡片、复习历史，或附加笔记以供提取...",
     currentChatRecovered: "此聊天已被更新的聊天取代。你的消息仍在输入框中，请重新发送。",
     customInstructions: {

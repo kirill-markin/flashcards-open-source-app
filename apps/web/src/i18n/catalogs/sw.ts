@@ -1548,6 +1548,8 @@ const swCatalog: TranslationCatalog = {
       attachmentsTooMany: "Ujumbe mmoja wa gumzo la AI unaweza kuwa na hadi faili na picha {{limit}}. Tuma zilizobaki kwenye ujumbe mwingine.",
       microphoneUnavailable: "Kurekodi kwa maikrofoni hakupatikani kwenye kivinjari hiki.",
     },
+    catalogDraftWaiting: "Ombi lako kutoka kwenye katalogi linasubiri. Tuma au futa rasimu hii ili kulifungua.",
+    catalogTopicPrompt: "Tengeneza seti ya kadi za kujifunza kuhusu {{topic}}.",
     composerPlaceholder: "Uliza kuhusu kadi, historia ya marudio, au ambatisha madokezo...",
     currentChatRecovered: "Gumzo hili limebadilishwa na jipya zaidi. Ujumbe wako bado uko kwenye kisanduku cha maandishi — utume tena.",
     customInstructions: {

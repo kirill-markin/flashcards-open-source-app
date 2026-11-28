@@ -1548,6 +1548,8 @@ const itCatalog: TranslationCatalog = {
       attachmentsTooMany: "Un messaggio della chat AI può includere al massimo {{limit}} file e immagini. Invia il resto in un altro messaggio.",
       microphoneUnavailable: "La registrazione dal microfono non è disponibile in questo browser.",
     },
+    catalogDraftWaiting: "La tua richiesta dal catalogo è in attesa. Invia o cancella questa bozza per aprirla.",
+    catalogTopicPrompt: "Crea un mazzo di flashcard su {{topic}}.",
     composerPlaceholder: "Chiedi di carte e cronologia dei ripassi oppure allega appunti...",
     currentChatRecovered: "Questa chat è stata sostituita da una più recente. Il tuo messaggio è ancora nella casella di testo: invialo di nuovo.",
     customInstructions: {

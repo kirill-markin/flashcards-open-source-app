@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type Dispatch, type MutableRefObject } from "react";
 import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -57,6 +57,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
   workspaceId: string | null;
   accountId: string | null;
   isRemoteReady: boolean;
+  shouldRecoverCurrentCatalogChat: boolean;
   uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
@@ -67,6 +68,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
 }>;
 
 type SnapshotRequestTrigger =
+  | "catalog_hydration"
   | "current_session_recovery"
   | "initial_hydration"
   | "stream_transport_error"
@@ -78,6 +80,8 @@ type ChatSnapshotRequest = (workspaceId: string, signal: AbortSignal) => Promise
 
 /** Returns whether the snapshot was applied. */
 type ChatSnapshotApplication = (snapshot: ChatSessionSnapshot) => boolean;
+
+type ChatWorkspaceScope = Readonly<{ workspaceId: string | null; accountId: string | null }>;
 
 type CurrentSessionRecovery = Readonly<{
   workspaceId: string;
@@ -102,6 +106,9 @@ export type ChatSessionSnapshotRuntimeRefs = Readonly<{
 
 export type ChatSessionSnapshotSync = Readonly<{
   isLiveStreamConnected: boolean;
+  isWorkspaceRunReconciled: boolean;
+  isRunRecoveryPending: () => boolean;
+  hasPendingToolRunPostSync: () => boolean;
   isDocumentVisibleRef: MutableRefObject<boolean>;
   hasActiveLiveConnection: () => boolean;
   detachLiveStream: (sessionId: string | null, runId: string | null) => void;
@@ -113,13 +120,14 @@ export type ChatSessionSnapshotSync = Readonly<{
     resumeAttemptId: number | null,
   ) => Promise<ChatSessionSnapshot | null>;
   loadAndApplyLatestSnapshot: (
-    shownSessionId: string,
+    shownSessionId: string | null,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ) => Promise<ChatSessionSnapshot | null>;
   canRequestLatestSession: (shownSessionId: string) => boolean;
   applyRecoveredSnapshot: (snapshot: ChatSessionSnapshot) => void;
   resetSnapshotTracking: (updatedAt: number | null) => void;
+  restoreToolRunPostSync: (pending: boolean) => void;
   runtimeRefs: ChatSessionSnapshotRuntimeRefs;
   setKnownActiveRunId: (runId: string | null) => void;
   setKnownLiveCursor: (cursor: string | null) => void;
@@ -154,6 +162,7 @@ export function useChatSessionSnapshotSync(
     workspaceId,
     accountId,
     isRemoteReady,
+    shouldRecoverCurrentCatalogChat,
     uiMessages,
     state,
     dispatch,
@@ -180,7 +189,12 @@ export function useChatSessionSnapshotSync(
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
   const snapshotRequestVersionRef = useRef<number>(0);
   const currentSessionRecoveryRef = useRef<CurrentSessionRecovery | null>(null);
-  const activeSnapshotAbortControllersRef = useRef<Set<AbortController>>(new Set<AbortController>());
+  const activeSnapshotAbortControllersRef = useRef(new Map<number, AbortController>());
+  const [reconciledScope, setReconciledScope] = useState<ChatWorkspaceScope | null>(null);
+  const pendingCatalogReconnectScopeRef = useRef<ChatWorkspaceScope | null>(null);
+  const [catalogReconnectSettlement, setCatalogReconnectSettlement] = useState(0);
+  const isWorkspaceRunReconciled = reconciledScope !== null && reconciledScope.workspaceId === workspaceId
+    && reconciledScope.accountId === accountId;
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
   const streamTransportRecoveryPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
@@ -190,9 +204,10 @@ export function useChatSessionSnapshotSync(
   const assistantMessageDoneTerminalReconcileTimerRef = useRef<number | null>(null);
   const reconcileTerminalSnapshotRef = useRef<(sessionId: string | null) => void>(() => {});
   const {
+    hasPendingToolRunPostSync,
     markPendingToolRunPostSync,
     markRunHadToolCallsFromSnapshot,
-    resetToolRunPostSync,
+    restoreToolRunPostSync,
     triggerToolRunPostSyncIfNeeded,
   } = useToolRunPostSync({
     indexedDbOpenRecoveryState,
@@ -240,7 +255,7 @@ export function useChatSessionSnapshotSync(
   }, []);
 
   const abortPendingSnapshotRequests = useCallback((): void => {
-    for (const controller of activeSnapshotAbortControllersRef.current) {
+    for (const controller of activeSnapshotAbortControllersRef.current.values()) {
       controller.abort();
     }
     activeSnapshotAbortControllersRef.current.clear();
@@ -418,6 +433,95 @@ export function useChatSessionSnapshotSync(
     upsertAssistantToolCall,
   ]);
 
+  const hasPendingSnapshotRefresh = useCallback((): boolean => (
+    visibilityResumePromiseRef.current !== null
+    || activeSnapshotAbortControllersRef.current.has(snapshotRequestVersionRef.current)
+  ), []);
+
+  const notifyCatalogReconnectOfSettlement = useCallback((): void => {
+    if (pendingCatalogReconnectScopeRef.current !== null && !hasPendingSnapshotRefresh()) {
+      setCatalogReconnectSettlement((settlement) => settlement + 1);
+    }
+  }, [hasPendingSnapshotRefresh]);
+
+  const resumeVisibleChat = useEffectEvent((): void => {
+    const currentSessionId = currentSessionIdRef.current;
+    const shouldRecoverCatalogSnapshot = shouldRecoverCurrentCatalogChat && !isWorkspaceRunReconciled;
+    const canRecoverCatalogSession = shouldRecoverCatalogSnapshot
+      && runStateRef.current !== "running" && composerSendCountRef.current === 0;
+    const loadSnapshot = canRecoverCatalogSession
+      ? (attemptId: number) => loadAndApplyLatestSnapshot(currentSessionId, "catalog_hydration", attemptId)
+      : currentSessionId === null ? null : (attemptId: number) => canRequestLatestSession(currentSessionId)
+        ? loadAndApplyLatestSnapshot(currentSessionId, "visible_resume", attemptId)
+        : loadAndApplySnapshot(currentSessionId, true, "visible_resume", attemptId);
+
+    if (
+      loadSnapshot === null
+      || indexedDbOpenRecoveryState.hasFailed()
+      || isDocumentVisibleRef.current === false
+      || workspaceId === null
+      || isRemoteReady === false
+      || state.isHistoryLoaded === false
+      || hasActiveLiveConnection()
+      || visibilityResumePromiseRef.current !== null
+      || (shouldRecoverCatalogSnapshot && activeSnapshotAbortControllersRef.current.has(snapshotRequestVersionRef.current))
+      || (currentSessionRecoveryRef.current?.workspaceId === workspaceId
+        && currentSessionRecoveryRef.current.sessionId === currentSessionIdRef.current)
+    ) {
+      return;
+    }
+
+    const resumeAttemptId = nextResumeAttemptId();
+    let refreshPromise: Promise<void> | null = null;
+    refreshPromise = (async (): Promise<void> => {
+      try {
+        const snapshot = await loadSnapshot(resumeAttemptId);
+        if (
+          indexedDbOpenRecoveryState.hasFailed()
+          || snapshot === null
+          || isDocumentVisibleRef.current === false
+        ) {
+          return;
+        }
+
+        if (shouldRecoverCatalogSnapshot) dispatch({ type: "error_dismissed" });
+        if (snapshot.activeRun !== null) {
+          startLiveStream(
+            snapshot.sessionId,
+            snapshot.activeRun.runId,
+            snapshot.activeRun.live.stream,
+            snapshot.activeRun.live.cursor,
+            resumeAttemptId,
+          );
+          return;
+        }
+
+        detachLiveStream(snapshot.sessionId, null);
+      } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+
+        if (isDocumentVisibleRef.current === false) {
+          return;
+        }
+
+        detachLiveStream(null, null);
+        dispatch({
+          type: "run_interrupted",
+          message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
+        });
+      } finally {
+        if (visibilityResumePromiseRef.current === refreshPromise) {
+          visibilityResumePromiseRef.current = null;
+          notifyCatalogReconnectOfSettlement();
+        }
+      }
+    })();
+
+    visibilityResumePromiseRef.current = refreshPromise;
+  });
+
   const {
     isLiveStreamConnected,
     isDocumentVisibleRef,
@@ -436,76 +540,7 @@ export function useChatSessionSnapshotSync(
       });
     },
     indexedDbOpenRecoveryState,
-    onVisibleResumeRequested: () => {
-      if (
-        indexedDbOpenRecoveryState.hasFailed()
-        || isDocumentVisibleRef.current === false
-        || workspaceId === null
-        || isRemoteReady === false
-        || state.isHistoryLoaded === false
-        || hasActiveLiveConnection()
-        || visibilityResumePromiseRef.current !== null
-        || (currentSessionRecoveryRef.current?.workspaceId === workspaceId
-          && currentSessionRecoveryRef.current.sessionId === currentSessionIdRef.current)
-      ) {
-        return;
-      }
-
-      const resumeAttemptId = nextResumeAttemptId();
-      let refreshPromise: Promise<void> | null = null;
-      refreshPromise = (async (): Promise<void> => {
-        try {
-          const currentSessionId = currentSessionIdRef.current;
-          if (currentSessionId === null) {
-            return;
-          }
-
-          const snapshot = canRequestLatestSession(currentSessionId)
-            ? await loadAndApplyLatestSnapshot(currentSessionId, "visible_resume", resumeAttemptId)
-            : await loadAndApplySnapshot(currentSessionId, true, "visible_resume", resumeAttemptId);
-          if (
-            indexedDbOpenRecoveryState.hasFailed()
-            || snapshot === null
-            || isDocumentVisibleRef.current === false
-          ) {
-            return;
-          }
-
-          if (snapshot.activeRun !== null) {
-            startLiveStream(
-              snapshot.sessionId,
-              snapshot.activeRun.runId,
-              snapshot.activeRun.live.stream,
-              snapshot.activeRun.live.cursor,
-              resumeAttemptId,
-            );
-            return;
-          }
-
-          detachLiveStream(snapshot.sessionId, null);
-        } catch (error) {
-          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-            return;
-          }
-
-          if (isDocumentVisibleRef.current === false) {
-            return;
-          }
-
-          detachLiveStream(null, null);
-          dispatch({
-            type: "run_interrupted",
-            message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
-          });
-        } finally {
-          if (visibilityResumePromiseRef.current === refreshPromise) {
-            visibilityResumePromiseRef.current = null;
-          }
-        }
-      })();
-
-      visibilityResumePromiseRef.current = refreshPromise;
-    },
+    onVisibleResumeRequested: () => resumeVisibleChat(),
     onRecoverableStreamError: (sessionId) => {
       if (indexedDbOpenRecoveryState.hasFailed() || streamTransportRecoveryPromiseRef.current !== null) {
         return;
@@ -637,13 +672,13 @@ export function useChatSessionSnapshotSync(
     clearAssistantMessageDoneTerminalReconcileTimer();
     visibilityResumePromiseRef.current = null;
     streamTransportRecoveryPromiseRef.current = null;
-    resetToolRunPostSync();
+    restoreToolRunPostSync(false);
   }, [
     abortPendingSnapshotRequests,
     clearAssistantMessageDoneTerminalReconcileTimer,
     indexedDbOpenRecoveryState.isFailed,
     invalidatePendingSnapshotRequests,
-    resetToolRunPostSync,
+    restoreToolRunPostSync,
   ]);
 
   const applySnapshot = useCallback((
@@ -669,6 +704,7 @@ export function useChatSessionSnapshotSync(
       );
     }
 
+    setReconciledScope({ workspaceId, accountId });
     serverSessionIdRef.current = snapshot.sessionId;
     setKnownActiveRunId(snapshot.activeRun?.runId ?? null);
     dispatch({
@@ -698,26 +734,28 @@ export function useChatSessionSnapshotSync(
       ? snapshot.conversation.updatedAt
       : Math.max(lastSnapshotUpdatedAtRef.current, snapshot.conversation.updatedAt);
   }, [
+    accountId,
     dispatch,
     markRunHadToolCallsFromSnapshot,
     replaceMessages,
     setKnownActiveRunId,
     setKnownLiveCursor,
     triggerToolRunPostSyncIfNeeded,
+    workspaceId,
   ]);
 
   const applyRecoveredSnapshot = useCallback((snapshot: ChatSessionSnapshot): void => {
     invalidatePendingSnapshotRequests();
     detachLiveStream(null, null);
     resetSnapshotTracking(null);
-    resetToolRunPostSync();
+    // The pending tool sync belongs to the workspace and survives recovery into its latest chat.
     currentSessionIdRef.current = snapshot.sessionId;
     runStateRef.current = toSnapshotRunState(snapshot);
     applySnapshot(snapshot, true, "current_session_recovery");
-  }, [applySnapshot, detachLiveStream, invalidatePendingSnapshotRequests, resetSnapshotTracking, resetToolRunPostSync]);
+  }, [applySnapshot, detachLiveStream, invalidatePendingSnapshotRequests, resetSnapshotTracking]);
 
   const requestAndApplySnapshot = useCallback(async (
-    sessionId: string,
+    sessionId: string | null,
     replaceHistory: boolean,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
@@ -741,7 +779,8 @@ export function useChatSessionSnapshotSync(
     const requestVersion = snapshotRequestVersionRef.current + 1;
     snapshotRequestVersionRef.current = requestVersion;
     const abortController = new AbortController();
-    activeSnapshotAbortControllersRef.current.add(abortController);
+    activeSnapshotAbortControllersRef.current.set(requestVersion, abortController);
+    setReconciledScope(null);
 
     debugLog("snapshot_request_started", {
       workspaceId,
@@ -800,7 +839,8 @@ export function useChatSessionSnapshotSync(
       captureChatSnapshotError(error, { sessionId, workspaceId, trigger, resumeAttemptId });
       throw error;
     } finally {
-      activeSnapshotAbortControllersRef.current.delete(abortController);
+      activeSnapshotAbortControllersRef.current.delete(requestVersion);
+      notifyCatalogReconnectOfSettlement();
     }
   }, [
     debugLog,
@@ -809,6 +849,7 @@ export function useChatSessionSnapshotSync(
     indexedDbOpenRecoveryState,
     isRemoteReady,
     invalidatePendingSnapshotRequests,
+    notifyCatalogReconnectOfSettlement,
     uiMessages,
     workspaceId,
   ]);
@@ -832,12 +873,8 @@ export function useChatSessionSnapshotSync(
     },
   ), [accountId, applySnapshot, requestAndApplySnapshot]);
 
-  /**
-   * Refreshes the shown chat by asking for the latest one and switches to it when the server answers with
-   * another chat. Call only when `canRequestLatestSession` allows it for the shown chat.
-   */
   const loadAndApplyLatestSnapshot = useCallback((
-    shownSessionId: string,
+    shownSessionId: string | null,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ): Promise<ChatSessionSnapshot | null> => requestAndApplySnapshot(
@@ -845,16 +882,31 @@ export function useChatSessionSnapshotSync(
     true,
     trigger,
     resumeAttemptId,
-    (requestWorkspaceId, signal) => resumeAttemptId === null
-      ? getCurrentChatSnapshot(requestWorkspaceId, signal, accountId)
-      : getCurrentChatSnapshotWithResumeDiagnostics(requestWorkspaceId, { resumeAttemptId }, signal, accountId),
+    async (requestWorkspaceId, signal) => {
+      const knownCatalogSessionId = trigger === "catalog_hydration" && serverSessionIdRef.current === shownSessionId
+        ? shownSessionId : null;
+      const latest = resumeAttemptId === null
+        ? await getCurrentChatSnapshot(requestWorkspaceId, signal, accountId)
+        : await getCurrentChatSnapshotWithResumeDiagnostics(requestWorkspaceId, { resumeAttemptId }, signal, accountId);
+      if (knownCatalogSessionId === null || knownCatalogSessionId === latest.sessionId) return latest;
+
+      // Another device may have created a newer chat while the saved chat still has a running turn.
+      signal.throwIfAborted();
+      const shown = resumeAttemptId === null
+        ? await getChatSnapshot(knownCatalogSessionId, requestWorkspaceId, signal, accountId)
+        : await getChatSnapshotWithResumeDiagnostics(knownCatalogSessionId, requestWorkspaceId, { resumeAttemptId }, signal, accountId);
+      return shown.activeRun === null ? latest : shown;
+    },
     (snapshot) => {
       if (snapshot.sessionId === shownSessionId) {
         applySnapshot(snapshot, true, trigger);
         return true;
       }
 
-      if (currentSessionIdRef.current !== shownSessionId || canRequestLatestSession(shownSessionId) === false) {
+      const canRecoverCurrent = trigger === "catalog_hydration"
+        ? composerSendCountRef.current === 0 && activeRunIdRef.current === null
+        : shownSessionId !== null && canRequestLatestSession(shownSessionId);
+      if (currentSessionIdRef.current !== shownSessionId || !canRecoverCurrent) {
         return false;
       }
 
@@ -952,8 +1004,47 @@ export function useChatSessionSnapshotSync(
     reconcileTerminalSnapshotRef.current = reconcileTerminalSnapshot;
   }, [reconcileTerminalSnapshot]);
 
+  const resumeCatalogChatAfterReconnect = useEffectEvent((): void => {
+    if (!shouldRecoverCurrentCatalogChat || workspaceId === null || !isRemoteReady) return;
+    if (!state.isHistoryLoaded || hasPendingSnapshotRefresh()) {
+      pendingCatalogReconnectScopeRef.current = { workspaceId, accountId };
+      return;
+    }
+    pendingCatalogReconnectScopeRef.current = null;
+    if (!isWorkspaceRunReconciled || hasPendingToolRunPostSync()) resumeVisibleChat();
+  });
+
+  useEffect(() => {
+    const handleOnline = (): void => resumeCatalogChatAfterReconnect();
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  useEffect(() => {
+    const pending = pendingCatalogReconnectScopeRef.current;
+    if (pending === null) return;
+    if (pending.workspaceId !== workspaceId || pending.accountId !== accountId
+      || !isRemoteReady || !shouldRecoverCurrentCatalogChat) {
+      pendingCatalogReconnectScopeRef.current = null;
+      return;
+    }
+    if (!state.isHistoryLoaded || hasPendingSnapshotRefresh()) return;
+    pendingCatalogReconnectScopeRef.current = null;
+    if (!isWorkspaceRunReconciled) resumeVisibleChat();
+  }, [
+    accountId,
+    catalogReconnectSettlement,
+    hasPendingSnapshotRefresh,
+    isRemoteReady,
+    isWorkspaceRunReconciled,
+    shouldRecoverCurrentCatalogChat,
+    state.isHistoryLoaded,
+    workspaceId,
+  ]);
+
   useEffect(() => {
     if (isRemoteReady) return;
+    setReconciledScope(null);
     invalidatePendingSnapshotRequests();
     abortPendingSnapshotRequests();
     detachLiveStream(null, null);
@@ -966,8 +1057,16 @@ export function useChatSessionSnapshotSync(
     clearAssistantMessageDoneTerminalReconcileTimer();
   }, [abortPendingSnapshotRequests, clearAssistantMessageDoneTerminalReconcileTimer, invalidatePendingSnapshotRequests]);
 
+  function isRunRecoveryPending(): boolean {
+    return activeSnapshotAbortControllersRef.current.has(snapshotRequestVersionRef.current)
+      || currentSessionRecoveryRef.current !== null || activeRunIdRef.current !== null;
+  }
+
   return {
     isLiveStreamConnected,
+    isWorkspaceRunReconciled,
+    isRunRecoveryPending,
+    hasPendingToolRunPostSync,
     isDocumentVisibleRef,
     hasActiveLiveConnection,
     detachLiveStream,
@@ -977,6 +1076,7 @@ export function useChatSessionSnapshotSync(
     canRequestLatestSession,
     applyRecoveredSnapshot,
     resetSnapshotTracking,
+    restoreToolRunPostSync,
     runtimeRefs,
     setKnownActiveRunId,
     setKnownLiveCursor,

@@ -28,6 +28,7 @@ type UseChatSessionHydrationLifecycleParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
   isRemoteReady: boolean;
+  shouldRecoverCurrentCatalogChat: boolean;
   uiLocale: Locale;
   uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
@@ -50,6 +51,7 @@ export function useChatSessionHydrationLifecycle(
     indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
+    shouldRecoverCurrentCatalogChat,
     uiLocale,
     uiMessages,
     state,
@@ -73,6 +75,7 @@ export function useChatSessionHydrationLifecycle(
     loadAndApplyLatestSnapshot,
     loadAndApplySnapshot,
     resetSnapshotTracking,
+    restoreToolRunPostSync,
     runtimeRefs,
     startSnapshotLiveStream,
   } = snapshotSync;
@@ -82,11 +85,13 @@ export function useChatSessionHydrationLifecycle(
 
   const applyWarmStartSnapshot = useCallback((nextWorkspaceId: string): boolean => {
     const warmStartSnapshot = loadChatSessionWarmStartSnapshot(nextWorkspaceId);
-    if (warmStartSnapshot === null) {
+    if (warmStartSnapshot === null
+      || (isRemoteReady && !shouldRecoverCurrentCatalogChat && !warmStartSnapshot.pendingToolRunPostSync)) {
       return false;
     }
 
-    if (isChatSessionStale(warmStartSnapshot.messages, Date.now())) {
+    if (!shouldRecoverCurrentCatalogChat && !warmStartSnapshot.pendingToolRunPostSync
+      && isChatSessionStale(warmStartSnapshot.messages, Date.now())) {
       const nextSessionId = createClientChatSessionId();
       detachLiveStream(null, null);
       replaceMessages([]);
@@ -96,6 +101,10 @@ export function useChatSessionHydrationLifecycle(
         chatConfig: loadStoredChatConfig(),
       });
       resetSnapshotTracking(null);
+      restoreToolRunPostSync(false);
+      runtimeRefs.currentSessionIdRef.current = nextSessionId;
+      runtimeRefs.runStateRef.current = "idle";
+      runtimeRefs.serverSessionIdRef.current = null;
       hydratedWorkspaceIdRef.current = nextWorkspaceId;
       hydratedUiLocaleRef.current = uiLocale;
       shouldBootstrapFreshLocalSessionRef.current = true;
@@ -112,11 +121,14 @@ export function useChatSessionHydrationLifecycle(
       pendingToolRunPostSync: warmStartSnapshot.pendingToolRunPostSync,
     });
     resetSnapshotTracking(warmStartSnapshot.updatedAt);
+    restoreToolRunPostSync(warmStartSnapshot.pendingToolRunPostSync);
+    runtimeRefs.currentSessionIdRef.current = warmStartSnapshot.sessionId;
+    runtimeRefs.runStateRef.current = "idle";
     runtimeRefs.serverSessionIdRef.current = warmStartSnapshot.isSessionOnServer ? warmStartSnapshot.sessionId : null;
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
     hydratedUiLocaleRef.current = uiLocale;
     return true;
-  }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking, runtimeRefs, uiLocale]);
+  }, [detachLiveStream, dispatch, isRemoteReady, replaceMessages, resetSnapshotTracking, restoreToolRunPostSync, runtimeRefs, shouldRecoverCurrentCatalogChat, uiLocale]);
 
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -127,15 +139,12 @@ export function useChatSessionHydrationLifecycle(
     const isLocaleTransition = isWorkspaceTransition === false
       && workspaceId !== null
       && hydratedUiLocaleRef.current !== uiLocale;
-    const initialHydrationSessionId = isWorkspaceTransition
-      ? null
-      : resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current);
-
     if (workspaceId === null) {
       invalidatePendingSnapshotRequests();
       detachLiveStream(null, null);
       replaceMessages([]);
       resetSnapshotTracking(null);
+      restoreToolRunPostSync(false);
       runtimeRefs.currentWorkspaceIdRef.current = null;
       runtimeRefs.currentSessionIdRef.current = null;
       dispatch({ type: "workspace_cleared" });
@@ -148,10 +157,11 @@ export function useChatSessionHydrationLifecycle(
       shouldBootstrapFreshLocalSessionRef.current = false;
     }
 
-    if (isLocaleTransition) {
+    if (isLocaleTransition && (!shouldRecoverCurrentCatalogChat || snapshotSync.isWorkspaceRunReconciled)) {
       hydratedUiLocaleRef.current = uiLocale;
       const currentSessionId = runtimeRefs.currentSessionIdRef.current ?? initialFreshSessionId;
       const shouldRefreshIdleFreshSession = state.isHistoryLoaded
+        && !state.pendingToolRunPostSync
         && runtimeRefs.messagesRef.current.length === 0
         && runtimeRefs.runStateRef.current === "idle";
 
@@ -191,42 +201,41 @@ export function useChatSessionHydrationLifecycle(
       return;
     }
 
-    if (isRemoteReady === false) {
-      if (isWorkspaceTransition) {
-        const didApplyWarmStartSnapshot = applyWarmStartSnapshot(workspaceId);
-        if (didApplyWarmStartSnapshot === false) {
-          detachLiveStream(null, null);
-          replaceMessages([]);
-          resetSnapshotTracking(null);
-          runtimeRefs.currentWorkspaceIdRef.current = workspaceId;
-          runtimeRefs.currentSessionIdRef.current = null;
-          dispatch({ type: "workspace_hydration_started" });
-          hydratedWorkspaceIdRef.current = workspaceId;
-          hydratedUiLocaleRef.current = uiLocale;
-        }
-      }
-      invalidatePendingSnapshotRequests();
-      return;
-    }
-
-    if (isWorkspaceTransition) {
+    if (isWorkspaceTransition && !applyWarmStartSnapshot(workspaceId)) {
       detachLiveStream(null, null);
       replaceMessages([]);
       resetSnapshotTracking(null);
+      restoreToolRunPostSync(false);
       runtimeRefs.currentWorkspaceIdRef.current = workspaceId;
       runtimeRefs.currentSessionIdRef.current = null;
+      runtimeRefs.runStateRef.current = "idle";
+      runtimeRefs.serverSessionIdRef.current = null;
       dispatch({ type: "workspace_hydration_started" });
       hydratedWorkspaceIdRef.current = workspaceId;
       hydratedUiLocaleRef.current = uiLocale;
     }
 
+    if (!isRemoteReady) {
+      invalidatePendingSnapshotRequests();
+      return;
+    }
+
+    const initialHydrationSessionId = resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current) ?? null;
     void (async (): Promise<void> => {
       try {
-        const ensuredSessionId = initialHydrationSessionId ?? await ensureRemoteSessionForHydration();
-        if (isDisposedRef.current || indexedDbOpenRecoveryState.hasFailed()) return;
-        const snapshot = canRequestLatestSession(ensuredSessionId)
-          ? await loadAndApplyLatestSnapshot(ensuredSessionId, "initial_hydration", null)
-          : await loadAndApplySnapshot(ensuredSessionId, true, "initial_hydration", null);
+        let snapshot;
+        const shouldRecoverLatestCatalogSession = shouldRecoverCurrentCatalogChat
+          && runtimeRefs.runStateRef.current !== "running"
+          && runtimeRefs.composerSendCountRef.current === 0;
+        if (shouldRecoverLatestCatalogSession) {
+          snapshot = await loadAndApplyLatestSnapshot(initialHydrationSessionId, "catalog_hydration", null);
+        } else {
+          const ensuredSessionId = initialHydrationSessionId ?? await ensureRemoteSessionForHydration();
+          if (isDisposedRef.current || indexedDbOpenRecoveryState.hasFailed()) return;
+          snapshot = canRequestLatestSession(ensuredSessionId)
+            ? await loadAndApplyLatestSnapshot(ensuredSessionId, "initial_hydration", null)
+            : await loadAndApplySnapshot(ensuredSessionId, true, "initial_hydration", null);
+        }
         if (indexedDbOpenRecoveryState.hasFailed() || isDisposedRef.current || snapshot === null) {
           return;
         }

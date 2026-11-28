@@ -1570,6 +1570,8 @@ const slCatalog: TranslationCatalog = {
       attachmentsTooMany: "Eno sporočilo v klepetu z UI lahko vsebuje največ {{limit}} datotek in slik. Preostale pošljite v drugem sporočilu.",
       microphoneUnavailable: "Snemanje z mikrofonom v tem brskalniku ni na voljo.",
     },
+    catalogDraftWaiting: "Zahteva iz kataloga čaka. Pošlji ali izbriši ta osnutek, da jo odpreš.",
+    catalogTopicPrompt: "Ustvari komplet učnih kartic na temo {{topic}}.",
     composerPlaceholder: "Vprašajte o karticah, zgodovini ponavljanja ali priložite zapiske ...",
     currentChatRecovered: "Ta klepet je bil nadomeščen z novejšim. Vaše sporočilo je še vedno v polju za vnos — pošljite ga znova.",
     customInstructions: {

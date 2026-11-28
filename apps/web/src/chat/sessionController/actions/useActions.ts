@@ -80,7 +80,7 @@ type UseChatSessionActionsParams = Readonly<{
 type ChatSessionActions = Readonly<{
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
-  clearConversation: () => Promise<string | null>;
+  clearConversation: (prepareDraft: ((sessionId: string) => void) | null) => string | null;
   ensureRemoteSession: () => Promise<string>;
   ensureRemoteSessionForHydration: () => Promise<string>;
   ensureFreshSessionInBackground: (sessionId: string, requestSequence: number) => void;
@@ -1045,14 +1045,13 @@ export function useChatSessionActions(
     workspaceId,
   ]);
 
-  const clearConversation = useCallback(async (): Promise<string | null> => {
+  const clearConversation = useCallback((prepareDraft: ((sessionId: string) => void) | null): string | null => {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return null;
     }
 
-    invalidatePendingActions();
-
     if (workspaceId === null) {
+      invalidatePendingActions();
       detachLiveStream(null, null);
       invalidatePendingSnapshotRequests();
       clearHistory();
@@ -1062,6 +1061,9 @@ export function useChatSessionActions(
     }
 
     const nextSessionId = createClientChatSessionId();
+    const chatConfig = loadStoredChatConfig();
+    prepareDraft?.(nextSessionId);
+    invalidatePendingActions();
     detachLiveStream(null, null);
     invalidatePendingSnapshotRequests();
     clearHistory();
@@ -1069,7 +1071,7 @@ export function useChatSessionActions(
     dispatch({
       type: "fresh_session_requested",
       sessionId: nextSessionId,
-      chatConfig: loadStoredChatConfig(),
+      chatConfig,
     });
     ensureFreshSession(nextSessionId, requestSequenceRef.current, "new_chat");
     return nextSessionId;

@@ -80,5 +80,7 @@ export type ChatSessionController = Readonly<{
   runComposerSend: (send: () => Promise<void>) => Promise<void>;
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
+  canStartCatalogConversation: boolean;
+  startCatalogConversation: (prepareDraft: (sessionId: string) => void) => string | null;
   clearConversation: () => Promise<string | null>;
 }>;

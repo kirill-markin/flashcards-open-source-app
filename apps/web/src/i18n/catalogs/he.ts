@@ -1548,6 +1548,8 @@ const heCatalog: TranslationCatalog = {
       attachmentsTooMany: "הודעה אחת בצ'אט AI יכולה לכלול עד {{limit}} קבצים ותמונות. שלח את השאר בהודעה אחרת.",
       microphoneUnavailable: "הקלטה במיקרופון אינה זמינה בדפדפן הזה.",
     },
+    catalogDraftWaiting: "הבקשה שלך מהקטלוג ממתינה. כדי לפתוח אותה, יש לשלוח או למחוק את הטיוטה הזו.",
+    catalogTopicPrompt: "צור חפיסת כרטיסיות בנושא {{topic}}.",
     composerPlaceholder: "שאל על כרטיסים, על היסטוריית החזרות, או צרף הערות...",
     currentChatRecovered: "הצ׳אט הזה הוחלף בצ׳אט חדש יותר. ההודעה עדיין בתיבת הטקסט — יש לשלוח אותה שוב.",
     customInstructions: {

@@ -1548,6 +1548,8 @@ const etCatalog: TranslationCatalog = {
       attachmentsTooMany: "Üks tehisintellekti vestluse sõnum võib sisaldada kuni {{limit}} faili ja pilti. Saada ülejäänud teises sõnumis.",
       microphoneUnavailable: "Mikrofoniga salvestamine pole selles brauseris saadaval.",
     },
+    catalogDraftWaiting: "Sinu kataloogipäring ootab. Selle avamiseks saada või kustuta see mustand.",
+    catalogTopicPrompt: "Loo teema {{topic}} kohta kaardipakk.",
     composerPlaceholder: "Küsi kaartide või kordamiste ajaloo kohta või lisa märkmeid...",
     currentChatRecovered: "See vestlus asendati uuemaga. Sinu sõnum on endiselt tekstiväljas – saada see uuesti.",
     customInstructions: {

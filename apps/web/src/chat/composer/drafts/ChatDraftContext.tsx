@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode } from "react";
+import { createBrowserUuidV4 } from "../../../browserUuid";
 import { useAppData } from "../../../appData";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import {
   areChatDraftContentsEqual,
+  buildChatDraftSessionKey,
   createChatDraftContent,
   loadChatDraftWorkspaceState,
   readStoredChatDraftForSession,
@@ -26,6 +28,7 @@ export type ChatDraft = Readonly<{
   sessionId: string | null;
   inputText: string;
   pendingAttachments: ReadonlyArray<PendingAttachment>;
+  catalogHandoffId: string | undefined;
   updatedAt: number | null;
   sessionBoundDraftId: symbol | null;
 }>;
@@ -42,6 +45,9 @@ type ChatDraftContextValue = Readonly<{
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
   replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => boolean;
   moveDraftToSession: (sourceSessionId: string | null, sourceDraftUpdatedAt: number | null, targetSessionId: string, nextDraft: ChatDraftContent) => number | null;
+  readActiveDraft: () => ChatDraft;
+  markActiveDraftForCatalogTransfer: () => string | null;
+  stageCatalogDraftForSession: (sessionId: string, draft: ChatDraftContent, source: StoredChatDraftTarget | null) => void;
   replaceDraftForSession: (sessionId: string | null, nextDraft: ChatDraftContent) => void;
   stageAiImportDraft: (sessionId: string, draft: ChatDraftContent) => boolean;
   claimAiImportAutoSend: (readiness: AiImportSendReadiness) => string | null;
@@ -69,6 +75,8 @@ type DraftTarget = Readonly<{
   sessionId: string | null;
 }>;
 
+type StoredChatDraftTarget = Readonly<{ sessionId: string; draft: StoredChatDraft }>;
+
 const ChatDraftContext = createContext<ChatDraftContextValue | null>(null);
 
 function createEmptyChatDraft(workspaceId: string | null): ChatDraft {
@@ -77,6 +85,7 @@ function createEmptyChatDraft(workspaceId: string | null): ChatDraft {
     sessionId: null,
     inputText: "",
     pendingAttachments: [],
+    catalogHandoffId: undefined,
     updatedAt: null,
     sessionBoundDraftId: null,
   };
@@ -182,6 +191,65 @@ export function ChatDraftProvider(props: Props): ReactElement {
 
   const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId, transientDraft, importDraft.activeDraft);
 
+  function readActiveDraft(): ChatDraft {
+    const activeDraft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionIdRef.current,
+      transientDraft, importDraft.activeDraft);
+    const previousTarget = previousDraftTargetRef.current;
+    if (hasChatDraftContent(activeDraft.inputText, activeDraft.pendingAttachments)
+      || previousTarget.workspaceId !== activeWorkspaceId || previousTarget.sessionId === activeSessionId
+      || suppressedDraftCarryoverRef.current?.sessionId === previousTarget.sessionId) return activeDraft;
+    return getActiveDraft(activeWorkspaceId, previousTarget.sessionId, draftsBySessionIdRef.current, transientDraft, null);
+  }
+
+  function markActiveDraftForCatalogTransfer(): string | null {
+    const activeDraft = readActiveDraft();
+    if (activeDraft.sessionId === null || activeDraft.sessionBoundDraftId !== null) return null;
+    const currentDraftsBySessionId = mergeStoredAndInMemoryDrafts(
+      loadChatDraftWorkspaceState(activeWorkspaceId),
+      draftsBySessionIdRef.current,
+    );
+    const storedDraft = readStoredChatDraftForSession(currentDraftsBySessionId, activeDraft.sessionId);
+    if (storedDraft === null || storedDraft.updatedAt !== activeDraft.updatedAt) return null;
+    if (storedDraft.catalogHandoffId !== undefined) return storedDraft.catalogHandoffId;
+
+    const catalogHandoffId = createBrowserUuidV4();
+    const nextDraftsBySessionId = {
+      ...currentDraftsBySessionId,
+      [buildChatDraftSessionKey(activeDraft.sessionId)]: { ...storedDraft, catalogHandoffId },
+    };
+    commitCatalogDrafts(nextDraftsBySessionId);
+    return catalogHandoffId;
+  }
+
+  function commitCatalogDrafts(nextDraftsBySessionId: Readonly<Record<string, StoredChatDraft>>): void {
+    if (!storeChatDraftWorkspaceState(activeWorkspaceId, nextDraftsBySessionId)) {
+      throw new Error("Could not save the catalog chat draft in this browser.");
+    }
+    draftsBySessionIdRef.current = nextDraftsBySessionId;
+    setDraftsBySessionId(nextDraftsBySessionId);
+  }
+
+  function stageCatalogDraftForSession(
+    sessionId: string,
+    nextDraft: ChatDraftContent,
+    source: StoredChatDraftTarget | null,
+  ): void {
+    const currentDrafts = mergeStoredAndInMemoryDrafts(
+      loadChatDraftWorkspaceState(activeWorkspaceId),
+      draftsBySessionIdRef.current,
+    );
+    let nextDrafts = replaceChatDraftForSession(currentDrafts, sessionId, nextDraft);
+    if (source !== null) {
+      const currentSource = readStoredChatDraftForSession(currentDrafts, source.sessionId);
+      if (currentSource?.updatedAt !== source.draft.updatedAt
+        || currentSource.catalogHandoffId !== source.draft.catalogHandoffId) {
+        throw new Error("The catalog chat draft changed in this browser. Reopen AI chat to try again.");
+      }
+      nextDrafts = replaceChatDraftForSession(nextDrafts, source.sessionId, createChatDraftContent("", []));
+    }
+    commitCatalogDrafts(nextDrafts);
+  }
+
   function replaceDraftForSession(sessionId: string | null, nextDraft: ChatDraftContent): void {
     if (sessionId === null) {
       setTransientDraft(hasChatDraftContent(nextDraft.inputText, nextDraft.pendingAttachments)
@@ -278,20 +346,20 @@ export function ChatDraftProvider(props: Props): ReactElement {
     } else if (existingTargetDraft !== null && areChatDraftContentsEqual(existingTargetDraft, nextDraft) === false) {
       return null;
     }
-    const targetDraftsBySessionId = replaceChatDraftForSession(
-      currentDraftsBySessionId,
-      targetSessionId,
-      nextDraft,
-    );
-    const targetDraft = readStoredChatDraftForSession(targetDraftsBySessionId, targetSessionId);
-    const sourceDraft = readStoredChatDraftForSession(targetDraftsBySessionId, sourceSessionId);
-    const shouldClearSourceDraft = sourceSessionId !== null
-      && sourceSessionId !== targetSessionId
-      && sourceDraft !== null
+    const sourceDraft = readStoredChatDraftForSession(currentDraftsBySessionId, sourceSessionId);
+    const isSourceDraftUnchanged = sourceDraft !== null
       && sourceDraftUpdatedAt !== null
       && sourceDraft.updatedAt === sourceDraftUpdatedAt
       && areChatDraftContentsEqual(toPersistableChatDraftContent(sourceDraft), toPersistableChatDraftContent(nextDraft));
-    const nextDraftsBySessionId = shouldClearSourceDraft === false
+    const catalogHandoffId = existingTargetDraft?.catalogHandoffId
+      ?? (isSourceDraftUnchanged ? sourceDraft.catalogHandoffId : undefined);
+    const targetDraftsBySessionId = replaceChatDraftForSession(
+      currentDraftsBySessionId,
+      targetSessionId,
+      catalogHandoffId === undefined ? nextDraft : { ...nextDraft, catalogHandoffId },
+    );
+    const targetDraft = readStoredChatDraftForSession(targetDraftsBySessionId, targetSessionId);
+    const nextDraftsBySessionId = !isSourceDraftUnchanged || sourceSessionId === targetSessionId
       ? targetDraftsBySessionId
       : replaceChatDraftForSession(
         targetDraftsBySessionId,
@@ -317,11 +385,15 @@ export function ChatDraftProvider(props: Props): ReactElement {
   }
 
   function replaceInputText(nextInputText: string): void {
-    replaceDraftForSession(activeSessionId, createChatDraftContent(nextInputText, draft.pendingAttachments));
+    replaceDraftForSession(activeSessionId, {
+      inputText: nextInputText,
+      pendingAttachments: draft.pendingAttachments,
+      catalogHandoffId: draft.catalogHandoffId,
+    });
   }
 
   function updateInputText(updateDraftText: (currentInputText: string) => string): void {
-    replaceDraftForSession(activeSessionId, createChatDraftContent(updateDraftText(draft.inputText), draft.pendingAttachments));
+    replaceInputText(updateDraftText(draft.inputText));
   }
 
   function replacePendingAttachments(nextPendingAttachments: ReadonlyArray<PendingAttachment>): boolean {
@@ -331,7 +403,11 @@ export function ChatDraftProvider(props: Props): ReactElement {
     }
 
     const currentInputText = currentSessionBoundDraft?.draft.inputText ?? draft.inputText;
-    replaceDraftForSession(activeSessionId, createChatDraftContent(currentInputText, nextPendingAttachments));
+    replaceDraftForSession(activeSessionId, {
+      inputText: currentInputText,
+      pendingAttachments: nextPendingAttachments,
+      catalogHandoffId: draft.catalogHandoffId,
+    });
     return true;
   }
 
@@ -366,6 +442,9 @@ export function ChatDraftProvider(props: Props): ReactElement {
         updateInputText,
         replacePendingAttachments,
         moveDraftToSession,
+        readActiveDraft,
+        markActiveDraftForCatalogTransfer,
+        stageCatalogDraftForSession,
         replaceDraftForSession,
         stageAiImportDraft: importDraft.stage,
         claimAiImportAutoSend: importDraft.claimAutoSend,
@@ -398,7 +477,9 @@ function mergeStoredAndInMemoryDrafts(
         && areChatDraftContentsEqual(storedDraft, persistableMemoryDraft))
       || (storedDraft === undefined && !hasChatDraftContent(persistableMemoryDraft.inputText, persistableMemoryDraft.pendingAttachments))
     ) {
-      nextDraftsBySessionId[sessionId] = memoryDraft;
+      nextDraftsBySessionId[sessionId] = storedDraft === undefined || storedDraft.catalogHandoffId === memoryDraft.catalogHandoffId
+        ? memoryDraft
+        : { ...memoryDraft, catalogHandoffId: storedDraft.catalogHandoffId };
     }
   }
   return nextDraftsBySessionId;
@@ -421,6 +502,7 @@ function getActiveDraft(
       sessionId,
       inputText: transientDraft.draft.inputText,
       pendingAttachments: transientDraft.draft.pendingAttachments,
+      catalogHandoffId: transientDraft.draft.catalogHandoffId,
       updatedAt: null,
       sessionBoundDraftId: null,
     };
@@ -433,6 +515,7 @@ function getActiveDraft(
       sessionId,
       inputText: resolvedDraft.inputText,
       pendingAttachments: resolvedDraft.pendingAttachments,
+      catalogHandoffId: resolvedDraft.catalogHandoffId,
       updatedAt: resolvedDraft.updatedAt,
       sessionBoundDraftId: sessionBoundDraft?.id ?? null,
     };
@@ -469,7 +552,7 @@ function readDraftContentForCarryover(
     return null;
   }
 
-  return createChatDraftContent(carriedDraft.inputText, carriedDraft.pendingAttachments);
+  return carriedDraft;
 }
 
 function readTransientDraftContentForCarryover(

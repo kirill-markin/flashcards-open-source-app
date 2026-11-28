@@ -1548,6 +1548,8 @@ const guCatalog: TranslationCatalog = {
       attachmentsTooMany: "AI ચૅટના એક સંદેશમાં વધુમાં વધુ {{limit}} ફાઇલો અને છબીઓ ઉમેરી શકાય. બાકીની બીજા સંદેશમાં મોકલો.",
       microphoneUnavailable: "આ બ્રાઉઝરમાં માઇક્રોફોન રેકોર્ડિંગ ઉપલબ્ધ નથી.",
     },
+    catalogDraftWaiting: "કૅટલૉગમાંથી તમારી વિનંતી રાહ જોઈ રહી છે. તેને ખોલવા માટે આ ડ્રાફ્ટ મોકલો અથવા સાફ કરો.",
+    catalogTopicPrompt: "{{topic}} વિશે ફ્લૅશકાર્ડનો એક સેટ બનાવો.",
     composerPlaceholder: "કાર્ડ, પુનરાવર્તનના ઇતિહાસ વિશે પૂછો અથવા નોંધો જોડો...",
     currentChatRecovered: "આ ચેટને નવી ચેટથી બદલવામાં આવી છે. તમારો સંદેશ હજી પણ લખવાના બોક્સમાં છે — તેને ફરી મોકલો.",
     customInstructions: {

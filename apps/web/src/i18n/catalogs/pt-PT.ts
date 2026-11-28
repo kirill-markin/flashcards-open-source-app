@@ -1556,6 +1556,8 @@ const ptPtCatalog: TranslationCatalog = {
       attachmentsTooMany: "Pode anexar até {{limit}} ficheiros e imagens a uma mensagem no chat com IA. Envie os restantes noutra mensagem.",
       microphoneUnavailable: "A gravação pelo microfone não está disponível neste browser.",
     },
+    catalogDraftWaiting: "O teu pedido do catálogo está em espera. Envia ou apaga este rascunho para o abrir.",
+    catalogTopicPrompt: "Cria um baralho de cartões de estudo sobre {{topic}}.",
     composerPlaceholder: "Faça perguntas sobre os cartões ou o histórico de revisões, ou anexe apontamentos...",
     currentChatRecovered: "Este chat foi substituído por um mais recente. A sua mensagem continua na caixa de texto. Volte a enviá-la.",
     customInstructions: {

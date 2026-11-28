@@ -1547,6 +1547,8 @@ const enCatalog = {
       attachmentsTooMany: "One AI chat message can include up to {{limit}} files and images. Send the rest in another message.",
       microphoneUnavailable: "Microphone recording is unavailable in this browser.",
     },
+    catalogDraftWaiting: "Your catalog request is waiting. Send or clear this draft to open it.",
+    catalogTopicPrompt: "Create a flashcard deck about {{topic}}.",
     composerPlaceholder: "Ask about cards, review history, or attach notes...",
     currentChatRecovered: "This chat was replaced by a newer one. Your message is still in the box — send it again.",
     customInstructions: {
