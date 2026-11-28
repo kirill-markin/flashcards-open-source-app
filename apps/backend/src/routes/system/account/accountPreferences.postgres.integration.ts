@@ -10,7 +10,7 @@ import { createSystemRoutes } from "../index";
 import { parseAccountPreferencesInput } from "../support";
 import { updateAccountPreferences } from "./accountPreferences";
 
-test("accent migration preserves custom colors and accent and theme persist through account reads and older PATCH bodies", async () => {
+test("accent migration preserves custom colors and accent and appearance persist through account reads and older PATCH bodies", async () => {
   const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
   const userId = randomUUID();
   let workspaceId: string | null = null;
@@ -29,6 +29,7 @@ test("accent migration preserves custom colors and accent and theme persist thro
     workspaceId = profile.selectedWorkspaceId;
     assert.equal(profile.preferences.accentColor, "#FF6719");
     assert.equal(profile.preferences.theme, "dark");
+    assert.equal(profile.preferences.followSystemAppearance, false);
     const selected = await updateAccountPreferences(
       userId,
       parseAccountPreferencesInput({ accentColor: "#0aB19f", theme: "light" }),
@@ -50,11 +51,34 @@ test("accent migration preserves custom colors and accent and theme persist thro
     assert.deepEqual(reloaded.preferences, {
       accentColor: "#0AB19F",
       theme: "light",
+      followSystemAppearance: false,
       reviewReactionAnimationsEnabled: false,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",
       productAnalyticsEnabled: false,
     });
+    const following = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ followSystemAppearance: true }),
+    );
+    assert.equal(following.followSystemAppearance, true);
+    assert.equal(following.theme, "light");
+    const keptFollowing = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ reviewReactionAnimationsEnabled: false }),
+    );
+    assert.equal(keptFollowing.followSystemAppearance, true);
+    assert.equal((await ensureUserProfile(userId, null)).preferences.followSystemAppearance, true);
+    // A released client choosing Light sends only `theme`, which stops following the system.
+    const manualTheme = await updateAccountPreferences(userId, parseAccountPreferencesInput({ theme: "light" }));
+    assert.equal(manualTheme.theme, "light");
+    assert.equal(manualTheme.followSystemAppearance, false);
+    const bothFields = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ theme: "dark", followSystemAppearance: true }),
+    );
+    assert.equal(bothFields.theme, "dark");
+    assert.equal(bothFields.followSystemAppearance, true);
     const oldOrangeSelection = await updateAccountPreferences(
       userId,
       parseAccountPreferencesInput({ accentColor: "#c44b2d" }),
@@ -78,6 +102,10 @@ test("accent migration preserves custom colors and accent and theme persist thro
         (error: unknown) => error instanceof pg.DatabaseError && (error.code === "23514" || error.code === "23502"),
       );
     }
+    await assert.rejects(
+      ownerPool.query("UPDATE org.user_settings SET follow_system_appearance = NULL WHERE user_id = $1", [userId]),
+      (error: unknown) => error instanceof pg.DatabaseError && error.code === "23502",
+    );
   } finally {
     try {
       await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
@@ -88,7 +116,7 @@ test("accent migration preserves custom colors and accent and theme persist thro
   }
 });
 
-test("guest HTTP preferences persist accent-only and theme-only writes and reject invalid values without changing settings", async () => {
+test("guest HTTP preferences persist accent-only, theme-only and Follow System writes and reject invalid values without changing settings", async () => {
   const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
   const guest = await createGuestSession("ios", null);
   const previousAuthMode = process.env.AUTH_MODE;
@@ -116,6 +144,20 @@ test("guest HTTP preferences persist accent-only and theme-only writes and rejec
     assert.equal(themePatch.status, 200);
     const themeResult = await themePatch.json() as Readonly<{ preferences: AccountPreferences }>;
     assert.deepEqual(themeResult.preferences, { ...result.preferences, theme: "light" });
+    const followPatch = await app.request("http://localhost/me/preferences", {
+      method: "PATCH", headers, body: JSON.stringify({ followSystemAppearance: true }),
+    });
+    assert.equal(followPatch.status, 200);
+    const followResult = await followPatch.json() as Readonly<{ preferences: AccountPreferences }>;
+    assert.deepEqual(followResult.preferences, { ...themeResult.preferences, followSystemAppearance: true });
+    for (const invalid of [null, 1, "true"]) {
+      const response = await app.request("http://localhost/me/preferences", {
+        method: "PATCH", headers,
+        body: JSON.stringify({ followSystemAppearance: invalid, reviewReactionAnimationsEnabled: false }),
+      });
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { error: "followSystemAppearance must be a boolean" });
+    }
 
     for (const invalid of [null, 123456, "#abc", "#12345678", "123456", "#GG0000", " #123456", "#123456\n"]) {
       const response = await app.request("http://localhost/me/preferences", {
@@ -135,7 +177,7 @@ test("guest HTTP preferences persist accent-only and theme-only writes and rejec
     const read = await app.request("http://localhost/me", { headers });
     assert.equal(read.status, 200);
     const loaded = await read.json() as Readonly<{ preferences: AccountPreferences }>;
-    assert.deepEqual(loaded.preferences, themeResult.preferences);
+    assert.deepEqual(loaded.preferences, followResult.preferences);
 
     const oldPatch = await app.request("http://localhost/me/preferences", {
       method: "PATCH", headers, body: JSON.stringify({ reviewReactionAnimationsEnabled: false }),
@@ -144,9 +186,11 @@ test("guest HTTP preferences persist accent-only and theme-only writes and rejec
     const oldPatchPreferences = (await oldPatch.json() as Readonly<{ preferences: AccountPreferences }>).preferences;
     assert.equal(oldPatchPreferences.accentColor, "#ABC123");
     assert.equal(oldPatchPreferences.theme, "light");
+    assert.equal(oldPatchPreferences.followSystemAppearance, true);
     const persisted = (await ensureUserProfile(guest.userId, null)).preferences;
     assert.equal(persisted.accentColor, "#ABC123");
     assert.equal(persisted.theme, "light");
+    assert.equal(persisted.followSystemAppearance, true);
   } finally {
     try {
       if (previousAuthMode === undefined) {
@@ -237,6 +281,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterReconciliation = await updateAccountPreferences(declinedUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
@@ -251,6 +296,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
@@ -267,6 +313,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
@@ -319,6 +366,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterReconciliation = await updateAccountPreferences(optedOutUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
@@ -333,6 +381,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
@@ -350,6 +399,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
@@ -400,6 +450,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     const afterReconciledOptOut = await updateAccountPreferences(optedInUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
@@ -416,6 +467,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     const afterMixedOrigins = await updateAccountPreferences(mixedOriginUserId, {
       accentColor: null,
       theme: null,
+      followSystemAppearance: null,
       reviewReactionAnimationsEnabled: null,
       firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",

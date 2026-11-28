@@ -81,6 +81,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
 export type AccountPreferencesUpdate = Readonly<{
   accentColor: string | null;
   theme: AccountTheme | null;
+  followSystemAppearance: boolean | null;
   reviewReactionAnimationsEnabled: boolean | null;
   firstReviewOnboardingCompleted: boolean | null;
   analyticsConsent: AnalyticsConsentChoice | null;

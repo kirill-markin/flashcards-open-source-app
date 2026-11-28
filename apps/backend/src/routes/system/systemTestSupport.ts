@@ -62,6 +62,7 @@ export function createDefaultAccountPreferences(): AccountPreferences {
   return {
     accentColor: "#FF6719",
     theme: "dark",
+    followSystemAppearance: false,
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: false,
     analyticsConsent: null,
