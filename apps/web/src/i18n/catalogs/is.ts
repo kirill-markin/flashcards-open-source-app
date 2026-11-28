@@ -1548,6 +1548,8 @@ const isCatalog: TranslationCatalog = {
       attachmentsTooMany: "Ein skilaboð í gervigreindarspjallinu mega innihalda allt að {{limit}} skrár og myndir. Sendu afganginn í öðrum skilaboðum.",
       microphoneUnavailable: "Upptaka með hljóðnema er ekki tiltæk í þessum vafra.",
     },
+    catalogDraftWaiting: "Beiðnin þín úr skránni bíður. Sendu eða hreinsaðu þessi drög til að opna hana.",
+    catalogTopicPrompt: "Búðu til spjaldastokk um {{topic}}.",
     composerPlaceholder: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur...",
     currentChatRecovered: "Þessu spjalli var skipt út fyrir nýrra spjall. Skilaboðin þín eru enn í textareitnum — sendu þau aftur.",
     customInstructions: {

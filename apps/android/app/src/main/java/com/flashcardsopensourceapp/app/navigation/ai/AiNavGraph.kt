@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
@@ -27,6 +28,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermiss
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
+import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiViewModel
@@ -115,7 +117,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             aiViewModel.dismissAlert()
             premiumPresenter.showAiLimit(refusal = refusal)
         }
-        val importRequest by appGraph.appHandoffCoordinator.observeAiImport().collectAsStateWithLifecycle()
+        val importRequests = remember(appGraph) { appGraph.appHandoffCoordinator.observeAiImport() }
+        val importRequest by importRequests.collectAsStateWithLifecycle()
         val cloudSettingsFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeCloudSettings() }
         val cloudSettings by cloudSettingsFlow.collectAsStateWithLifecycle(initialValue = null)
         val configurationFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeServerConfiguration() }
@@ -142,21 +145,48 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             )
         }
 
-        val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
-        val cardHandoffRequest by appGraph.appHandoffCoordinator.observeAiCardHandoff().collectAsStateWithLifecycle()
+        val activeBackStackEntry by navController.currentBackStackEntryAsState()
+        val entryPrefillRequests = remember(appGraph) { appGraph.appHandoffCoordinator.observeAiEntryPrefill() }
+        val entryPrefillRequest by entryPrefillRequests.collectAsStateWithLifecycle()
+        val cardHandoffRequests = remember(appGraph) { appGraph.appHandoffCoordinator.observeAiCardHandoff() }
+        val cardHandoffRequest by cardHandoffRequests.collectAsStateWithLifecycle()
+        val isAiChatCurrent = activeBackStackEntry == backStackEntry
+        val canOpenCatalogDeckDraft = uiState.canOpenCatalogDeckDraft &&
+            importRequest == null &&
+            cardHandoffRequest == null
 
         LaunchedEffect(
             entryPrefillRequest?.requestId,
+            cloudSettings?.installationId,
+            cloudSettings?.linkedUserId,
+            cloudSettings?.cloudState,
+            cloudSettings?.activeWorkspaceId,
+            uiState.workspaceId,
             uiState.canEditDraft,
             uiState.isConsentRequired,
-            uiState.isConversationReady
+            uiState.isConversationReady,
+            canOpenCatalogDeckDraft,
+            isAiChatCurrent
         ) {
             val request = entryPrefillRequest ?: return@LaunchedEffect
-            if (uiState.isConsentRequired || uiState.isConversationReady.not()) {
+            if (
+                uiState.isConsentRequired ||
+                uiState.isConversationReady.not() ||
+                entryPrefillRequests.value?.requestId != request.requestId
+            ) {
                 return@LaunchedEffect
             }
-            val didHandleRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
-            if (didHandleRequest) {
+            if (request.prefill is AiEntryPrefill.CatalogDeck) {
+                if (canOpenCatalogDeckDraft && isAiChatCurrent) {
+                    appGraph.deliverCatalogAiPrefill(request = request) { prefill, workspaceId ->
+                        navController.currentBackStackEntry == backStackEntry &&
+                            aiViewModel.uiState.value.workspaceId == workspaceId &&
+                            importRequests.value == null &&
+                            cardHandoffRequests.value == null &&
+                            aiViewModel.applyEntryPrefill(prefill = prefill)
+                    }
+                }
+            } else if (aiViewModel.applyEntryPrefill(prefill = request.prefill)) {
                 appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
             }
         }
@@ -228,8 +258,14 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                     onCancel = { appGraph.appHandoffCoordinator.cancelAiImport(requestId = request.requestId) }
                 )
             },
+            onCancelCatalogDeckDraft = entryPrefillRequest
+                ?.takeIf { request -> request.prefill is AiEntryPrefill.CatalogDeck }
+                ?.let { request ->
+                    { appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId) }
+                },
             onAcceptConsent = aiViewModel::acceptConsent,
             onDraftMessageChange = aiViewModel::updateDraftMessage,
+            onComposerFocusApplied = aiViewModel::acknowledgeComposerFocusRequest,
             onApplyComposerSuggestion = aiViewModel::applyComposerSuggestion,
             onSendMessage = aiViewModel::sendMessage,
             onCancelStreaming = aiViewModel::cancelStreaming,

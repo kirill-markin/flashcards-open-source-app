@@ -1548,6 +1548,8 @@ const svCatalog: TranslationCatalog = {
       attachmentsTooMany: "Ett meddelande i AI-chatten kan innehålla högst {{limit}} filer och bilder. Skicka resten i ett annat meddelande.",
       microphoneUnavailable: "Mikrofoninspelning är inte tillgänglig i den här webbläsaren.",
     },
+    catalogDraftWaiting: "Din begäran från katalogen väntar. Skicka eller rensa utkastet för att öppna den.",
+    catalogTopicPrompt: "Skapa en kortlek med studiekort om {{topic}}.",
     composerPlaceholder: "Fråga om kort, repetitionshistorik eller bifoga anteckningar...",
     currentChatRecovered: "Den här chatten har ersatts av en nyare. Ditt meddelande finns kvar i textfältet – skicka det igen.",
     customInstructions: {

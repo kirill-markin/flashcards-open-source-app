@@ -1548,6 +1548,8 @@ export const jaCatalog = {
       attachmentsTooMany: "AI チャットの 1 件のメッセージに添付できるファイルと画像は {{limit}} 個までです。残りは別のメッセージで送信してください。",
       microphoneUnavailable: "このブラウザではマイク録音を利用できません。",
     },
+    catalogDraftWaiting: "カタログからのリクエストが待機中です。この下書きを送信するか消去すると開けます。",
+    catalogTopicPrompt: "「{{topic}}」についてのフラッシュカードのデッキを作成してください。",
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",
     currentChatRecovered: "このチャットは新しいチャットに置き換えられました。メッセージは入力欄に残っています。もう一度送信してください。",
     customInstructions: {

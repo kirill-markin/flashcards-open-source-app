@@ -262,7 +262,7 @@ describe("chatDraftStorage", () => {
     expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
   });
 
-  it("clears the workspace draft key when localStorage quota blocks persistence", () => {
+  it("preserves the workspace drafts when localStorage quota blocks persistence", () => {
     window.localStorage.setItem("flashcards-chat-drafts::workspace-1", JSON.stringify({
       version: 1,
       draftsBySessionId: {
@@ -282,8 +282,8 @@ describe("chatDraftStorage", () => {
       pendingAttachments: [createCardAttachment()],
     });
 
-    expect(() => storeChatDraftWorkspaceState("workspace-1", drafts)).not.toThrow();
-    expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
+    expect(storeChatDraftWorkspaceState("workspace-1", drafts)).toBe(false);
+    expect(loadChatDraftWorkspaceState("workspace-1")["session-1"]?.inputText).toBe("previous draft");
   });
 
   it("rethrows non-quota localStorage persistence errors", () => {

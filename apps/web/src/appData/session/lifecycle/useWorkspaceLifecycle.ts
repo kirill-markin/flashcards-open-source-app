@@ -1,3 +1,4 @@
+import { bindCatalogChatHandoffOwner, carryCatalogChatHandoffThroughGuestConversion } from "../../../chat/handoff/catalogChatHandoff";
 import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
 import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
@@ -528,6 +529,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      if (hasFinalizedGuestConversion && completion?.result !== null && completion?.result !== undefined) {
+        carryCatalogChatHandoffThroughGuestConversion(completion.sourceUserId, completion.sourceWorkspaceId,
+          currentSession.userId, completion.result.workspace.workspaceId);
+      }
+      bindCatalogChatHandoffOwner(currentSession.userId);
       // Publishes the account this browser's credential belongs to. The analytics queue stores the
       // account it was filled under, so this is what lets analytics compare the two and either ship
       // or discard; until it is published nothing is sent, which is why it is only reached once the

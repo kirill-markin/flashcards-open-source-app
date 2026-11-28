@@ -23,6 +23,7 @@ import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
 } from "./lifecycle/warmStart";
+import { readCatalogChatHandoff } from "../handoff/catalogChatHandoff";
 import { useChatHistory } from "../history/useChatHistory";
 import { useChatAiUsage } from "./aiUsage/useAiUsage";
 import { useChatSessionActions } from "./actions/useActions";
@@ -59,9 +60,11 @@ export function useChatSessionController(
       : loadChatSessionWarmStartSnapshot(workspaceId);
   }
   const initialWarmStartSnapshot = initialWarmStartSnapshotRef.current;
-  const initialWarmStartSnapshotIsStale = initialWarmStartSnapshot === null
-    ? false
-    : isChatSessionStale(initialWarmStartSnapshot.messages, Date.now());
+  const catalogHandoff = readCatalogChatHandoff();
+  const shouldRecoverCurrentCatalogChat = catalogHandoff?.topic != null || catalogHandoff?.transfer?.destinationWorkspaceId != null;
+  const initialWarmStartSnapshotIsStale = initialWarmStartSnapshot !== null
+    && !shouldRecoverCurrentCatalogChat && !initialWarmStartSnapshot.pendingToolRunPostSync
+    && isChatSessionStale(initialWarmStartSnapshot.messages, Date.now());
   const initialFreshSessionIdRef = useRef<string>(createClientChatSessionId());
   const initialFreshSessionId = initialFreshSessionIdRef.current;
   const bootstrapRef = useRef(createInitialChatSessionControllerBootstrap(
@@ -84,6 +87,7 @@ export function useChatSessionController(
     workspaceId,
     accountId,
     isRemoteReady,
+    shouldRecoverCurrentCatalogChat,
     uiMessages,
     state,
     dispatch,
@@ -117,6 +121,7 @@ export function useChatSessionController(
     indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
+    shouldRecoverCurrentCatalogChat,
     uiLocale,
     uiMessages,
     state,
@@ -155,6 +160,7 @@ export function useChatSessionController(
       indexedDbOpenRecoveryState.hasFailed()
       || workspaceId === null
       || state.currentSessionId === null
+      || state.currentSessionId !== snapshotSync.runtimeRefs.currentSessionIdRef.current
       || state.isHistoryLoaded === false
     ) {
       return;
@@ -240,10 +246,21 @@ export function useChatSessionController(
 
   const clearConversation = useCallback(async (): Promise<string | null> => {
     indexedDbOpenRecoveryState.throwIfFailed();
-    const sessionId = await actions.clearConversation();
+    const sessionId = actions.clearConversation(null);
     indexedDbOpenRecoveryState.throwIfFailed();
     return sessionId;
   }, [actions, indexedDbOpenRecoveryState]);
+
+  const canStartCatalogConversation = isRemoteReady && workspaceId !== null
+    && state.isHistoryLoaded && snapshotSync.isWorkspaceRunReconciled
+    && !state.isStopping && !selectIsAssistantRunActive(state) && !state.pendingToolRunPostSync;
+
+  function startCatalogConversation(prepareDraft: (sessionId: string) => void): string | null {
+    if (!canStartCatalogConversation || snapshotSync.isRunRecoveryPending()
+      || snapshotSync.hasPendingToolRunPostSync() || composerSendCountRef.current > 0) return null;
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return actions.clearConversation(prepareDraft);
+  }
 
   return {
     messages: history.messages,
@@ -268,6 +285,8 @@ export function useChatSessionController(
     runComposerSend,
     sendMessage,
     stopMessage,
+    canStartCatalogConversation,
+    startCatalogConversation,
     clearConversation,
   };
 }

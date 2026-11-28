@@ -9,6 +9,7 @@ import { markProgressCacheDirtyInTransaction } from "../../../localDb/progress/p
 import type { CardTagRecord } from "../../../localDb/cards/tags";
 import type { MediaTransferQueueRecord } from "../../../localDb/mediaTransfers/types";
 import { hasHydratedHotState, hasHydratedReviewHistory } from "../../../localDb/cards/workspace";
+import { cancelCatalogChatDraftTransfer } from "../../../chat/handoff/catalogChatHandoff";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { SessionInfo } from "../../../types";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
@@ -75,6 +76,7 @@ export async function resumeGuestAfterCancelledSignIn(): Promise<void> {
     const state = readBrowserGuestState();
     if (state?.status !== "owned") throw new Error("The saved guest owner is unavailable.");
     writeBrowserGuestState({ ...state, owner: { ...state.owner, pending: null } });
+    cancelCatalogChatDraftTransfer(pending.sourceUserId, pending.sourceWorkspaceId);
   });
 }
 

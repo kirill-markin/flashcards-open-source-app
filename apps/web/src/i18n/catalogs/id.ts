@@ -1548,6 +1548,8 @@ const idCatalog: TranslationCatalog = {
       attachmentsTooMany: "Satu pesan obrolan AI dapat berisi paling banyak {{limit}} berkas dan gambar. Kirim sisanya di pesan lain.",
       microphoneUnavailable: "Perekaman mikrofon tidak tersedia di peramban ini.",
     },
+    catalogDraftWaiting: "Permintaan Anda dari katalog sedang menunggu. Kirim atau hapus draf ini untuk membukanya.",
+    catalogTopicPrompt: "Buat set kartu belajar tentang {{topic}}.",
     composerPlaceholder: "Tanyakan tentang kartu, riwayat tinjauan, atau lampirkan catatan...",
     currentChatRecovered: "Obrolan ini telah diganti dengan yang lebih baru. Pesan Anda masih ada di kotak teks — kirim lagi.",
     customInstructions: {

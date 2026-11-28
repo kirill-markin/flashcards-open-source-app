@@ -1548,6 +1548,8 @@ const trCatalog: TranslationCatalog = {
       attachmentsTooMany: "Bir AI sohbeti mesajında en fazla {{limit}} dosya ve görsel olabilir. Kalanları başka bir mesajda gönderin.",
       microphoneUnavailable: "Bu tarayıcıda mikrofon kaydı kullanılamıyor.",
     },
+    catalogDraftWaiting: "Katalogdan gelen isteğin bekliyor. Açmak için bu taslağı gönder veya temizle.",
+    catalogTopicPrompt: "{{topic}} hakkında bir çalışma kartı destesi oluştur.",
     composerPlaceholder: "Kartlar veya tekrar geçmişi hakkında soru sorun ya da not ekleyin...",
     currentChatRecovered: "Bu sohbet daha yeni bir sohbetle değiştirildi. Mesajınız hâlâ metin kutusunda — tekrar gönderin.",
     customInstructions: {

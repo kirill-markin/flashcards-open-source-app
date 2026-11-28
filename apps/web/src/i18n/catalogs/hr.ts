@@ -1559,6 +1559,8 @@ const hrCatalog: TranslationCatalog = {
       attachmentsTooMany: "Jedna poruka u AI razgovoru može sadržavati najviše {{limit}} datoteka i slika. Ostatak pošaljite u drugoj poruci.",
       microphoneUnavailable: "Snimanje mikrofonom nije dostupno u ovom pregledniku.",
     },
+    catalogDraftWaiting: "Zahtjev iz kataloga čeka. Pošaljite ili izbrišite ovaj nacrt da biste ga otvorili.",
+    catalogTopicPrompt: "Izradi špil kartica na temu {{topic}}.",
     composerPlaceholder: "Pitajte o karticama, povijesti ponavljanja ili priložite bilješke...",
     currentChatRecovered: "Ovaj je razgovor zamijenjen novijim. Vaša je poruka još u polju za unos — pošaljite je ponovno.",
     customInstructions: {

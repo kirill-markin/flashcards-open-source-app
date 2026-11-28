@@ -189,6 +189,8 @@
     <string name="ai_server_dictation_custom_unavailable">Fungsi penaipan suara AI tidak tersedia pada pelayan ini. Hubungi pengendali pelayan.</string>
     <string name="ai_message_with_request_id">%1$s ID permintaan: %2$s</string>
     <string name="ai_entry_prefill_create_card">Bantu saya buat kad.</string>
+    <string name="ai_entry_prefill_create_catalog_deck">Bantu saya cipta dek kad imbas tentang %1$s.</string>
+    <string name="ai_catalog_deck_prompt_queued">Gesaan dek akan dibuka apabila sembang semasa anda sedia.</string>
     <string name="ai_history_content_description">Sejarah</string>
     <string name="ai_history_title">Sejarah sembang</string>
     <string name="ai_history_back_content_description">Kembali</string>

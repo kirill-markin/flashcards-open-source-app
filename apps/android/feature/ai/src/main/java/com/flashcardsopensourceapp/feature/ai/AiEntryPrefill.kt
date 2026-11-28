@@ -2,8 +2,9 @@ package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
-enum class AiEntryPrefill {
-    CREATE_CARD
+sealed interface AiEntryPrefill {
+    data object CreateCard : AiEntryPrefill
+    data class CatalogDeck(val topic: String) : AiEntryPrefill
 }
 
 fun aiEntryPrefillPrompt(
@@ -11,6 +12,7 @@ fun aiEntryPrefillPrompt(
     textProvider: AiTextProvider
 ): String {
     return when (prefill) {
-        AiEntryPrefill.CREATE_CARD -> textProvider.entryPrefillCreateCard
+        AiEntryPrefill.CreateCard -> textProvider.entryPrefillCreateCard
+        is AiEntryPrefill.CatalogDeck -> textProvider.entryPrefillCreateCatalogDeckFormat.format(prefill.topic)
     }
 }

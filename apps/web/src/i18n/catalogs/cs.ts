@@ -1559,6 +1559,8 @@ const csCatalog: TranslationCatalog = {
       attachmentsTooMany: "Jedna zpráva v chatu s AI může obsahovat nejvýše {{limit}} souborů a obrázků. Zbytek pošlete v další zprávě.",
       microphoneUnavailable: "Nahrávání z mikrofonu není v tomto prohlížeči dostupné.",
     },
+    catalogDraftWaiting: "Požadavek z katalogu čeká. Odesláním nebo vymazáním tohoto konceptu ho otevřete.",
+    catalogTopicPrompt: "Vytvoř balíček kartiček na téma {{topic}}.",
     composerPlaceholder: "Zeptejte se na kartičky či historii opakování nebo přiložte poznámky...",
     currentChatRecovered: "Tento chat byl nahrazen novějším. Vaše zpráva je stále v textovém poli – odešlete ji znovu.",
     customInstructions: {

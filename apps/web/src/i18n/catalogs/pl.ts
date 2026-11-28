@@ -1559,6 +1559,8 @@ const plCatalog: TranslationCatalog = {
       attachmentsTooMany: "Jedna wiadomość w czacie AI może zawierać maksymalnie {{limit}} plików i obrazów. Resztę wyślij w kolejnej wiadomości.",
       microphoneUnavailable: "Nagrywanie z mikrofonu jest niedostępne w tej przeglądarce.",
     },
+    catalogDraftWaiting: "Prośba z katalogu czeka. Wyślij lub usuń ten szkic, aby ją otworzyć.",
+    catalogTopicPrompt: "Utwórz talię fiszek na temat {{topic}}.",
     composerPlaceholder: "Zapytaj o karty, historię powtórek lub dołącz notatki...",
     currentChatRecovered: "Ten czat został zastąpiony nowszym. Twoja wiadomość nadal jest w polu tekstowym — wyślij ją ponownie.",
     customInstructions: {

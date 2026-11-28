@@ -1548,6 +1548,8 @@ const thCatalog: TranslationCatalog = {
       attachmentsTooMany: "ข้อความเดียวในแชท AI แนบไฟล์และรูปภาพได้ไม่เกิน {{limit}} รายการ ส่งที่เหลือในข้อความอื่น",
       microphoneUnavailable: "เบราว์เซอร์นี้บันทึกเสียงจากไมโครโฟนไม่ได้",
     },
+    catalogDraftWaiting: "คำขอจากแค็ตตาล็อกกำลังรออยู่ ส่งหรือล้างข้อความร่างนี้เพื่อเปิดคำขอ",
+    catalogTopicPrompt: "สร้างชุดแฟลชการ์ดเกี่ยวกับ {{topic}} ให้หน่อย",
     composerPlaceholder: "ถามเกี่ยวกับการ์ด ประวัติการทบทวน หรือแนบโน้ต...",
     currentChatRecovered: "แชทนี้ถูกแทนที่ด้วยแชทที่ใหม่กว่าแล้ว ข้อความของคุณยังอยู่ในช่องพิมพ์ — ส่งอีกครั้งได้เลย",
     customInstructions: {

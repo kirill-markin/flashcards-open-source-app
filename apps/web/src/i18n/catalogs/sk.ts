@@ -1559,6 +1559,8 @@ const skCatalog: TranslationCatalog = {
       attachmentsTooMany: "Jedna správa v AI chate môže obsahovať najviac {{limit}} súborov a obrázkov. Zvyšok pošlite v ďalšej správe.",
       microphoneUnavailable: "Nahrávanie z mikrofónu nie je v tomto prehliadači dostupné.",
     },
+    catalogDraftWaiting: "Požiadavka z katalógu čaká. Odošlite alebo vymažte tento koncept, aby ste ju otvorili.",
+    catalogTopicPrompt: "Vytvor balíček kartičiek na tému {{topic}}.",
     composerPlaceholder: "Pýtajte sa na karty, históriu opakovania alebo priložte poznámky...",
     currentChatRecovered: "Tento chat bol nahradený novším. Vaša správa je stále v textovom poli – odošlite ju znova.",
     customInstructions: {

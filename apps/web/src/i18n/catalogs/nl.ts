@@ -1548,6 +1548,8 @@ const nlCatalog: TranslationCatalog = {
       attachmentsTooMany: "Eén bericht in de AI-chat kan maximaal {{limit}} bestanden en afbeeldingen bevatten. Stuur de rest in een ander bericht.",
       microphoneUnavailable: "Opnemen met de microfoon is niet beschikbaar in deze browser.",
     },
+    catalogDraftWaiting: "Je verzoek uit de catalogus staat klaar. Verstuur of wis dit concept om het verzoek te openen.",
+    catalogTopicPrompt: "Maak een set flashcards over {{topic}}.",
     composerPlaceholder: "Vraag naar kaarten of je herhalingsgeschiedenis, of voeg notities toe...",
     currentChatRecovered: "Deze chat is vervangen door een nieuwere. Je bericht staat nog in het invoerveld — verstuur het opnieuw.",
     customInstructions: {

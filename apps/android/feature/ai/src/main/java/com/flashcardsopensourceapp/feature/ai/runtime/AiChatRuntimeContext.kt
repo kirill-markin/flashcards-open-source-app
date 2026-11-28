@@ -80,6 +80,7 @@ internal class AiChatRuntimeContext(
     private val toolRunPostSyncMutex = Mutex()
     private val persistedStateWriteMutex = Mutex()
     private val persistedStateWriteRequestVersion = AtomicLong(0L)
+    private val composerFocusRequestVersion = AtomicLong(0L)
     private var isToolRunPostSyncInFlight: Boolean = false
     private var supersededImportRequest: AiChatImportRequest? = null
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
@@ -99,6 +100,10 @@ internal class AiChatRuntimeContext(
     var nextResumeAttemptId: Long = 0L
     val state: StateFlow<AiChatRuntimeState> = runtimeStateMutable.asStateFlow()
     val aiUsageStateMutable = MutableStateFlow<AiUsageStatus?>(value = null)
+
+    fun nextComposerFocusRequestVersion(): Long {
+        return composerFocusRequestVersion.incrementAndGet()
+    }
 
     fun nextResumeDiagnostics(): AiChatResumeDiagnostics {
         nextResumeAttemptId += 1L

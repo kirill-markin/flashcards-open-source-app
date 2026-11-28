@@ -47,11 +47,12 @@ import { useChatComposerKeyboard } from "../composer/useChatComposerKeyboard";
 import { useChatComposerSend } from "../composer/useChatComposerSend";
 import { useChatDictationCapture } from "../composer/dictation/useChatDictationCapture";
 import { useChatSidebarResize } from "../layout/useChatSidebarResize";
+import { useCatalogChatHandoff } from "../handoff/useCatalogChatHandoff";
 import {
   useWorkspaceChatInstructions,
   useWorkspaceChatInstructionsScope,
 } from "../customInstructions/workspaceChatInstructionsStore";
-import { settingsChatInstructionsRoute } from "../../routes";
+import { settingsChatInstructionsRoute, splitWorkspaceRoutePath } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
 
 type Props = Readonly<{
@@ -338,6 +339,11 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     sendPhase,
   });
+  const isCatalogDraftWaiting = useCatalogChatHandoff(
+    mode === "fullscreen" && location.hash === "" && !isHistoryPanelVisible && !isDraftInputBlocked
+      && splitWorkspaceRoutePath(location.pathname).workspaceId === activeWorkspaceId?.toLowerCase(),
+    textareaRef,
+  );
   // The History panel hides the draft, so a drop there must not attach to it unseen.
   const canDropDraftFiles = canAttachDraftFiles && isHistoryPanelVisible === false;
   const {
@@ -684,6 +690,12 @@ export function ChatPanel(props: Props): ReactElement {
               <button type="button" className="ghost-btn" data-testid="guest-ai-usage-retry"
                 disabled={isChatActionLocked} onClick={refreshAiUsage}>{t("common.retry")}</button>
             </> : t("common.loading")}
+          </p>
+        ) : null}
+
+        {isCatalogDraftWaiting ? (
+          <p className="chat-ai-usage-notice" role="status" data-testid="catalog-chat-draft-waiting">
+            {t("chatPanel.catalogDraftWaiting")}
           </p>
         ) : null}
 

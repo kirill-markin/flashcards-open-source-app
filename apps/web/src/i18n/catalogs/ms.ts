@@ -1556,6 +1556,8 @@ const msCatalog: TranslationCatalog = {
       attachmentsTooMany: "Satu mesej sembang AI boleh memuatkan sehingga {{limit}} fail dan imej. Hantar selebihnya dalam mesej lain.",
       microphoneUnavailable: "Rakaman mikrofon tidak tersedia dalam pelayar ini.",
     },
+    catalogDraftWaiting: "Permintaan anda daripada katalog sedang menunggu. Hantar atau padam draf ini untuk membukanya.",
+    catalogTopicPrompt: "Cipta satu set kad imbas tentang {{topic}}.",
     composerPlaceholder: "Tanya tentang kad atau sejarah ulang kaji, atau lampirkan nota...",
     currentChatRecovered: "Sembang ini telah digantikan dengan sembang yang lebih baharu. Mesej anda masih dalam kotak mesej. Hantar sekali lagi.",
     customInstructions: {

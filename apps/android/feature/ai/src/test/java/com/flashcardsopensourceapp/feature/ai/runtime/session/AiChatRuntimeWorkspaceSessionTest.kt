@@ -342,7 +342,7 @@ class AiChatRuntimeWorkspaceSessionTest {
     }
 
     @Test
-    fun stalePersistedChatStartsFreshConversation() = runTest {
+    fun stalePersistedChatWithDraftStaysEditable() = runTest {
         val repository = FakeAiChatRepository()
         val nowMillis = System.currentTimeMillis()
         val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
@@ -364,23 +364,25 @@ class AiChatRuntimeWorkspaceSessionTest {
             draftMessage = "Keep this old draft",
             pendingAttachments = emptyList()
         )
+        repository.bootstrapResponses += makeBootstrapResponse(sessionId = oldSessionId, activeRun = null)
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        val freshSessionId = repository.createNewSessionRequests.single()
-        assertNotEquals(oldSessionId, freshSessionId)
-        assertEquals(0, repository.loadBootstrapCalls)
-        assertTrue(repository.loadBootstrapSessionIds.isEmpty())
-        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
-        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
-        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(oldSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals("Keep this old draft", runtime.state.value.draftMessage)
+
+        runtime.updateDraftMessage(draftMessage = "Keep editing this old draft")
+        advanceUntilIdle()
+
         assertEquals(
-            "Keep this old draft",
+            "Keep editing this old draft",
             repository.draftStates[defaultTestWorkspaceId to oldSessionId]?.draftMessage
         )
-        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
     }
 
     @Test

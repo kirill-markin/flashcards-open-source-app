@@ -1548,6 +1548,8 @@ const zuCatalog: TranslationCatalog = {
       attachmentsTooMany: "Umlayezo owodwa wengxoxo ye-AI ungaba namafayela nezithombe ezingu-{{limit}} kuphela. Thumela okusele komunye umlayezo.",
       microphoneUnavailable: "Ukuqopha ngemakrofoni akutholakali kulesi siphequluli.",
     },
+    catalogDraftWaiting: "Isicelo sakho esivela kukhathalogi silindile. Thumela noma usule lo mbhalo osalungiswa ukuze usivule.",
+    catalogTopicPrompt: "Dala iqoqo lamakhadi okufunda mayelana ne-{{topic}}.",
     composerPlaceholder: "Buza ngamakhadi, umlando wokubukeza, noma unamathisele amanothi...",
     currentChatRecovered: "Le ngxoxo ithathelwe indawo ngengxoxo entsha. Umlayezo wakho usesebhokisini lombhalo — wuthumele futhi.",
     customInstructions: {

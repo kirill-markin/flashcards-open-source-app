@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversatio
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraftText
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canOpenFreshAiCatalogDeckDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
@@ -119,7 +120,7 @@ internal fun mapToAiUiState(
         pendingAttachments = if (isSendingImport) emptyList() else runtimeState.pendingAttachments,
         isImportingAttachment = runtimeState.isImportingAttachment,
         draftMessage = if (isSendingImport) "" else runtimeState.draftMessage,
-        focusComposerRequestVersion = runtimeState.focusComposerRequestVersion,
+        pendingComposerFocusRequestVersion = runtimeState.pendingComposerFocusRequestVersion,
         composerSuggestions = composerSuggestions,
         chatConfig = chatConfig,
         isConsentRequired = hasConsent.not(),
@@ -127,6 +128,9 @@ internal fun mapToAiUiState(
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
         isCardHandoffReady = isCardHandoffReady,
+        canOpenCatalogDeckDraft = hasConsent &&
+            needsGuestAccessPreparation.not() &&
+            canOpenFreshAiCatalogDeckDraft(state = runtimeState),
         conversationErrorPresentation = runtimeState.conversationBootstrapErrorPresentation,
         needsGuestAccessPreparation = needsGuestAccessPreparation,
         guestAccessPreparationError = runtimeState.guestAccessPreparationError,
@@ -179,7 +183,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         pendingAttachments = emptyList(),
         isImportingAttachment = false,
         draftMessage = "",
-        focusComposerRequestVersion = 0L,
+        pendingComposerFocusRequestVersion = null,
         composerSuggestions = emptyList(),
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = hasConsent.not(),
@@ -187,6 +191,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         isConversationReady = false,
         isConversationLoading = true,
         isCardHandoffReady = false,
+        canOpenCatalogDeckDraft = false,
         conversationErrorPresentation = emptyAiBootstrapErrorPresentation(),
         needsGuestAccessPreparation = false,
         guestAccessPreparationError = null,

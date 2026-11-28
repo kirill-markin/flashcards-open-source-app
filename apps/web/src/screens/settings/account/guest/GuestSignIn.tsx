@@ -2,24 +2,41 @@ import { useState, type ReactElement } from "react";
 import { buildLoginUrl } from "../../../../api";
 import { useAppData } from "../../../../appData";
 import { beginGuestSignIn } from "../../../../appData/session/guest/browserGuestConversion";
+import { readPendingGuestConversion } from "../../../../appData/session/guest/browserGuestStorage";
+import { useOptionalChatDraft } from "../../../../chat/composer/drafts/ChatDraftContext";
+import { cancelCatalogChatDraftTransfer, holdCatalogChatDuringGuestSignIn, prepareCatalogChatGuestSignIn } from "../../../../chat/handoff/catalogChatHandoff";
 import { useI18n } from "../../../../i18n";
 import { GuestAccountAttentionBadge } from "./GuestAccountAttentionBadge";
 
 export function GuestSignIn(props: Readonly<{ label: string; testId: string; returnUrl?: string; onStarted?: () => void; onPressed?: () => void; guestAccountAttention?: boolean }>): ReactElement {
   const { session, activeWorkspace, isSessionVerified, drainGuestWorkspace, setErrorMessage } = useAppData();
   const { locale, t } = useI18n();
+  const chatDraft = useOptionalChatDraft();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function signIn(): Promise<void> {
     if (busy || !isSessionVerified || session === null || activeWorkspace === null) return;
-    setBusy(true); setError(""); props.onPressed?.();
+    const isGuest = session.browserGuestCapabilities?.isGuest === true;
+    if (isGuest && !holdCatalogChatDuringGuestSignIn(session.userId)) return;
+    setBusy(true); setError("");
     try {
-      if (session.browserGuestCapabilities?.isGuest === true) {
+      props.onPressed?.();
+      let returnUrl = props.returnUrl;
+      if (isGuest) {
+        const catalogReturnUrl = prepareCatalogChatGuestSignIn(
+          session.userId,
+          activeWorkspace.workspaceId,
+          chatDraft?.markActiveDraftForCatalogTransfer,
+        );
+        returnUrl ??= catalogReturnUrl;
         await beginGuestSignIn(session.userId, activeWorkspace.workspaceId, drainGuestWorkspace);
       }
       props.onStarted?.();
-      window.location.assign(buildLoginUrl(props.returnUrl ?? window.location.origin + "/", locale));
+      window.location.assign(buildLoginUrl(returnUrl ?? window.location.origin + "/", locale));
     } catch (failure) {
+      if (isGuest && readPendingGuestConversion() === null) {
+        cancelCatalogChatDraftTransfer(session.userId, activeWorkspace.workspaceId);
+      }
       const message = failure instanceof Error ? failure.message : String(failure);
       setError(message);
       setErrorMessage(message);

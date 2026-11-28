@@ -17,8 +17,10 @@ data class AiPendingImport(val fileNames: List<String>, val onCancel: () -> Unit
 fun AiRoute(
     uiState: AiUiState,
     pendingImport: AiPendingImport?,
+    onCancelCatalogDeckDraft: (() -> Unit)?,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
+    onComposerFocusApplied: (Long) -> Unit,
     onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
@@ -53,8 +55,10 @@ fun AiRoute(
     AiRouteContent(
         uiState = uiState,
         pendingImport = pendingImport,
+        onCancelCatalogDeckDraft = onCancelCatalogDeckDraft,
         onAcceptConsent = onAcceptConsent,
         onDraftMessageChange = onDraftMessageChange,
+        onComposerFocusApplied = onComposerFocusApplied,
         onApplyComposerSuggestion = onApplyComposerSuggestion,
         onSendMessage = onSendMessage,
         onCancelStreaming = onCancelStreaming,

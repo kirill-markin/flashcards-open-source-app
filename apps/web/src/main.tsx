@@ -1,3 +1,4 @@
+import "./chat/handoff/catalogChatHandoff";
 import "./api/accountMethodReturn";
 import { AppErrorBoundary, buildReactRootOptions } from "./observability/instrument";
 import React from "react";

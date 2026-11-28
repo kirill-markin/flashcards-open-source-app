@@ -99,11 +99,13 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(isConsentRequired = consentRequired),
                     onAcceptConsent = {
                         consentRequired = false
                     },
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -162,6 +164,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -191,6 +194,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -246,6 +250,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -266,6 +271,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -311,9 +317,11 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -359,12 +367,14 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         draftMessage = "hello",
                         canSend = true
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -420,12 +430,14 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 FlashcardsTheme {
                     AiRoute(
                         pendingImport = null,
+                        onCancelCatalogDeckDraft = null,
                         uiState = makeAiUiState(
                             draftMessage = "hello",
                             canSend = true
                         ),
                         onAcceptConsent = {},
                         onDraftMessageChange = {},
+                        onComposerFocusApplied = {},
                         onApplyComposerSuggestion = {},
                         onSendMessage = {
                             didRequestForcedFocusClearAtDispatch = didRequestForcedFocusClear.get()
@@ -489,9 +501,11 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -556,12 +570,14 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         isConversationReady = false,
                         isConversationLoading = true
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -610,6 +626,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -631,6 +648,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -685,6 +703,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -703,6 +722,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -761,6 +781,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     composable(route = "ai") {
                         AiRoute(
                             pendingImport = null,
+                            onCancelCatalogDeckDraft = null,
                             uiState = makeAiUiState(
                                 messages = listOf(
                                     AiChatMessage(
@@ -784,6 +805,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                             ),
                             onAcceptConsent = {},
                             onDraftMessageChange = {},
+                            onComposerFocusApplied = {},
                             onApplyComposerSuggestion = {},
                             onSendMessage = {},
                             onCancelStreaming = {},
@@ -841,6 +863,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         conversationErrorPresentation = AiBootstrapErrorPresentation(
                             message = accountStatusMessage,
@@ -852,6 +875,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -908,6 +932,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             FlashcardsTheme {
                 AiRoute(
                     pendingImport = null,
+                    onCancelCatalogDeckDraft = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -932,6 +957,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onComposerFocusApplied = {},
                     onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
@@ -988,7 +1014,7 @@ private fun makeAiUiState(
     ),
     canRetryConversationLoad: Boolean = true,
     showOpenAccountStatusForConversationError: Boolean = false,
-    focusComposerRequestVersion: Long = 0L
+    pendingComposerFocusRequestVersion: Long? = null
 ): AiUiState {
     val canUseDraftText = isConversationReady &&
         isConversationLoading.not()
@@ -1002,13 +1028,14 @@ private fun makeAiUiState(
         pendingAttachments = emptyList(),
         isImportingAttachment = false,
         draftMessage = draftMessage,
-        focusComposerRequestVersion = focusComposerRequestVersion,
+        pendingComposerFocusRequestVersion = pendingComposerFocusRequestVersion,
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
         isCardHandoffReady = isCardHandoffReady,
+        canOpenCatalogDeckDraft = false,
         conversationErrorPresentation = conversationErrorPresentation,
         needsGuestAccessPreparation = false,
         guestAccessPreparationError = null,

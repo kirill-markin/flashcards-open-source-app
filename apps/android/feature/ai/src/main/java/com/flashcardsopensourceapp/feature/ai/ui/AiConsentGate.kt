@@ -24,10 +24,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.R
+import com.flashcardsopensourceapp.feature.ai.aiConsentAcceptTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
@@ -87,7 +89,9 @@ internal fun ConsentGate(
                 }
                 Button(
                     onClick = onAcceptConsent,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = aiConsentAcceptTag)
                 ) {
                     Text(stringResource(id = R.string.ai_consent_accept))
                 }

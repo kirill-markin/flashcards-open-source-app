@@ -30,6 +30,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -70,7 +71,9 @@ import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
+import com.flashcardsopensourceapp.feature.ai.aiCatalogDeckPromptCancelTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationRetryTag
 import com.flashcardsopensourceapp.feature.ai.aiHistoryButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.input.AiCapabilityPresentationResult
@@ -105,8 +108,10 @@ import com.flashcardsopensourceapp.feature.settings.access.resolveAccessStatus
 internal fun AiRouteContent(
     uiState: AiUiState,
     pendingImport: AiPendingImport?,
+    onCancelCatalogDeckDraft: (() -> Unit)?,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
+    onComposerFocusApplied: (Long) -> Unit,
     onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
@@ -174,17 +179,21 @@ internal fun AiRouteContent(
     val dismissComposerFocus: () -> Unit = {
         focusManager.clearFocus(force = true)
     }
-    val hasLocalConversationContent = uiState.messages.isNotEmpty() ||
-        uiState.draftMessage.isNotEmpty() ||
-        uiState.pendingAttachments.isNotEmpty() ||
+    val hasLocalDraft = uiState.draftMessage.isNotEmpty() || uiState.pendingAttachments.isNotEmpty()
+    val hasLocalConversationContent = hasLocalDraft ||
+        uiState.messages.isNotEmpty() ||
         uiState.composerSuggestions.isNotEmpty()
-    val isColdConversationLoading = uiState.isConversationLoading &&
-        hasLocalConversationContent.not()
     val isWaitingForImportGuestAccess = pendingImport != null && uiState.needsGuestAccessPreparation
-    val importGuestAccessError = uiState.guestAccessPreparationError.takeIf { isWaitingForImportGuestAccess }
-    val showConversation = isWaitingForImportGuestAccess.not() &&
+    val isWaitingForCatalogGuestAccess = onCancelCatalogDeckDraft != null && uiState.needsGuestAccessPreparation
+    val isWaitingForGuestAccess = isWaitingForImportGuestAccess || isWaitingForCatalogGuestAccess
+    val conversationLoadError = uiState.conversationErrorPresentation.takeIf {
+        uiState.isConversationReady.not() && uiState.isConversationLoading.not()
+    } ?: uiState.guestAccessPreparationError.takeIf { isWaitingForGuestAccess }
+    val showConversation = (isWaitingForGuestAccess.not() || (isWaitingForCatalogGuestAccess && hasLocalDraft)) &&
         (uiState.isConversationReady || (uiState.isConversationLoading && hasLocalConversationContent))
     val showComposer = uiState.isConsentRequired.not() && showConversation
+    val retryConversationLoad = onRetryConversationLoad.takeIf { uiState.canRetryConversationLoad }
+    val openAccountStatusForLoadError = onOpenAccountStatus.takeIf { uiState.showOpenAccountStatusForConversationError }
 
     // The camera pair is complete on its success half and incomplete on its failure half, by an OS
     // limitation rather than by choice: `TakePicture` hands back only true or false, so a
@@ -465,6 +474,22 @@ internal fun AiRouteContent(
                             }
                         }
                     )
+                    if (onCancelCatalogDeckDraft != null) {
+                        ListItem(
+                            headlineContent = { Text(stringResource(id = R.string.ai_catalog_deck_prompt_queued)) },
+                            trailingContent = {
+                                TextButton(
+                                    onClick = onCancelCatalogDeckDraft,
+                                    modifier = Modifier.testTag(tag = aiCatalogDeckPromptCancelTag)
+                                ) {
+                                    Text(stringResource(id = R.string.ai_cancel))
+                                }
+                            }
+                        )
+                        if (showComposer && isWaitingForCatalogGuestAccess && conversationLoadError == null) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
                     if (uiState.isConsentRequired.not() && pendingImport != null) {
                         ListItem(
                             headlineContent = { Text(stringResource(id = R.string.ai_import_pending)) },
@@ -500,11 +525,7 @@ internal fun AiRouteContent(
                     onAcceptConsent = onAcceptConsent,
                     modifier = contentModifier
                 )
-            } else if (isColdConversationLoading || (isWaitingForImportGuestAccess && importGuestAccessError == null)) {
-                AiConversationLoading(
-                    modifier = contentModifier
-                )
-            } else if (showConversation.not()) {
+            } else if (showConversation.not() && conversationLoadError != null) {
                 Box(
                     modifier = contentModifier
                 ) {
@@ -515,26 +536,30 @@ internal fun AiRouteContent(
                             .padding(24.dp)
                     ) {
                         Text(stringResource(id = R.string.ai_chat_unavailable_title))
-                        AiConversationLoadErrorCard(
-                            presentation = importGuestAccessError ?: uiState.conversationErrorPresentation,
+                        AiConversationLoadError(
+                            presentation = conversationLoadError,
+                            onRetry = retryConversationLoad,
+                            onOpenAccountStatus = openAccountStatusForLoadError,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        if (uiState.canRetryConversationLoad) {
-                            Button(onClick = onRetryConversationLoad) {
-                                Text(stringResource(id = R.string.ai_retry))
-                            }
-                        }
-                        if (uiState.showOpenAccountStatusForConversationError) {
-                            Button(onClick = onOpenAccountStatus) {
-                                Text(stringResource(id = R.string.ai_open_account_status))
-                            }
-                        }
                     }
                 }
+            } else if (showConversation.not()) {
+                AiConversationLoading(modifier = contentModifier)
             } else {
                 Column(
                     modifier = contentModifier
                 ) {
+                    if (conversationLoadError != null) {
+                        AiConversationLoadError(
+                            presentation = conversationLoadError,
+                            onRetry = retryConversationLoad,
+                            onOpenAccountStatus = openAccountStatusForLoadError,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
                     AiConversation(
                         conversationScrollStateKey = uiState.conversationScrollStateKey,
                         messages = uiState.messages,
@@ -565,6 +590,7 @@ internal fun AiRouteContent(
                             uiState = uiState,
                             onViewPremium = onViewPremium,
                             onDraftMessageChange = onDraftMessageChange,
+                            onComposerFocusApplied = onComposerFocusApplied,
                             onApplyComposerSuggestion = onApplyComposerSuggestion,
                             onSendMessage = {
                                 dismissComposerFocus()
@@ -774,6 +800,37 @@ internal fun AiRouteContent(
 
             is AiAlertState.AiLimitReached -> Unit
             null -> Unit
+        }
+    }
+}
+
+@Composable
+private fun AiConversationLoadError(
+    presentation: AiBootstrapErrorPresentation,
+    onRetry: (() -> Unit)?,
+    onOpenAccountStatus: (() -> Unit)?,
+    modifier: Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+    ) {
+        AiConversationLoadErrorCard(
+            presentation = presentation,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (onRetry != null) {
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.testTag(tag = aiConversationRetryTag)
+            ) {
+                Text(stringResource(id = R.string.ai_retry))
+            }
+        }
+        if (onOpenAccountStatus != null) {
+            Button(onClick = onOpenAccountStatus) {
+                Text(stringResource(id = R.string.ai_open_account_status))
+            }
         }
     }
 }

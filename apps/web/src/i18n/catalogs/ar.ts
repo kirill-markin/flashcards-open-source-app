@@ -1548,6 +1548,8 @@ const arCatalog: TranslationCatalog = {
       attachmentsTooMany: "يمكن أن تتضمن رسالة واحدة في دردشة الذكاء الاصطناعي ما يصل إلى {{limit}} من الملفات والصور. أرسل الباقي في رسالة أخرى.",
       microphoneUnavailable: "تسجيل الميكروفون غير متاح في هذا المتصفح.",
     },
+    catalogDraftWaiting: "طلبك من الكتالوج في الانتظار. أرسل هذه المسودة أو امسحها لفتح الطلب.",
+    catalogTopicPrompt: "أنشئ مجموعة بطاقات تعليمية عن {{topic}}.",
     composerPlaceholder: "اسأل عن البطاقات أو سجل المراجعة أو أرفق ملاحظات...",
     currentChatRecovered: "تم استبدال هذه الدردشة بدردشة أحدث. رسالتك لا تزال في مربع الكتابة — أرسلها مرة أخرى.",
     customInstructions: {

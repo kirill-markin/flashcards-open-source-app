@@ -1548,6 +1548,8 @@ const deCatalog: TranslationCatalog = {
       attachmentsTooMany: "Eine Nachricht im AI-Chat kann höchstens {{limit}} Dateien und Bilder enthalten. Sende den Rest in einer weiteren Nachricht.",
       microphoneUnavailable: "Mikrofonaufnahme ist in diesem Browser nicht verfügbar.",
     },
+    catalogDraftWaiting: "Deine Anfrage aus dem Katalog wartet. Sende oder lösche diesen Entwurf, um sie zu öffnen.",
+    catalogTopicPrompt: "Erstelle einen Karteikartenstapel zum Thema {{topic}}.",
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",
     currentChatRecovered: "Dieser Chat wurde durch einen neueren ersetzt. Deine Nachricht steht noch im Eingabefeld – sende sie erneut.",
     customInstructions: {

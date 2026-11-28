@@ -1548,6 +1548,8 @@ const daCatalog: TranslationCatalog = {
       attachmentsTooMany: "En besked i AI-chatten kan højst indeholde {{limit}} filer og billeder. Send resten i en anden besked.",
       microphoneUnavailable: "Optagelse med mikrofon er ikke tilgængelig i denne browser.",
     },
+    catalogDraftWaiting: "Din anmodning fra kataloget venter. Send eller ryd denne kladde for at åbne den.",
+    catalogTopicPrompt: "Opret et sæt flashcards om {{topic}}.",
     composerPlaceholder: "Spørg om kort, repetitioner, eller vedhæft noter...",
     currentChatRecovered: "Denne chat er blevet erstattet af en nyere. Din besked står stadig i feltet – send den igen.",
     customInstructions: {

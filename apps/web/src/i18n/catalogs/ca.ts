@@ -1548,6 +1548,8 @@ const caCatalog: TranslationCatalog = {
       attachmentsTooMany: "Un missatge del xat d'IA pot incloure fins a {{limit}} fitxers i imatges. Envia la resta en un altre missatge.",
       microphoneUnavailable: "La gravació amb micròfon no està disponible en aquest navegador.",
     },
+    catalogDraftWaiting: "La teva sol·licitud del catàleg està en espera. Envia o esborra aquest esborrany per obrir-la.",
+    catalogTopicPrompt: "Crea una baralla de targetes sobre {{topic}}.",
     composerPlaceholder: "Pregunta sobre les targetes o l'historial de repassos, o adjunta apunts...",
     currentChatRecovered: "Aquest xat s’ha substituït per un de més recent. El teu missatge encara és al quadre de text: torna’l a enviar.",
     customInstructions: {

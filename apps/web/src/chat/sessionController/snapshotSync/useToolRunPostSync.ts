@@ -12,6 +12,7 @@ type UseToolRunPostSyncParams = Readonly<{
 }>;
 
 export type ToolRunPostSync = Readonly<{
+  hasPendingToolRunPostSync: () => boolean;
   markPendingToolRunPostSync: () => void;
   markRunHadToolCallsFromSnapshot: (
     activeRun: ChatActiveRun | null,
@@ -19,7 +20,7 @@ export type ToolRunPostSync = Readonly<{
     previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
     currentTurnContent: ReadonlyArray<ContentPart> | null,
   ) => void;
-  resetToolRunPostSync: () => void;
+  restoreToolRunPostSync: (pending: boolean) => void;
   triggerToolRunPostSyncIfNeeded: () => void;
 }>;
 
@@ -233,8 +234,10 @@ export function useToolRunPostSync(
         indexedDbOpenRecoveryState.throwIfFailed();
         await onToolRunPostSyncRequested();
         indexedDbOpenRecoveryState.throwIfFailed();
-        pendingToolRunPostSyncRef.current = false;
-        dispatch({ type: "tool_run_post_sync_consumed" });
+        if (activeToolRunPostSyncPromiseRef.current === postSyncRequestPromise) {
+          pendingToolRunPostSyncRef.current = false;
+          dispatch({ type: "tool_run_post_sync_consumed" });
+        }
       } finally {
         if (activeToolRunPostSyncPromiseRef.current === postSyncRequestPromise) {
           activeToolRunPostSyncPromiseRef.current = null;
@@ -252,6 +255,8 @@ export function useToolRunPostSync(
     }
     void requestToolRunPostSyncIfNeeded().catch(() => undefined);
   }, [indexedDbOpenRecoveryState, requestToolRunPostSyncIfNeeded]);
+
+  const hasPendingToolRunPostSync = useCallback((): boolean => pendingToolRunPostSyncRef.current, []);
 
   const markPendingToolRunPostSync = useCallback((): void => {
     if (indexedDbOpenRecoveryState.hasFailed() || pendingToolRunPostSyncRef.current) {
@@ -280,15 +285,16 @@ export function useToolRunPostSync(
     markPendingToolRunPostSync();
   }, [markPendingToolRunPostSync]);
 
-  const resetToolRunPostSync = useCallback((): void => {
-    pendingToolRunPostSyncRef.current = false;
+  const restoreToolRunPostSync = useCallback((pending: boolean): void => {
+    pendingToolRunPostSyncRef.current = pending;
     activeToolRunPostSyncPromiseRef.current = null;
   }, []);
 
   return {
+    hasPendingToolRunPostSync,
     markPendingToolRunPostSync,
     markRunHadToolCallsFromSnapshot,
-    resetToolRunPostSync,
+    restoreToolRunPostSync,
     triggerToolRunPostSyncIfNeeded,
   };
 }

@@ -1548,6 +1548,8 @@ const nbCatalog: TranslationCatalog = {
       attachmentsTooMany: "Én melding i AI-chatten kan inneholde opptil {{limit}} filer og bilder. Send resten i en annen melding.",
       microphoneUnavailable: "Mikrofonopptak er ikke tilgjengelig i denne nettleseren.",
     },
+    catalogDraftWaiting: "Forespørselen din fra katalogen venter. Send eller tøm dette utkastet for å åpne den.",
+    catalogTopicPrompt: "Lag en kortstokk med studiekort om {{topic}}.",
     composerPlaceholder: "Spør om kort og repetisjonshistorikk, eller legg ved notater...",
     currentChatRecovered: "Denne chatten er erstattet av en nyere. Meldingen din står fortsatt i tekstfeltet – send den på nytt.",
     customInstructions: {

@@ -1548,6 +1548,8 @@ const huCatalog: TranslationCatalog = {
       attachmentsTooMany: "Egy AI-csevegésüzenet legfeljebb {{limit}} fájlt és képet tartalmazhat. A többit küldd el egy másik üzenetben.",
       microphoneUnavailable: "A mikrofonos rögzítés nem érhető el ebben a böngészőben.",
     },
+    catalogDraftWaiting: "A katalógusból indított kérésed várakozik. A megnyitásához küldd el vagy töröld ezt a piszkozatot.",
+    catalogTopicPrompt: "Készíts tanulókártya-paklit „{{topic}}” témában.",
     composerPlaceholder: "Kérdezz kártyákról, ismétlési előzményekről, vagy csatolj jegyzeteket...",
     currentChatRecovered: "Ezt a csevegést egy újabb váltotta fel. Az üzeneted még a szövegmezőben van – küldd el újra.",
     customInstructions: {

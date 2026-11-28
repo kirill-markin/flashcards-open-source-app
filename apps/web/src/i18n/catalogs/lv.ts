@@ -1548,6 +1548,8 @@ const lvCatalog: TranslationCatalog = {
       attachmentsTooMany: "Vienā MI sarunas ziņā var būt līdz {{limit}} failiem un attēliem. Pārējos nosūtiet citā ziņā.",
       microphoneUnavailable: "Mikrofona ierakstīšana šajā pārlūkā nav pieejama.",
     },
+    catalogDraftWaiting: "Pieprasījums no kataloga gaida. Lai to atvērtu, nosūti vai izdzēs šo melnrakstu.",
+    catalogTopicPrompt: "Izveido kartīšu komplektu par tēmu „{{topic}}“.",
     composerPlaceholder: "Jautājiet par kartītēm, atkārtošanas vēsturi vai pievienojiet piezīmes...",
     currentChatRecovered: "Šī tērzēšana tika aizstāta ar jaunāku. Jūsu ziņa joprojām ir teksta laukā — nosūtiet to vēlreiz.",
     customInstructions: {

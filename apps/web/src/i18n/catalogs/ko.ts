@@ -1548,6 +1548,8 @@ const koCatalog: TranslationCatalog = {
       attachmentsTooMany: "AI 채팅 메시지 하나에는 파일과 이미지를 최대 {{limit}}개까지 첨부할 수 있습니다. 나머지는 다른 메시지로 보내 주세요.",
       microphoneUnavailable: "이 브라우저에서는 마이크 녹음을 사용할 수 없습니다.",
     },
+    catalogDraftWaiting: "카탈로그에서 온 요청이 대기 중입니다. 이 초안을 보내거나 지우면 요청을 열 수 있습니다.",
+    catalogTopicPrompt: "{{topic}}에 관한 플래시카드 덱을 만들어 줘.",
     composerPlaceholder: "카드나 복습 기록에 대해 묻거나 메모를 첨부하세요...",
     currentChatRecovered: "이 채팅은 더 최근 채팅으로 대체되었습니다. 메시지는 입력창에 그대로 있으니 다시 보내세요.",
     customInstructions: {

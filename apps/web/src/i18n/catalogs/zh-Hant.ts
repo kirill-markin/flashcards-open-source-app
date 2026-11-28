@@ -1556,6 +1556,8 @@ export const zhHantCatalog = {
       attachmentsTooMany: "每則 AI 聊天訊息最多可附上 {{limit}} 個檔案和圖片。請把剩下的內容放到另一則訊息。",
       microphoneUnavailable: "此瀏覽器不支援麥克風錄音。",
     },
+    catalogDraftWaiting: "來自目錄的請求正在等待。傳送或清除此草稿即可開啟請求。",
+    catalogTopicPrompt: "請建立一副關於「{{topic}}」的閃卡。",
     composerPlaceholder: "詢問卡片或複習紀錄，也可以附上筆記…",
     currentChatRecovered: "這段聊天已由較新的聊天取代。你的訊息仍在輸入欄，請再送出一次。",
     customInstructions: {

@@ -196,6 +196,10 @@ class AiViewModel(
         chatRuntime.updateDraftMessage(draftMessage = draftMessage)
     }
 
+    fun acknowledgeComposerFocusRequest(version: Long) {
+        chatRuntime.acknowledgeComposerFocusRequest(version = version)
+    }
+
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
         if (composerSuggestionsEnabledState.value.not()) {
             return

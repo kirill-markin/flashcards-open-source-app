@@ -1559,6 +1559,8 @@ const ltCatalog: TranslationCatalog = {
       attachmentsTooMany: "Vienoje DI pokalbio žinutėje gali būti ne daugiau kaip {{limit}} failų ir paveikslėlių. Likusius išsiųskite kita žinute.",
       microphoneUnavailable: "Įrašymas mikrofonu šioje naršyklėje nepasiekiamas.",
     },
+    catalogDraftWaiting: "Užklausa iš katalogo laukia. Išsiųskite arba ištrinkite šį juodraštį, kad ją atidarytumėte.",
+    catalogTopicPrompt: "Sukurk kortelių kaladę tema „{{topic}}“.",
     composerPlaceholder: "Klauskite apie korteles, kartojimų istoriją arba pridėkite užrašų...",
     currentChatRecovered: "Šis pokalbis buvo pakeistas naujesniu. Jūsų žinutė vis dar teksto laukelyje — išsiųskite ją dar kartą.",
     customInstructions: {

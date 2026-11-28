@@ -1548,6 +1548,8 @@ const ptBrCatalog: TranslationCatalog = {
       attachmentsTooMany: "Uma mensagem do chat com IA pode incluir até {{limit}} arquivos e imagens. Envie o restante em outra mensagem.",
       microphoneUnavailable: "A gravação pelo microfone não está disponível neste navegador.",
     },
+    catalogDraftWaiting: "Sua solicitação do catálogo está em espera. Envie ou apague este rascunho para abri-la.",
+    catalogTopicPrompt: "Crie um baralho de cartões de estudo sobre {{topic}}.",
     composerPlaceholder: "Pergunte sobre cartões, histórico de revisões ou anexe anotações...",
     currentChatRecovered: "Este chat foi substituído por um mais recente. Sua mensagem ainda está na caixa de texto — envie de novo.",
     customInstructions: {
