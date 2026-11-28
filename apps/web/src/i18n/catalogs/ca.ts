@@ -59,6 +59,7 @@ const caCatalog: TranslationCatalog = {
     subtitle: "Tria un aspecte fosc o clar per a l’aplicació.",
     dark: "Fosc",
     light: "Clar",
+    system: "Sistema",
     premiumNote: "El tema clar s’inclou amb Premium. La teva elecció desada torna quan Premium està actiu.",
   },
   accentColorSettings: {

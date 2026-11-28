@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Scuro";
 "settings.theme.light" = "Chiaro";
+"settings.theme.automatic" = "Automatico";
 "settings.theme.premiumNote" = "Il tema chiaro è disponibile con Premium. Il tema salvato torna quando Premium è attivo.";
 "settings.accentColor.title" = "Colore di risalto";
 "settings.accentColor.default" = "Predefinito";

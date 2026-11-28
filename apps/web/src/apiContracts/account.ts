@@ -70,6 +70,7 @@ function parseAccountPreferences(value: unknown, endpoint: string, path: string)
   return {
     accentColor: parseRequiredField(objectValue, "accentColor", endpoint, path, parseAccentColor),
     theme: parseRequiredField(objectValue, "theme", endpoint, path, parseTheme),
+    followSystemAppearance: parseRequiredField(objectValue, "followSystemAppearance", endpoint, path, parseBoolean),
     reviewReactionAnimationsEnabled: parseRequiredField(
       objectValue,
       "reviewReactionAnimationsEnabled",

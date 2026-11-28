@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -101,8 +102,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeChoice
 import com.flashcardsopensourceapp.feature.settings.theme.ThemeViewModel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -179,10 +180,12 @@ fun FlashcardsApp(
         } else {
             defaultAccentColor
         }
+        val isSystemDark: Boolean = isSystemInDarkTheme()
         val effectiveAppearance: FlashcardsAppearance = if (canCustomizeStyle) {
             when (themeState.selectedTheme) {
-                AccountTheme.DARK -> FlashcardsAppearance.DARK
-                AccountTheme.LIGHT -> FlashcardsAppearance.LIGHT
+                ThemeChoice.DARK -> FlashcardsAppearance.DARK
+                ThemeChoice.LIGHT -> FlashcardsAppearance.LIGHT
+                ThemeChoice.SYSTEM -> if (isSystemDark) FlashcardsAppearance.DARK else FlashcardsAppearance.LIGHT
             }
         } else {
             FlashcardsAppearance.DARK

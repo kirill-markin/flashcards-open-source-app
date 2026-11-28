@@ -964,6 +964,7 @@
 "settings.theme.title" = "تھیم";
 "settings.theme.dark" = "ڈارک";
 "settings.theme.light" = "لائٹ";
+"settings.theme.automatic" = "خودکار";
 "settings.theme.premiumNote" = "لائٹ تھیم Premium کے ساتھ دستیاب ہے۔ Premium فعال ہونے پر آپ کی محفوظ کردہ تھیم واپس آ جاتی ہے۔";
 "settings.accentColor.title" = "نمایاں رنگ";
 "settings.accentColor.default" = "طے شدہ";

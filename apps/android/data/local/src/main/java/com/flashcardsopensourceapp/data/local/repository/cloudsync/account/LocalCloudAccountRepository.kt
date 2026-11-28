@@ -337,6 +337,7 @@ class LocalCloudAccountRepository(
             update = AccountPreferencesUpdate(
                 accentColor = null,
                 theme = null,
+                followSystemAppearance = null,
                 reviewReactionAnimationsEnabled = null,
                 productAnalyticsEnabled = null,
                 productAnalyticsEnabledOrigin = null,

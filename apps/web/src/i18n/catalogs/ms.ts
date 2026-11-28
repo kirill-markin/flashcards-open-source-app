@@ -59,6 +59,7 @@ const msCatalog: TranslationCatalog = {
     subtitle: "Pilih tema gelap atau cerah untuk aplikasi.",
     dark: "Gelap",
     light: "Cerah",
+    system: "Sistem",
     premiumNote: "Tema cerah disertakan dengan Premium. Pilihan yang anda simpan akan digunakan semula apabila Premium aktif.",
   },
   accentColorSettings: {

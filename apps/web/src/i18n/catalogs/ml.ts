@@ -59,6 +59,7 @@ const mlCatalog: TranslationCatalog = {
     subtitle: "ആപ്പിനായി ഇരുണ്ട അല്ലെങ്കിൽ ഇളം രൂപം തിരഞ്ഞെടുക്കുക.",
     dark: "ഇരുണ്ടത്",
     light: "ഇളം",
+    system: "സിസ്റ്റം",
     premiumNote: "ഇളം തീം Premium-ൽ ഉൾപ്പെടുന്നു. Premium സജീവമാകുമ്പോൾ നിങ്ങൾ സംരക്ഷിച്ച തിരഞ്ഞെടുപ്പ് തിരികെ വരും.",
   },
   accentColorSettings: {

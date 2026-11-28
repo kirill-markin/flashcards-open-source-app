@@ -14,7 +14,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -27,6 +26,8 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeChoice
+import com.flashcardsopensourceapp.feature.settings.theme.savedThemeChoice
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
@@ -101,9 +102,9 @@ class SettingsViewModel(
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
             theme = if (accountPreferences.canCustomizeStyle) {
-                accountPreferences.preferences.theme
+                savedThemeChoice(preferences = accountPreferences.preferences)
             } else {
-                AccountTheme.DARK
+                ThemeChoice.DARK
             },
             reviewReactionAnimationsEnabled = accountPreferences.canCustomizeStyle.not() ||
                 accountPreferences.preferences.reviewReactionAnimationsEnabled,
@@ -128,7 +129,7 @@ class SettingsViewModel(
             accountStatusTitle = strings.get(R.string.settings_loading),
             accountStatusAttentionCount = 1,
             friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
-            theme = AccountTheme.DARK,
+            theme = ThemeChoice.DARK,
             reviewReactionAnimationsEnabled = true,
             productAnalyticsEnabled = true,
             firstReviewOnboardingCompleted = null,
@@ -162,6 +163,7 @@ class SettingsViewModel(
                     update = AccountPreferencesUpdate(
                         accentColor = null,
                         theme = null,
+                        followSystemAppearance = null,
                         reviewReactionAnimationsEnabled = isEnabled,
                         productAnalyticsEnabled = null,
                         locale = null,

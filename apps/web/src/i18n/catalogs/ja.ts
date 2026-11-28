@@ -59,6 +59,7 @@ export const jaCatalog = {
     subtitle: "アプリのダークまたはライトの外観を選択します。",
     dark: "ダーク",
     light: "ライト",
+    system: "システム",
     premiumNote: "ライトテーマはPremiumに含まれます。保存した設定はPremiumが有効になると再び適用されます。",
   },
   accentColorSettings: {

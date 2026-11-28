@@ -136,9 +136,12 @@ icon are stored per device. The launcher icon follows the displayed App icon on
 
 ### Theme
 
-Theme offers Dark and Light. Dark is the default, including when the operating system is in light
-mode: there is no System option and the OS appearance is never followed. Light is for Premium and
-lifetime like the other styles. The launch screen stays dark for everyone.
+Theme offers Dark, Light and Follow System. Dark is the default, including when the operating system
+is in light mode. Follow System displays the device's current light or dark appearance and follows
+its changes live. Light and Follow System are for Premium and lifetime like the other styles.
+Choosing Dark or Light stops following ([persistence](../apps/backend/src/routes/system/account/accountPreferences.ts)),
+and app versions without Follow System display the stored Dark or Light. The launch screen stays dark
+for everyone.
 
 ### Accent color
 

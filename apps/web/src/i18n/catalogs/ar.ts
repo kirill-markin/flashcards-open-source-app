@@ -59,6 +59,7 @@ const arCatalog: TranslationCatalog = {
     subtitle: "اختر مظهرًا داكنًا أو فاتحًا للتطبيق.",
     dark: "داكن",
     light: "فاتح",
+    system: "النظام",
     premiumNote: "المظهر الفاتح متاح مع Premium. يعود اختيارك المحفوظ عندما يكون Premium نشطًا.",
   },
   accentColorSettings: {

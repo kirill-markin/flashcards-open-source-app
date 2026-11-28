@@ -59,6 +59,7 @@ const heCatalog: TranslationCatalog = {
     subtitle: "בחרו מראה כהה או בהיר לאפליקציה.",
     dark: "כהה",
     light: "בהיר",
+    system: "מערכת",
     premiumNote: "ערכת הנושא הבהירה כלולה ב-Premium. הבחירה השמורה שלך חוזרת כש-Premium פעיל.",
   },
   accentColorSettings: {

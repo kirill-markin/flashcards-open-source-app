@@ -992,6 +992,7 @@
 "settings.theme.title" = "テーマ";
 "settings.theme.dark" = "ダーク";
 "settings.theme.light" = "ライト";
+"settings.theme.automatic" = "自動";
 "settings.theme.premiumNote" = "ライトテーマは Premium で利用できます。Premium が有効になると、保存したテーマに戻ります。";
 "settings.accentColor.title" = "アクセントカラー";
 "settings.accentColor.default" = "デフォルト";

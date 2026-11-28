@@ -30,6 +30,7 @@ export type AccountTheme = "dark" | "light";
 export type AccountPreferences = Readonly<{
   accentColor: string;
   theme: AccountTheme;
+  followSystemAppearance: boolean;
   reviewReactionAnimationsEnabled: boolean;
   firstReviewOnboardingCompleted: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
@@ -49,6 +50,7 @@ export type UserProfile = Readonly<{
 type UserSettingsRow = Readonly<{
   accent_color: string;
   theme: AccountTheme;
+  follow_system_appearance: boolean;
   workspace_id: string | null;
   email: string | null;
   locale: string;
@@ -87,7 +89,8 @@ export async function ensureUserProfileInExecutor(
   const existing = await executor.query<UserSettingsRow>(
     [
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,",
-      "product_analytics_enabled, accent_color, theme, first_review_onboarding_completed, created_at",
+      "product_analytics_enabled, accent_color, theme, follow_system_appearance,",
+      "first_review_onboarding_completed, created_at",
       "FROM org.user_settings",
       "WHERE user_id = $1",
       "FOR UPDATE",
@@ -115,6 +118,7 @@ export async function ensureUserProfileInExecutor(
     preferences: {
       accentColor: settings.accent_color,
       theme: settings.theme,
+      followSystemAppearance: settings.follow_system_appearance,
       reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
       firstReviewOnboardingCompleted: settings.first_review_onboarding_completed,
       analyticsConsent: settings.analytics_consent,

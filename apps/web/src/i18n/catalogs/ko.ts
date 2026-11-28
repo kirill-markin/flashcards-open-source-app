@@ -59,6 +59,7 @@ const koCatalog: TranslationCatalog = {
     subtitle: "앱의 다크 또는 라이트 모양을 선택하세요.",
     dark: "다크",
     light: "라이트",
+    system: "시스템",
     premiumNote: "라이트 테마는 Premium에 포함됩니다. Premium이 활성화되면 저장한 선택이 다시 적용됩니다.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const ukCatalog: TranslationCatalog = {
     subtitle: "Виберіть темне або світле оформлення застосунку.",
     dark: "Темна",
     light: "Світла",
+    system: "Системна",
     premiumNote: "Світла тема доступна в Premium. Ваш збережений вибір повернеться, коли Premium буде активним.",
   },
   accentColorSettings: {

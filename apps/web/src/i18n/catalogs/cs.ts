@@ -59,6 +59,7 @@ const csCatalog: TranslationCatalog = {
     subtitle: "Vyberte tmavý nebo světlý vzhled aplikace.",
     dark: "Tmavý",
     light: "Světlý",
+    system: "Podle systému",
     premiumNote: "Světlý motiv je součástí Premium. Vaše uložená volba se vrátí, jakmile bude Premium aktivní.",
   },
   accentColorSettings: {

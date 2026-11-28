@@ -964,6 +964,7 @@
 "settings.theme.title" = "پوسته";
 "settings.theme.dark" = "تیره";
 "settings.theme.light" = "روشن";
+"settings.theme.automatic" = "خودکار";
 "settings.theme.premiumNote" = "پوستهٔ روشن با Premium در دسترس است. وقتی Premium فعال باشد، پوستهٔ ذخیره‌شده شما برمی‌گردد.";
 "settings.accentColor.title" = "رنگ تأکیدی";
 "settings.accentColor.default" = "پیش‌فرض";

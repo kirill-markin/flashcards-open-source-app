@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Temna";
 "settings.theme.light" = "Svetla";
+"settings.theme.automatic" = "Samodejno";
 "settings.theme.premiumNote" = "Svetla tema je na voljo s Premium. Shranjena tema se vrne, ko je Premium aktiven.";
 "settings.accentColor.title" = "Barva poudarka";
 "settings.accentColor.default" = "Privzeta";

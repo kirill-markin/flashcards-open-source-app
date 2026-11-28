@@ -743,7 +743,8 @@
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_dark">Gelap</string>
     <string name="settings_theme_light">Cerah</string>
-    <string name="settings_theme_premium_note">Tema Cerah disertakan dalam Premium. Pilihan anda disimpan sementara tema Gelap dipaparkan dengan pelan percuma.</string>
+    <string name="settings_theme_system">Lalai sistem</string>
+    <string name="settings_theme_premium_note">Tema Cerah dan Lalai sistem disertakan dalam Premium. Pilihan anda disimpan sementara tema Gelap dipaparkan dengan pelan percuma.</string>
     <string name="settings_theme_update_failed">Tema anda tidak dapat disimpan. Semak sambungan anda dan cuba lagi.</string>
     <string name="settings_accent_title">Warna aksen</string>
     <string name="settings_accent_selected">Warna yang dipilih: %1$s</string>

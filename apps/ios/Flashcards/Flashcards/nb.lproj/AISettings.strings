@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Mørkt";
 "settings.theme.light" = "Lyst";
+"settings.theme.automatic" = "Automatisk";
 "settings.theme.premiumNote" = "Lyst tema er tilgjengelig med Premium. Det lagrede temaet kommer tilbake når Premium er aktivt.";
 "settings.accentColor.title" = "Aksentfarge";
 "settings.accentColor.default" = "Standard";

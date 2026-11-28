@@ -59,6 +59,7 @@ const faCatalog: TranslationCatalog = {
     subtitle: "ظاهر تیره یا روشن را برای برنامه انتخاب کنید.",
     dark: "تیره",
     light: "روشن",
+    system: "سیستم",
     premiumNote: "پوستهٔ روشن در Premium گنجانده شده است. وقتی Premium فعال باشد، انتخاب ذخیره‌شده شما بازمی‌گردد.",
   },
   accentColorSettings: {

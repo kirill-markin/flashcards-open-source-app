@@ -13,8 +13,9 @@ import { beginGuestSignIn } from "../appData/session/guest/browserGuestConversio
 import { readPendingGuestConversion } from "../appData/session/guest/browserGuestStorage";
 import { useI18n } from "../i18n";
 import { beginAccountPreferenceWrite, finishAccountPreferenceWrite, isCurrentAccountPreferenceWrite, queueAccentColorWrite } from "../appData/session/accentColorWrite";
-import type { AppTheme } from "../types/account";
+import type { AccountPreferences, AppThemeSelection } from "../types/account";
 import type { RegionalCountry } from "./regionalCountry";
+import { readThemePreferences, themeSelectionPreferences, themeSelectionUpdate } from "./themeSelection";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
 import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isSamePremiumContinuation, isStripeBillingInvalidated,
   guestStripeCheckoutReturnUrl, readStripeBillingGeneration, readStripeIntent, storeGuestStripeCheckout, storeStripeIntent,
@@ -121,17 +122,17 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     }
   }, [isCurrent, userId]);
 
-  const applyThemeContinuation = useCallback(async (identity: BillingIdentity, theme: AppTheme, previousTheme: AppTheme): Promise<void> => {
+  const applyThemeContinuation = useCallback(async (identity: BillingIdentity, selection: AppThemeSelection, previousPreferences: AccountPreferences): Promise<void> => {
     const write = beginAccountPreferenceWrite(identity.userId, "theme");
     const controller = new AbortController();
     const unsubscribe = subscribeToStripeBillingInvalidation(() => controller.abort());
-    setAccountPreferences(identity.userId, { theme });
+    setAccountPreferences(identity.userId, themeSelectionPreferences(selection));
     try {
-      const response = await updateAccountPreferences({ theme }, { userId: identity.userId, signal: controller.signal });
-      if (isCurrent(identity) && isCurrentAccountPreferenceWrite(write)) setAccountPreferences(identity.userId, { theme: response.preferences.theme });
+      const response = await updateAccountPreferences(themeSelectionUpdate(selection), { userId: identity.userId, signal: controller.signal });
+      if (isCurrent(identity) && isCurrentAccountPreferenceWrite(write)) setAccountPreferences(identity.userId, readThemePreferences(response.preferences));
     } catch (caught) {
       if (!isCurrent(identity) || !isCurrentAccountPreferenceWrite(write)) return;
-      setAccountPreferences(identity.userId, { theme: previousTheme });
+      setAccountPreferences(identity.userId, readThemePreferences(previousPreferences));
       report(caught);
     } finally {
       unsubscribe();
@@ -148,7 +149,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     if (intent !== null && isSamePremiumContinuation(intent.continuation, continuation)) consumeStripeContinuation(intent);
     consumePendingOfferContinuation(continuation);
     if ("theme" in continuation) {
-      void applyThemeContinuation(identity, continuation.theme, currentSession.preferences.theme);
+      void applyThemeContinuation(identity, continuation.theme, currentSession.preferences);
       return;
     }
     queueAccentColorWrite(identity.userId, continuation.accentColor, currentSession.preferences.accentColor, {

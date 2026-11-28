@@ -964,6 +964,7 @@
 "settings.theme.title" = "Chủ đề";
 "settings.theme.dark" = "Tối";
 "settings.theme.light" = "Sáng";
+"settings.theme.automatic" = "Tự động";
 "settings.theme.premiumNote" = "Chủ đề sáng có sẵn với Premium. Chủ đề đã lưu sẽ trở lại khi Premium hoạt động.";
 "settings.accentColor.title" = "Màu nhấn";
 "settings.accentColor.default" = "Mặc định";

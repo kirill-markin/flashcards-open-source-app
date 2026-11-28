@@ -10,8 +10,9 @@ import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { usePremiumPresenter } from "../../premium/PremiumProvider";
 import { createPremiumContinuationGuard } from "../../premium/styleSettings";
-import { appThemes, useAccountTheme } from "../../premium/theme";
-import type { AppTheme } from "../../types/account";
+import { useAccountTheme } from "../../premium/theme";
+import { appThemeSelections, readThemePreferences, themeSelectionPreferences, themeSelectionUpdate } from "../../premium/themeSelection";
+import type { AppThemeSelection } from "../../types/account";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function ThemeSettingsScreen(): ReactElement {
@@ -28,7 +29,7 @@ export function ThemeSettingsScreen(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const presentPremium = usePremiumPresenter();
-  const { effectiveTheme, canCustomize } = useAccountTheme();
+  const { effectiveSelection, canCustomize } = useAccountTheme();
   const mountedRef = useRef(false);
   const sessionRef = useRef(session);
   sessionRef.current = session;
@@ -121,7 +122,7 @@ export function ThemeSettingsScreen(): ReactElement {
     }
   }
 
-  async function persistTheme(nextTheme: AppTheme): Promise<void> {
+  async function persistTheme(nextSelection: AppThemeSelection): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -138,20 +139,20 @@ export function ThemeSettingsScreen(): ReactElement {
     }
 
     const targetUserId = currentSession.userId;
-    const previousTheme = currentSession.preferences.theme;
+    const previousPreferences = readThemePreferences(currentSession.preferences);
     const write = beginAccountPreferenceWrite(targetUserId, "theme");
 
     setIsSubmitting(true);
     setErrorMessage("");
-    setAccountPreferences(targetUserId, { theme: nextTheme });
+    setAccountPreferences(targetUserId, themeSelectionPreferences(nextSelection));
 
     try {
-      const response = await updateAccountPreferences({ theme: nextTheme });
+      const response = await updateAccountPreferences(themeSelectionUpdate(nextSelection));
       indexedDbOpenRecoveryState.throwIfFailed();
       if (!isCurrentAccountPreferenceWrite(write)) {
         return;
       }
-      setAccountPreferences(targetUserId, { theme: response.preferences.theme });
+      setAccountPreferences(targetUserId, readThemePreferences(response.preferences));
       await refreshPreferencesAfterPatch();
       indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
@@ -161,7 +162,7 @@ export function ThemeSettingsScreen(): ReactElement {
       if (!isCurrentAccountPreferenceWrite(write)) {
         return;
       }
-      setAccountPreferences(targetUserId, { theme: previousTheme });
+      setAccountPreferences(targetUserId, previousPreferences);
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -181,13 +182,13 @@ export function ThemeSettingsScreen(): ReactElement {
     }
   }
 
-  function chooseTheme(nextTheme: AppTheme): void {
+  function chooseTheme(nextSelection: AppThemeSelection): void {
     if (canCustomize) {
-      void persistTheme(nextTheme);
+      void persistTheme(nextSelection);
       return;
     }
     // Writing Dark here would overwrite the retained premium selection that resubscription restores.
-    if (nextTheme === "dark") {
+    if (nextSelection === "dark") {
       return;
     }
     const initiatingSession = sessionRef.current;
@@ -197,10 +198,10 @@ export function ThemeSettingsScreen(): ReactElement {
       reason: "feature",
       entryPoint: "theme",
       requiredRank: 20,
-      continuation: { theme: nextTheme, requiredRank: 20 },
+      continuation: { theme: nextSelection, requiredRank: 20 },
       onResult: (result): void => {
         if (result !== "granted" || !mountedRef.current || !isCurrentContinuation()) return;
-        void persistTheme(nextTheme);
+        void persistTheme(nextSelection);
       },
     });
   }
@@ -218,16 +219,16 @@ export function ThemeSettingsScreen(): ReactElement {
       <SettingsGroup>
         <fieldset className="accent-presets" disabled={isChoiceDisabled}>
           <legend>{t("themeSettings.title")}</legend>
-          {appThemes.map((theme) => (
-            <label className="content-card accent-option" key={theme}>
+          {appThemeSelections.map((selection) => (
+            <label className="content-card accent-option" key={selection}>
               <input
                 type="radio"
                 name="app-theme"
-                checked={effectiveTheme === theme}
-                onChange={() => chooseTheme(theme)}
-                data-testid={`theme-option-${theme}`}
+                checked={effectiveSelection === selection}
+                onChange={() => chooseTheme(selection)}
+                data-testid={`theme-option-${selection}`}
               />
-              <span>{t(`themeSettings.${theme}`)}</span>
+              <span>{t(`themeSettings.${selection}`)}</span>
             </label>
           ))}
         </fieldset>

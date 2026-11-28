@@ -747,7 +747,8 @@
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_dark">Escuro</string>
     <string name="settings_theme_light">Claro</string>
-    <string name="settings_theme_premium_note">O tema Claro é uma vantagem Premium. A sua escolha fica guardada e, no plano gratuito, é apresentado o tema Escuro.</string>
+    <string name="settings_theme_system">Predefinição do sistema</string>
+    <string name="settings_theme_premium_note">O tema Claro e a Predefinição do sistema são vantagens Premium. A sua escolha fica guardada e, no plano gratuito, é apresentado o tema Escuro.</string>
     <string name="settings_theme_update_failed">Não foi possível guardar o tema. Verifique a ligação e tente novamente.</string>
     <string name="settings_accent_title">Cor de destaque</string>
     <string name="settings_accent_selected">Cor selecionada: %1$s</string>

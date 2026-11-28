@@ -964,6 +964,7 @@
 "settings.theme.title" = "Motív";
 "settings.theme.dark" = "Tmavý";
 "settings.theme.light" = "Svetlý";
+"settings.theme.automatic" = "Automaticky";
 "settings.theme.premiumNote" = "Svetlý motív je dostupný s Premium. Uložený motív sa vráti, keď bude Premium aktívne.";
 "settings.accentColor.title" = "Farba zvýraznenia";
 "settings.accentColor.default" = "Predvolená";

@@ -59,6 +59,7 @@ const ptBrCatalog: TranslationCatalog = {
     subtitle: "Escolha uma aparência escura ou clara para o aplicativo.",
     dark: "Escuro",
     light: "Claro",
+    system: "Sistema",
     premiumNote: "O tema claro está incluído no Premium. Sua escolha salva volta quando o Premium estiver ativo.",
   },
   accentColorSettings: {
