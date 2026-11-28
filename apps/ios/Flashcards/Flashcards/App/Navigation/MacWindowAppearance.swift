@@ -3,14 +3,30 @@ import AppKit
 import SwiftUI
 import UIKit
 
+@MainActor
+final class MacWindowPresentation {
+    fileprivate(set) weak var windowScene: UIWindowScene?
+
+    var sceneID: String? { self.windowScene?.session.persistentIdentifier }
+}
+
+extension EnvironmentValues {
+    @Entry var macWindowPresentation: MacWindowPresentation? = nil
+}
+
 /// Owns only this scene's native toolbar. UIKit navigation remains screen-owned.
 struct MacWindowAppearance: UIViewRepresentable {
     let configuration: MacWindowToolbarConfiguration
     let sidebarCommandTarget: MacSidebarCommandTarget?
+    let windowPresentation: MacWindowPresentation
     let onSidebarVisibilityChange: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(configuration: self.configuration, onSidebarVisibilityChange: self.onSidebarVisibilityChange)
+        Coordinator(
+            configuration: self.configuration,
+            windowPresentation: self.windowPresentation,
+            onSidebarVisibilityChange: self.onSidebarVisibilityChange
+        )
     }
 
     func makeUIView(context: Context) -> WindowView {
@@ -52,6 +68,7 @@ struct MacWindowAppearance: UIViewRepresentable {
         private let titleIdentifier = NSToolbarItem.Identifier("nibomo.screenTitle")
         private let searchIdentifier = NSToolbarItem.Identifier("nibomo.cardSearch")
         private let sidebarIdentifier = NSToolbarItem.Identifier("nibomo.sidebarToggle")
+        private let windowPresentation: MacWindowPresentation
         private var configuration: MacWindowToolbarConfiguration
         private weak var bridgeView: WindowView?
         private weak var scene: UIWindowScene?
@@ -75,8 +92,13 @@ struct MacWindowAppearance: UIViewRepresentable {
         /// Each click waiting for our popover's animation queues its own completion; only the latest one runs.
         private var pendingClickID: UUID?
 
-        init(configuration: MacWindowToolbarConfiguration, onSidebarVisibilityChange: @escaping (Bool) -> Void) {
+        init(
+            configuration: MacWindowToolbarConfiguration,
+            windowPresentation: MacWindowPresentation,
+            onSidebarVisibilityChange: @escaping (Bool) -> Void
+        ) {
             self.configuration = configuration
+            self.windowPresentation = windowPresentation
             self.onSidebarVisibilityChange = onSidebarVisibilityChange
             super.init()
             self.titleLabel.font = UIFont.preferredFont(forTextStyle: .headline)
@@ -149,6 +171,7 @@ struct MacWindowAppearance: UIViewRepresentable {
                 self.detach()
                 self.bridgeView = view
                 self.scene = nextScene
+                self.windowPresentation.windowScene = nextScene
                 NotificationCenter.default.addObserver(self, selector: #selector(self.activationChanged(_:)), name: UIWindow.didBecomeKeyNotification, object: window)
                 NotificationCenter.default.addObserver(self, selector: #selector(self.activationChanged(_:)), name: UIScene.didActivateNotification, object: nextScene)
             }

@@ -2,6 +2,19 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
+#if targetEnvironment(macCatalyst)
+#if DEBUG
+import OSLog
+
+private let macCatalogComposerFocusLogger = Logger(subsystem: appBundleIdentifier(), category: "ai_handoff")
+#endif
+
+struct MacCatalogComposerFocusRequest {
+    let id: UUID
+    let sceneID: String
+}
+#endif
+
 /// The AI chat draft field. A UIKit text view, unlike a SwiftUI `TextField`, lets the composer own paste.
 struct AIChatComposerTextView: UIViewRepresentable {
     @Binding var text: String
@@ -26,6 +39,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
     let onWindowSceneChange: @MainActor (UIWindowScene?) -> Void
     #if targetEnvironment(macCatalyst)
     let macReturnKeyOwner: MacComposerReturnKeyOwner
+    @Binding var macCatalogFocusRequest: MacCatalogComposerFocusRequest?
     #endif
 
     func makeCoordinator() -> Coordinator {
@@ -154,8 +168,13 @@ struct AIChatComposerTextView: UIViewRepresentable {
 
         /// Runs on the next main-queue turn, outside the SwiftUI update, and reads the binding again.
         func scheduleFocusSync(textView: AIChatComposerUITextView) {
-            guard textView.isComposerDisabled != self.parent.isDisabled
-                    || self.isFocusSettled(textView: textView) == false else { return }
+            let needsFocusSync = textView.isComposerDisabled != self.parent.isDisabled
+                || self.isFocusSettled(textView: textView) == false
+            #if targetEnvironment(macCatalyst)
+            guard needsFocusSync || self.parent.macCatalogFocusRequest != nil else { return }
+            #else
+            guard needsFocusSync else { return }
+            #endif
             guard self.isFocusSyncScheduled == false else { return }
             self.isFocusSyncScheduled = true
             DispatchQueue.main.async { [weak self, weak textView] in
@@ -171,6 +190,30 @@ struct AIChatComposerTextView: UIViewRepresentable {
         /// A request on a disabled field reads back as unfocused; a request before the field is in a window
         /// waits for `didMoveToWindow`.
         private func syncFocus(textView: AIChatComposerUITextView) {
+            #if targetEnvironment(macCatalyst)
+            if let request = self.parent.macCatalogFocusRequest, self.parent.isFocused, self.parent.isDisabled == false {
+                guard let window = textView.window,
+                      window.windowScene?.session.persistentIdentifier == request.sceneID,
+                      isActiveKeyboardWindow(window) else { return }
+                self.parent.macCatalogFocusRequest = nil
+
+                // The native toolbar can leave content without keyboard focus even when UIKit reports an editor.
+                let focusSystem = UIFocusSystem.focusSystem(for: window)
+                focusSystem?.requestFocusUpdate(to: textView)
+                focusSystem?.updateFocusIfNeeded()
+                #if DEBUG
+                macCatalogComposerFocusLogger.debug(
+                    """
+                    event=catalog_composer_focus_update requestID=\(request.id.uuidString, privacy: .public) \
+                    hasFocusSystem=\(focusSystem != nil, privacy: .public) \
+                    editorCanBecomeFocused=\(textView.canBecomeFocused, privacy: .public) \
+                    editorIsFocused=\(textView.isFocused, privacy: .public) \
+                    editorIsFirstResponder=\(textView.isFirstResponder, privacy: .public)
+                    """
+                )
+                #endif
+            }
+            #endif
             guard self.isFocusSettled(textView: textView) == false else { return }
             if self.parent.isDisabled {
                 if textView.isFirstResponder {

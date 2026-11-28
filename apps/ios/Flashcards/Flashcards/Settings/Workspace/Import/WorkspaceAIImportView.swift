@@ -278,12 +278,16 @@ struct WorkspaceAIImportView: View {
                     attachments: attachments,
                     requestText: source.localizedRequestText
                 )
-                guard self.navigation.openAIImport(request: request) else {
+                switch self.navigation.openAIImport(request: request) {
+                case .opened:
+                    self.clearInput()
+                case .catalogRequestPending:
+                    aiChatRemoveAttachmentFiles(attachments: attachments)
+                    self.errorMessage = String(localized: "catalog.list.ai_deck.import_blocked", table: "Foundation")
+                case .importRequestPending:
                     aiChatRemoveAttachmentFiles(attachments: attachments)
                     self.errorMessage = aiImportWaitingMessage()
-                    return
                 }
-                self.clearInput()
             } catch {
                 if Task.isCancelled == false {
                     self.errorMessage = Flashcards.errorMessage(error: error)

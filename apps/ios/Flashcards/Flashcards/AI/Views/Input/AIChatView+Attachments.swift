@@ -4,39 +4,27 @@ import UIKit
 import UniformTypeIdentifiers
 
 extension AIChatView {
-    func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
+    func handleSelectedPhotoItem(_ item: PhotosPickerItem, scope: AIChatSessionScope) async {
+        defer { self.selectedPhotoItem = nil }
         do {
-            guard self.chatStore.canAttachToDraft else {
-                self.selectedPhotoItem = nil
-                return
-            }
-            guard self.ensureExternalAIConsent() else {
-                self.selectedPhotoItem = nil
-                return
-            }
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 self.chatStore.showGeneralError(message: "Failed to read the selected photo.")
                 // A picked item that hands back no data is one this client cannot read, which is
                 // what `unsupportedType` means here; nothing has reached the network at this point.
                 Analytics.track(.mediaUploadFailed(reason: .unsupportedType), screen: .ai)
-                self.selectedPhotoItem = nil
                 return
             }
 
             let mediaType = item.supportedContentTypes.first?.preferredMIMEType ?? "image/jpeg"
-            guard self.ensureExternalAIConsent() else {
-                self.selectedPhotoItem = nil
-                return
-            }
             let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
             let attachment = try aiChatMakeImageAttachment(
                 data: data,
                 fileName: "photo.\(fileExtension)",
                 mediaType: mediaType
             )
-            self.chatStore.appendAttachment(attachment)
-            // Reported where the asset reaches the draft, never where the picker was presented.
-            Analytics.track(.mediaAttached(source: .photoLibrary, screen: .ai))
+            if self.chatStore.appendTransferredAttachments([attachment], scope: scope) {
+                Analytics.track(.mediaAttached(source: .photoLibrary, screen: .ai))
+            }
         } catch {
             Analytics.track(
                 .mediaUploadFailed(reason: analyticsMediaUploadFailureReason(error: error)),
@@ -44,8 +32,6 @@ extension AIChatView {
             )
             self.chatStore.showGeneralError(error: error)
         }
-
-        self.selectedPhotoItem = nil
     }
 
     func handleCapturedPhotoData(_ data: Data) {
@@ -75,7 +61,7 @@ extension AIChatView {
     /// Reports neither half of the attachment pair: a document picked out of Files is neither
     /// `photo_library` nor `camera`, and the catalog would rather count fewer attachments than store
     /// an origin that is not true in a table that can never be repaired.
-    func handleImportedFiles(_ urls: [URL]) async {
+    func handleImportedFiles(_ urls: [URL]) {
         do {
             guard self.chatStore.canAttachToDraft else {
                 return
@@ -93,27 +79,42 @@ extension AIChatView {
     }
 
     /// Reports no analytics for the same reason as `handleImportedFiles`: a drop or paste has no source in the catalog.
-    func handleAttachmentItemProviders(_ itemProviders: [NSItemProvider]) async {
+    func handleAttachmentItemProviders(_ itemProviders: [NSItemProvider], scope: AIChatSessionScope) async {
         do {
-            guard self.chatStore.canAttachToDraft else {
-                return
-            }
-            guard self.ensureExternalAIConsent() else {
-                return
-            }
             let attachments = try await aiChatMakeAttachments(itemProviders: itemProviders)
-            for attachment in attachments {
-                self.chatStore.appendAttachment(attachment)
-            }
+            self.chatStore.appendTransferredAttachments(attachments, scope: scope)
         } catch {
             self.handleFileImportFailure(error)
         }
     }
 
     func attachItemProviders(_ itemProviders: [NSItemProvider]) {
-        Task {
-            await self.handleAttachmentItemProviders(itemProviders)
+        self.loadAttachmentTransfer { scope in
+            await self.handleAttachmentItemProviders(itemProviders, scope: scope)
         }
+    }
+
+    @discardableResult
+    func loadAttachmentTransfer(_ operation: @escaping @MainActor (AIChatSessionScope) async -> Void) -> Bool {
+        guard self.chatStore.canAttachToDraft else {
+            return false
+        }
+        if self.chatStore.chatSessionId.isEmpty {
+            self.chatStore.prepareExplicitRemoteSessionProvisioning(sessionId: makeAIChatSessionId())
+        }
+        let scope = self.chatStore.currentSessionScope()
+        self.chatStore.activeAttachmentTransferCount += 1
+        Task { @MainActor in
+            defer {
+                self.chatStore.activeAttachmentTransferCount -= 1
+                if self.chatStore.activeAttachmentTransferCount == 0 && self.chatStore.resumesAfterAttachmentTransfer {
+                    self.chatStore.resumesAfterAttachmentTransfer = false
+                    self.chatStore.resumeVisibleSessionIfNeeded()
+                }
+            }
+            await operation(scope)
+        }
+        return true
     }
 
     func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {

@@ -7,6 +7,8 @@ extension AIChatStore {
             && self.dictationState == .idle
             && self.hasExternalProviderConsent
             && self.isAIImportDraftBlocked == false
+            && self.isLiveReconciliationPending == false
+            && self.activeAttachmentTransferCount == 0
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
@@ -76,7 +78,9 @@ extension AIChatStore {
         guard self.isChatInteractive, self.hasExternalProviderConsent else {
             return false
         }
-        guard self.dictationState == .idle else {
+        guard self.dictationState == .idle,
+              self.isLiveReconciliationPending == false,
+              self.activeAttachmentTransferCount == 0 else {
             return false
         }
         return self.messages.isEmpty == false
@@ -153,6 +157,24 @@ extension AIChatStore {
         self.pendingAttachments.append(attachment)
     }
 
+    @discardableResult
+    func appendTransferredAttachments(_ attachments: [AIChatAttachment], scope: AIChatSessionScope) -> Bool {
+        guard self.hasExternalProviderConsent else {
+            aiChatRemoveAttachmentFiles(attachments: attachments)
+            self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+            return false
+        }
+
+        if scope == self.currentSessionScope() {
+            self.pendingAttachments.append(contentsOf: attachments)
+        } else {
+            var draft = self.historyStore.loadDraft(workspaceId: scope.workspaceId, sessionId: scope.sessionId)
+            draft.pendingAttachments.append(contentsOf: attachments)
+            self.persistDraftStateImmediately(workspaceId: scope.workspaceId, sessionId: scope.sessionId, draft: draft)
+        }
+        return true
+    }
+
     func applyComposerSuggestions(_ suggestions: [AIChatComposerSuggestion]) {
         self.composerSuggestions = suggestions
     }
@@ -227,6 +249,8 @@ extension AIChatStore {
             self.inputText = aiChatCreateCardDraftPrompt
             self.recordComposerEditing(operation: .createCard, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: aiChatCreateCardDraftPrompt.utf16.count)
             return true
+        case .createCatalogDeck(let request):
+            return self.prepareCatalogAIDeckDraft(id: request.id, prompt: request.prompt)
         case .attachCard(let card):
             return self.prepareCardHandoff(card: card)
         }

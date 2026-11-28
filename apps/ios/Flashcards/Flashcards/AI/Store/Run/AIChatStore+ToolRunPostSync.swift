@@ -102,7 +102,7 @@ extension AIChatStore {
     /// completed the run. Tool-backed changes are synced only after the run is
     /// terminal so the local review state refreshes once from the final data.
     func syncLinkedDataAfterTerminalRunIfNeeded() {
-        guard self.hasPendingToolRunPostSync() else {
+        guard self.isLiveReconciliationPending == false, self.hasPendingToolRunPostSync() else {
             return
         }
         guard self.activeToolRunPostSyncTask == nil else {

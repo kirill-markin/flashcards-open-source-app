@@ -9,7 +9,7 @@ func fitsMacAICompanionColumns(_ size: CGSize) -> Bool {
 
 /// Mac observes the sidebar's detail column; mobile uses the full owning window.
 struct AICompanionAvailabilityObserver: UIViewRepresentable {
-    let onChange: (Bool) -> Void
+    let onChange: (Bool, String?) -> Void
 
     func makeUIView(context: Context) -> AvailabilityView {
         let view = AvailabilityView()
@@ -24,7 +24,7 @@ struct AICompanionAvailabilityObserver: UIViewRepresentable {
     }
 
     final class AvailabilityView: UIView {
-        var onChange: ((Bool) -> Void)?
+        var onChange: ((Bool, String?) -> Void)?
         private var lastAvailability: Bool?
 
         override func didMoveToWindow() {
@@ -57,8 +57,8 @@ struct AICompanionAvailabilityObserver: UIViewRepresentable {
             // UIKit may lay out during a SwiftUI update. Ignore stale callbacks
             // and callbacks from a view that has left its window.
             DispatchQueue.main.async { [weak self] in
-                guard let self, self.window != nil, self.lastAvailability == isAvailable else { return }
-                self.onChange?(isAvailable)
+                guard let self, let window = self.window, self.lastAvailability == isAvailable else { return }
+                self.onChange?(isAvailable, window.windowScene?.session.persistentIdentifier)
             }
         }
     }

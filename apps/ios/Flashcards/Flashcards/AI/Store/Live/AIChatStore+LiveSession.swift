@@ -59,6 +59,9 @@ extension AIChatStore {
             return
         }
 
+        if self.isLiveReconciliationPending {
+            self.pendingLiveReconciliationScope = nil
+        }
         self.applyEnvelope(response)
         self.markRunHadToolCallsFromSnapshot(
             activeRun: response.activeRun,
@@ -96,6 +99,7 @@ extension AIChatStore {
             return
         }
 
+        let scope = self.currentSessionScope()
         self.activeLiveResumeAttemptSequence = resumeAttemptDiagnostics?.sequence
         Task { [self] in
             await self.runtime.detach()
@@ -110,7 +114,7 @@ extension AIChatStore {
                     await self?.handleLiveEvent(event)
                 },
                 completionHandler: { [weak self] termination in
-                    await self?.handleLiveStreamTermination(termination, sessionId: response.sessionId)
+                    await self?.handleLiveStreamTermination(termination, scope: scope, runId: activeRun.runId)
                 }
             )
         }
@@ -142,7 +146,7 @@ extension AIChatStore {
             return
         }
 
-        let sessionId = self.chatSessionId
+        let scope = self.currentSessionScope()
         let afterCursor = self.liveCursor
         self.activeLiveResumeAttemptSequence = nil
         Task { [self] in
@@ -152,14 +156,13 @@ extension AIChatStore {
                     await self.runtime.detach()
                     return
                 }
-                guard self.activeRunId == activeRunId else {
-                    await self.runtime.detach()
+                guard scope == self.currentSessionScope(), self.activeRunId == activeRunId else {
                     return
                 }
                 await self.runtime.detach()
                 await self.runtime.attachLive(
                     liveStream: liveStream,
-                    sessionId: sessionId,
+                    sessionId: scope.sessionId,
                     runId: activeRunId,
                     afterCursor: afterCursor,
                     configurationMode: session.configurationMode,
@@ -168,18 +171,11 @@ extension AIChatStore {
                         await self?.handleLiveEvent(event)
                     },
                     completionHandler: { [weak self] termination in
-                        await self?.handleLiveStreamTermination(termination, sessionId: sessionId)
+                        await self?.handleLiveStreamTermination(termination, scope: scope, runId: activeRunId)
                     }
                 )
             } catch {
-                if isAIChatRequestCancellationError(error: error) {
-                    return
-                }
-                guard self.shouldKeepLiveAttached else {
-                    return
-                }
-                self.clearActiveRunTracking(resetComposer: true)
-                self.showGeneralError(error: error)
+                self.recordLiveReconciliationFailure(error, scope: scope, runId: activeRunId)
             }
         }
     }
@@ -233,44 +229,92 @@ extension AIChatStore {
             return
         }
 
+        guard self.activeAttachmentTransferCount == 0 else {
+            self.resumesAfterAttachmentTransfer = true
+            return
+        }
+        let resumeAttemptDiagnostics = self.nextResumeAttemptDiagnostics()
+        if self.isLiveReconciliationPending || self.activeRunId != nil || self.pendingToolRunPostSync {
+            self.pendingLiveReconciliationScope = self.currentSessionScope()
+            self.startLiveConversationReconciliation(resumeAttemptDiagnostics: resumeAttemptDiagnostics)
+            return
+        }
         self.startLinkedBootstrap(
             forceReloadState: false,
-            resumeAttemptDiagnostics: self.nextResumeAttemptDiagnostics()
+            resumeAttemptDiagnostics: resumeAttemptDiagnostics
         )
     }
 
+    var isLiveReconciliationPending: Bool {
+        self.pendingLiveReconciliationScope == self.currentSessionScope()
+    }
+
     func reloadConversationFromBootstrap() {
-        Task {
+        self.pendingLiveReconciliationScope = self.currentSessionScope()
+        self.retryLiveConversationReconciliation()
+    }
+
+    func retryLiveConversationReconciliation() {
+        self.startLiveConversationReconciliation(resumeAttemptDiagnostics: nil)
+    }
+
+    private func startLiveConversationReconciliation(
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
+    ) {
+        guard self.hasExternalProviderConsent, self.activeBootstrapTask == nil,
+              let scope = self.pendingLiveReconciliationScope,
+              scope == self.currentSessionScope() else {
+            return
+        }
+
+        self.invalidateActivePassiveSnapshotRefreshTask()
+        let requestSequence = self.beginBootstrapRequestSequence()
+        let runId = self.activeRunId
+        self.activeBootstrapTask = Task {
+            defer {
+                if self.isCurrentBootstrapRequest(sequence: requestSequence) {
+                    self.activeBootstrapTask = nil
+                }
+            }
+
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let requestedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                guard self.isCurrentBootstrapRequest(sequence: requestSequence),
+                      scope == self.currentSessionScope() else {
+                    return
+                }
+                try self.flashcardsStore.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: session)
                 let response = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: requestedSessionId,
+                    sessionId: scope.sessionId,
                     limit: aiChatBootstrapPageLimit,
-                    resumeAttemptDiagnostics: nil
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
-                guard self.shouldKeepLiveAttached else {
+                guard self.isCurrentBootstrapRequest(sequence: requestSequence),
+                      scope == self.currentSessionScope(),
+                      scope == self.pendingLiveReconciliationScope,
+                      self.activeRunId == runId || self.activeRunId == response.activeRun?.runId else {
                     return
                 }
-                guard self.chatSessionId == requestedSessionId else {
-                    return
-                }
+                try self.flashcardsStore.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: session)
                 try validateAIChatBootstrapSessionContract(
                     response: response,
-                    requestedSessionId: requestedSessionId
+                    requestedSessionId: scope.sessionId
                 )
                 self.applyBootstrap(response)
+                self.bootstrapPhase = .ready
+                self.lastBootstrapFailureWasRetryable = false
                 self.attachBootstrapLiveIfNeeded(
                     response: response,
                     session: session,
-                    resumeAttemptDiagnostics: nil
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
             } catch {
-                if isAIChatRequestCancellationError(error: error) {
+                guard self.isCurrentBootstrapRequest(sequence: requestSequence),
+                      scope == self.currentSessionScope(),
+                      isAIChatRequestCancellationError(error: error) == false else {
                     return
                 }
-                self.clearActiveRunTracking(resetComposer: true)
                 self.showGeneralError(error: error)
             }
         }
@@ -278,27 +322,25 @@ extension AIChatStore {
 
     func handleLiveStreamTermination(
         _ termination: AIChatLiveAttachTermination,
-        sessionId: String
+        scope: AIChatSessionScope,
+        runId: String
     ) async {
+        guard self.canReconcileLiveStream(scope: scope, runId: runId) else {
+            return
+        }
         switch termination {
         case .sawTerminalEvent(_, _):
             return
         case .failed(let message, let requestId, let clientRequestId):
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
             await self.reconcileFailedLiveStreamTermination(
-                sessionId: sessionId,
+                sessionId: scope.sessionId,
                 requestId: requestId,
                 clientRequestId: clientRequestId,
                 fallbackMessage: message
             )
         case .endedWithoutTerminalEvent(let requestId, let clientRequestId):
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
             await self.reconcileUnexpectedLiveStreamEnd(
-                sessionId: sessionId,
+                sessionId: scope.sessionId,
                 requestId: requestId,
                 clientRequestId: clientRequestId
             )
@@ -311,6 +353,10 @@ extension AIChatStore {
         clientRequestId: String?,
         fallbackMessage: String
     ) async {
+        let scope = self.currentSessionScope()
+        guard scope.sessionId == sessionId, let runId = self.activeRunId else {
+            return
+        }
         let fallbackAnchor = self.currentFailedLiveOptimisticFallbackAnchor()
         do {
             let session = try await self.flashcardsStore.cloudSessionForAI()
@@ -320,10 +366,7 @@ extension AIChatStore {
                 limit: aiChatBootstrapPageLimit,
                 resumeAttemptDiagnostics: nil
             )
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
-            guard self.chatSessionId == sessionId else {
+            guard self.canReconcileLiveStream(scope: scope, runId: runId) else {
                 return
             }
             if let fallbackAnchor {
@@ -336,8 +379,13 @@ extension AIChatStore {
                 requestedSessionId: sessionId
             )
 
+            if response.activeRun != nil {
+                self.applyBootstrap(response)
+                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
+                return
+            }
+
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
-                let reconciledRunId: String? = self.activeRunId
                 let reconciledAfterCursor: String? = self.liveCursor
                 self.applyBootstrap(response)
                 self.transitionToIdle()
@@ -345,18 +393,12 @@ extension AIChatStore {
                     message: errorMessage,
                     errorCode: aiChatTerminalAlertErrorCode(eventMessage: nil, messages: response.conversation.messages),
                     sessionId: sessionId,
-                    runId: reconciledRunId,
+                    runId: runId,
                     afterCursor: reconciledAfterCursor,
                     requestId: requestId,
                     clientRequestId: clientRequestId,
                     eventType: "failed_stream_reconcile_error"
                 )
-                return
-            }
-
-            if response.activeRun != nil {
-                self.applyBootstrap(response)
-                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
                 return
             }
 
@@ -369,7 +411,7 @@ extension AIChatStore {
             if shouldApplyOptimisticFallback {
                 self.captureLiveOptimisticFallbackFailure(
                     sessionId: sessionId,
-                    runId: self.activeRunId,
+                    runId: runId,
                     afterCursor: self.liveCursor,
                     requestId: requestId,
                     clientRequestId: clientRequestId
@@ -384,19 +426,19 @@ extension AIChatStore {
             self.applyBootstrap(response)
             self.transitionToIdle()
         } catch {
-            if isAIChatRequestCancellationError(error: error) {
-                return
-            }
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(error: error)
+            self.recordLiveReconciliationFailure(error, scope: scope, runId: runId)
         }
     }
 
-    func reconcileUnexpectedLiveStreamEnd(
+    private func reconcileUnexpectedLiveStreamEnd(
         sessionId: String,
         requestId: String?,
         clientRequestId: String?
     ) async {
+        let scope = self.currentSessionScope()
+        guard scope.sessionId == sessionId, let runId = self.activeRunId else {
+            return
+        }
         do {
             let session = try await self.flashcardsStore.cloudSessionForAI()
             let response = try await self.chatService.loadBootstrap(
@@ -405,19 +447,20 @@ extension AIChatStore {
                 limit: aiChatBootstrapPageLimit,
                 resumeAttemptDiagnostics: nil
             )
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
-            guard self.chatSessionId == sessionId else {
+            guard self.canReconcileLiveStream(scope: scope, runId: runId) else {
                 return
             }
             try validateAIChatBootstrapSessionContract(
                 response: response,
                 requestedSessionId: sessionId
             )
-            let reconciledRunId: String? = self.activeRunId
             let reconciledAfterCursor: String? = self.liveCursor
             self.applyBootstrap(response)
+
+            if response.activeRun != nil {
+                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
+                return
+            }
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
                 self.transitionToIdle()
@@ -425,26 +468,30 @@ extension AIChatStore {
                     message: errorMessage,
                     errorCode: aiChatTerminalAlertErrorCode(eventMessage: nil, messages: response.conversation.messages),
                     sessionId: sessionId,
-                    runId: reconciledRunId,
+                    runId: runId,
                     afterCursor: reconciledAfterCursor,
                     requestId: requestId,
                     clientRequestId: clientRequestId,
                     eventType: "unexpected_stream_end_reconcile_error"
                 )
-                return
-            }
-
-            if response.activeRun != nil {
-                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
-                return
             }
         } catch {
-            if isAIChatRequestCancellationError(error: error) {
-                return
-            }
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(error: error)
+            self.recordLiveReconciliationFailure(error, scope: scope, runId: runId)
         }
+    }
+
+    private func canReconcileLiveStream(scope: AIChatSessionScope, runId: String) -> Bool {
+        Task.isCancelled == false && self.shouldKeepLiveAttached
+            && scope == self.currentSessionScope() && runId == self.activeRunId
+    }
+
+    private func recordLiveReconciliationFailure(_ error: Error, scope: AIChatSessionScope, runId: String) {
+        guard self.canReconcileLiveStream(scope: scope, runId: runId),
+              isAIChatRequestCancellationError(error: error) == false else {
+            return
+        }
+        self.pendingLiveReconciliationScope = scope
+        self.showGeneralError(error: error)
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct AIConsentDisclosureView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @State private var disclosure: AIConsentDisclosure = .current()
+    let canChangeConsent: @MainActor () -> Bool
     let onAllowed: @MainActor () -> Void
     let onNotNow: @MainActor () -> Void
 
@@ -27,12 +28,14 @@ struct AIConsentDisclosureView: View {
                             .foregroundStyle(.red)
                             .accessibilityIdentifier(UITestIdentifier.aiConsentFailure)
                         Button(aiSettingsLocalized("ai.consent.retrySync", "Retry saving choice")) {
+                            guard self.canChangeConsent() else { return }
                             self.store.retryAIConsentSync()
                         }
                         .disabled(self.store.aiConsent.isSaving)
                         .accessibilityIdentifier(UITestIdentifier.aiConsentRetryButton)
                     }
                     Button(aiSettingsLocalized("ai.consent.allowDataSharing", "Allow AI data sharing")) {
+                        guard self.canChangeConsent() else { return }
                         if self.store.hasAIDataSharingConsent {
                             self.onAllowed()
                         } else {
@@ -43,6 +46,7 @@ struct AIConsentDisclosureView: View {
                     .disabled(self.store.aiConsent.isSaving)
                     .accessibilityIdentifier(UITestIdentifier.aiConsentAcceptButton)
                     Button(aiSettingsLocalized("ai.consent.notNow", "Not now")) {
+                        guard self.canChangeConsent() else { return }
                         self.store.withdrawAIDataSharing(disclosure: self.disclosure)
                         self.onNotNow()
                     }

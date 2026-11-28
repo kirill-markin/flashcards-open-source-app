@@ -83,6 +83,10 @@ final class AIChatStore {
             self.recordComposerEditing(operation: .selection, phase: .after, beforeUTF16Count: self.inputText.utf16.count, afterUTF16Count: self.inputText.utf16.count)
         }
     }
+    @ObservationIgnored var appliedCatalogAIDeckRequestID: UUID?
+    var activeAttachmentTransferCount = 0
+    @ObservationIgnored var resumesAfterAttachmentTransfer = false
+    var pendingLiveReconciliationScope: AIChatSessionScope?
     @ObservationIgnored var editorDiagnosticPresentation: NativeEditorPresentation?
 
     var inputText: String {
@@ -184,7 +188,7 @@ final class AIChatStore {
     @ObservationIgnored var activeSendTask: Task<Void, Never>?
     @ObservationIgnored var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored var activeWarmUpTask: Task<Void, Never>?
-    @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
+    var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored var activePassiveSnapshotRefreshTask: Task<Void, Never>?
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activeRemoteSessionProvisionRequest: AIChatRemoteSessionProvisionRequest?
@@ -199,8 +203,8 @@ final class AIChatStore {
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
     @ObservationIgnored var runHadToolCalls: Bool
-    @ObservationIgnored var pendingToolRunPostSync: Bool
-    @ObservationIgnored var activeToolRunPostSyncTask: Task<Void, Never>?
+    var pendingToolRunPostSync: Bool
+    var activeToolRunPostSyncTask: Task<Void, Never>?
     @ObservationIgnored var nextResumeAttemptSequence: Int
     @ObservationIgnored var nextBootstrapRequestSequence: Int
     @ObservationIgnored var nextPassiveSnapshotRefreshSequence: Int

@@ -585,7 +585,8 @@ extension AIChatView {
             onWindowSceneChange: { [composerWindowScene = self.composerWindowScene] scene in
                 composerWindowScene.scene = scene
             },
-            macReturnKeyOwner: self.macComposerReturnKeyOwner
+            macReturnKeyOwner: self.macComposerReturnKeyOwner,
+            macCatalogFocusRequest: self.isPresentationActive ? self.$macCatalogComposerFocusRequest : .constant(nil)
         )
         #else
         return AIChatComposerTextView(

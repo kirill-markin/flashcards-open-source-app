@@ -77,6 +77,7 @@ struct RootTabView: View {
     @State private var loadedTagsCount: (workspaceId: String, count: Int)?
     #if targetEnvironment(macCatalyst)
     @State private var macSidebarVisibility: NavigationSplitViewVisibility = .all
+    @State private var macWindowPresentation = MacWindowPresentation()
     @Environment(\.macSidebarCommandTarget) private var macSidebarCommandTarget
     @Environment(\.sidebarRowSize) private var sidebarRowSize
     #endif
@@ -375,10 +376,12 @@ struct RootTabView: View {
             }
         }
         #if targetEnvironment(macCatalyst)
+        .environment(\.macWindowPresentation, self.macWindowPresentation)
         .backgroundPreferenceValue(MacToolbarPreferenceKey.self) { preferences in
             MacWindowAppearance(
                 configuration: self.macToolbarConfiguration(preferences),
                 sidebarCommandTarget: self.macSidebarCommandTarget,
+                windowPresentation: self.macWindowPresentation,
                 onSidebarVisibilityChange: { isVisible in
                     withAnimation(self.reduceMotion ? nil : .default) {
                         self.macSidebarVisibility = isVisible ? .all : .detailOnly
@@ -547,18 +550,19 @@ struct RootTabView: View {
         NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
             self.macSidebar
         } detail: {
-            self.macDetail(for: self.navigation.selectedTab)
+            self.macDetail(for: self.macPresentedTab)
                 .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
-                    selectedTab: self.navigation.selectedTab,
-                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
+                    selectedTab: self.macPresentedTab,
+                    companionVisible: self.allowsCatalogAIPresentation && self.navigation.isAICompanionVisible,
                     aiDepth: self.navigation.aiPath.count,
                     librarySection: self.navigation.librarySection,
                     libraryDepth: self.navigation.libraryPath.count,
                     settingsDepth: self.navigation.settingsPath.count
                 )))
                 .background {
-                    AICompanionAvailabilityObserver { isAvailable in
-                        self.navigation.updateAICompanionAvailability(isAvailable)
+                    AICompanionAvailabilityObserver { isAvailable, sceneID in
+                        self.macSidebarCommandTarget?.sceneID = sceneID
+                        self.navigation.updateAICompanionAvailability(isAvailable, sceneID: sceneID)
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -578,6 +582,17 @@ struct RootTabView: View {
     }
 
     #if targetEnvironment(macCatalyst)
+    private var allowsCatalogAIPresentation: Bool {
+        self.navigation.allowsCatalogAIPresentation(in: self.macWindowPresentation.sceneID)
+    }
+
+    private var macPresentedTab: AppTab {
+        if self.navigation.selectedTab == .ai && self.allowsCatalogAIPresentation == false {
+            return .library
+        }
+        return self.navigation.selectedTab
+    }
+
     /// The detail shows only the selected section; what must survive a switch lives in
     /// the navigation model and the app-owned screen models.
     @ViewBuilder
@@ -626,10 +641,10 @@ struct RootTabView: View {
     private var macSidebar: some View {
         List(selection: Binding<MacSidebarSelection?>(
             get: {
-                if self.navigation.selectedTab == .library, let section = self.navigation.librarySection {
+                if self.macPresentedTab == .library, let section = self.navigation.librarySection {
                     return .librarySection(section)
                 }
-                return .tab(self.navigation.selectedTab)
+                return .tab(self.macPresentedTab)
             },
             set: { selection in
                 switch selection {
@@ -741,7 +756,7 @@ struct RootTabView: View {
 
     #if targetEnvironment(macCatalyst)
     private func macToolbarConfiguration(_ preferences: MacToolbarPreferences) -> MacWindowToolbarConfiguration {
-        let tab = self.navigation.selectedTab
+        let tab = self.macPresentedTab
         if let recovery = self.store.cloudCredentialRecoveryState ?? self.store.cloudSignInAttempt.credentialRecoveryPresentation {
             return MacWindowToolbarConfiguration(
                 tab: tab, title: makeCloudCredentialRecoveryGatePresentation(reason: recovery.reason).title,
@@ -774,7 +789,7 @@ struct RootTabView: View {
                 }
             )]))
         }
-        if self.navigation.canPresentAICompanion && tab != .ai && tab != .settings {
+        if self.allowsCatalogAIPresentation && self.navigation.canPresentAICompanion && tab != .ai && tab != .settings {
             let companion = preferences.contributions.last { $0.tab == tab && $0.role == .companion }
             let toggle = MacToolbarAction(
                 identifier: UITestIdentifier.aiCompanionToggle,
@@ -782,6 +797,7 @@ struct RootTabView: View {
                 label: String(localized: self.navigation.isAICompanionVisible ? "ai_companion.hide" : "ai_companion.show", table: "Foundation"),
                 isSelected: self.navigation.isAICompanionVisible,
                 perform: { _ in
+                    guard self.allowsCatalogAIPresentation else { return }
                     withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
                         self.navigation.toggleAICompanion()
                     }
@@ -804,8 +820,8 @@ struct RootTabView: View {
         }
         #if !targetEnvironment(macCatalyst)
         .background {
-            AICompanionAvailabilityObserver { isAvailable in
-                self.navigation.updateAICompanionAvailability(isAvailable)
+            AICompanionAvailabilityObserver { isAvailable, sceneID in
+                self.navigation.updateAICompanionAvailability(isAvailable, sceneID: sceneID)
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)
@@ -813,11 +829,17 @@ struct RootTabView: View {
         }
         #endif
         .onChange(of: self.navigation.isLiveAIChatVisible) { _, isVisible in
+            #if targetEnvironment(macCatalyst)
+            guard self.allowsCatalogAIPresentation else { return }
+            #endif
             if isVisible == false {
                 self.store.aiChatStore.cancelDictation()
             }
         }
         .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
+            #if targetEnvironment(macCatalyst)
+            guard self.allowsCatalogAIPresentation else { return }
+            #endif
             // Both AI presentations share one chat session and composer draft.
             self.store.aiChatStore.updateSurface(activity: AIChatSurfaceActivity(
                 isSceneActive: self.scenePhase == .active,
@@ -893,6 +915,11 @@ struct RootTabView: View {
         }
     }
 
+    private var pendingCatalogDeckAccessContext: AICatalogDeckAccessContext? {
+        guard self.navigation.pendingCatalogAIDeckRequest != nil else { return nil }
+        return self.store.aiChatStore.currentCatalogDeckAccessContext()
+    }
+
     private var tabRootChangeHandlers: some View {
         self.tabRootTasks
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
@@ -919,6 +946,13 @@ struct RootTabView: View {
         }
         .onChange(of: store.cloudSettings?.cloudState) { _, _ in
             self.store.retryAIConsentSync()
+        }
+        .onChange(of: self.pendingCatalogDeckAccessContext) { _, accessContext in
+            guard let accessContext else { return }
+            self.navigation.retireStaleCatalogAIDeckRequest(
+                accessContext: accessContext,
+                preservedGuestLink: self.store.preservedGuestWorkspaceLink
+            )
         }
         // Chat history belongs to one workspace and account. Its pages close here, where every AI stack is reached,
         // including a side chat that is closed or a section that is not on screen.

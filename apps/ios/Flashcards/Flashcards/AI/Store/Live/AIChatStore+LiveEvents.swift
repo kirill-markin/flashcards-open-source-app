@@ -441,7 +441,6 @@ extension AIChatStore {
                 self.clearActiveRunTracking(resetComposer: true)
                 self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .resetRequired:
-                self.clearActiveRunTracking(resetComposer: true)
                 self.reloadConversationFromBootstrap()
             }
 

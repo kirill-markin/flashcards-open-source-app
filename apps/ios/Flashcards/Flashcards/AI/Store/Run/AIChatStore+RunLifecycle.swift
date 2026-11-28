@@ -46,7 +46,8 @@ extension AIChatStore {
     }
 
     func sendMessage() {
-        guard self.isChatInteractive else {
+        guard self.isChatInteractive, self.isLiveReconciliationPending == false,
+              self.activeAttachmentTransferCount == 0 else {
             return
         }
         if self.isComposerBusy || self.dictationState != .idle || self.isAIImportDraftBlocked {
