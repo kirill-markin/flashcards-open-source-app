@@ -157,6 +157,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
 
         LaunchedEffect(
             entryPrefillRequest?.requestId,
+            cloudSettings?.installationId,
+            cloudSettings?.linkedUserId,
+            cloudSettings?.cloudState,
+            cloudSettings?.activeWorkspaceId,
+            uiState.workspaceId,
             uiState.canEditDraft,
             uiState.isConsentRequired,
             uiState.isConversationReady,
@@ -171,19 +176,17 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             ) {
                 return@LaunchedEffect
             }
-            if (
-                request.prefill is AiEntryPrefill.CatalogDeck &&
-                (
-                    canOpenCatalogDeckDraft.not() ||
-                        navController.currentBackStackEntry != backStackEntry ||
-                        importRequests.value != null ||
-                        cardHandoffRequests.value != null
-                    )
-            ) {
-                return@LaunchedEffect
-            }
-            val didHandleRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
-            if (didHandleRequest) {
+            if (request.prefill is AiEntryPrefill.CatalogDeck) {
+                if (canOpenCatalogDeckDraft && isAiChatCurrent) {
+                    appGraph.deliverCatalogAiPrefill(request = request) { prefill, workspaceId ->
+                        navController.currentBackStackEntry == backStackEntry &&
+                            aiViewModel.uiState.value.workspaceId == workspaceId &&
+                            importRequests.value == null &&
+                            cardHandoffRequests.value == null &&
+                            aiViewModel.applyEntryPrefill(prefill = prefill)
+                    }
+                }
+            } else if (aiViewModel.applyEntryPrefill(prefill = request.prefill)) {
                 appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
             }
         }

@@ -2,7 +2,10 @@ package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.LocalGuestWorkspaceMigration
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.AiImport
 import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
@@ -15,8 +18,48 @@ import kotlinx.coroutines.flow.update
 
 data class AiEntryPrefillRequest(
     val requestId: Long,
-    val prefill: AiEntryPrefill
+    val prefill: AiEntryPrefill,
+    val catalogOrigin: CatalogAiPrefillOrigin?
 )
+
+data class CatalogAiPrefillOrigin(
+    val installationId: String,
+    val workspaceId: String,
+    val cloudState: CloudAccountState,
+    val linkedUserId: String?
+) {
+    fun matches(current: CatalogAiPrefillOrigin, guestMigration: LocalGuestWorkspaceMigration?): Boolean {
+        if (this == current) {
+            return true
+        }
+        if (installationId != current.installationId || current.cloudState != CloudAccountState.GUEST) {
+            return false
+        }
+
+        // Accepting consent can bind a local guest to a cloud workspace in the same installation.
+        return when (cloudState) {
+            CloudAccountState.DISCONNECTED ->
+                linkedUserId == null && (
+                    workspaceId == current.workspaceId ||
+                        (guestMigration?.sourceWorkspaceId == workspaceId &&
+                            guestMigration.guestWorkspaceId == current.workspaceId &&
+                            guestMigration.guestUserId == current.linkedUserId)
+                    )
+            CloudAccountState.GUEST -> workspaceId == current.workspaceId && linkedUserId == null
+            CloudAccountState.LINKED, CloudAccountState.LINKING_READY -> false
+        }
+    }
+}
+
+internal fun CloudSettings.catalogAiPrefillOrigin(): CatalogAiPrefillOrigin? {
+    val workspaceId = activeWorkspaceId ?: return null
+    return CatalogAiPrefillOrigin(
+        installationId = installationId,
+        workspaceId = workspaceId,
+        cloudState = cloudState,
+        linkedUserId = linkedUserId
+    )
+}
 
 data class AiCardHandoffRequest(
     val requestId: Long,
@@ -110,14 +153,27 @@ class AppHandoffCoordinator {
         return libraryNavigationState.asStateFlow()
     }
 
-    fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
-        if (prefill == AiEntryPrefill.CreateCard) {
-            discardPendingAiImport()
-        }
+    fun requestCreateCardPrefill() {
+        discardPendingAiImport()
         aiEntryPrefillState.value = AiEntryPrefillRequest(
             requestId = nextRequestId.incrementAndGet(),
-            prefill = prefill
+            prefill = AiEntryPrefill.CreateCard,
+            catalogOrigin = null
         )
+    }
+
+    internal fun requestCatalogAiPrefill(prefill: AiEntryPrefill.CatalogDeck, origin: CatalogAiPrefillOrigin) {
+        aiEntryPrefillState.value = AiEntryPrefillRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            prefill = prefill,
+            catalogOrigin = origin
+        )
+    }
+
+    internal fun clearCatalogAiPrefillForIdentityReset() {
+        aiEntryPrefillState.update { request ->
+            request.takeUnless { it?.catalogOrigin != null }
+        }
     }
 
     fun consumeAiEntryPrefill(requestId: Long) {

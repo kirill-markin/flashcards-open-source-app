@@ -88,6 +88,7 @@ import java.util.Locale
 @Composable
 fun CatalogRoute(
     uiState: CatalogUiState,
+    isOpeningAi: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
@@ -136,6 +137,7 @@ fun CatalogRoute(
             is CatalogContentUiState.Ready -> CatalogReadyContent(
                 uiState = uiState,
                 content = content,
+                isOpeningAi = isOpeningAi,
                 onSearchQueryChange = onSearchQueryChange,
                 onSelectLanguageFilter = onSelectLanguageFilter,
                 onSelectSortOrder = onSelectSortOrder,
@@ -177,6 +179,7 @@ private fun CatalogLoadFailedContent(
 private fun CatalogReadyContent(
     uiState: CatalogUiState,
     content: CatalogContentUiState.Ready,
+    isOpeningAi: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
@@ -222,6 +225,7 @@ private fun CatalogReadyContent(
             listState = listState,
             content = content,
             topic = uiState.searchQuery.trim(),
+            isOpeningAi = isOpeningAi,
             onOpenDeck = onOpenDeck,
             onCreateDeckWithAi = onCreateDeckWithAi
         )
@@ -233,6 +237,7 @@ private fun ColumnScope.CatalogDeckList(
     listState: LazyListState,
     content: CatalogContentUiState.Ready,
     topic: String,
+    isOpeningAi: Boolean,
     onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
     onCreateDeckWithAi: (String, Int) -> Unit
 ) {
@@ -261,14 +266,17 @@ private fun ColumnScope.CatalogDeckList(
         }
         if (topic.isNotEmpty()) {
             item {
-                CatalogAiDeckRow(onClick = { onCreateDeckWithAi(topic, content.decks.size) })
+                CatalogAiDeckRow(
+                    isOpeningAi = isOpeningAi,
+                    onClick = { onCreateDeckWithAi(topic, content.decks.size) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CatalogAiDeckRow(onClick: () -> Unit) {
+private fun CatalogAiDeckRow(isOpeningAi: Boolean, onClick: () -> Unit) {
     ListItem(
         leadingContent = {
             Box(
@@ -278,16 +286,24 @@ private fun CatalogAiDeckRow(onClick: () -> Unit) {
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+                if (isOpeningAi) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
             }
         },
         headlineContent = { Text(stringResource(id = R.string.catalog_create_deck_with_ai)) },
         modifier = Modifier
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = !isOpeningAi, role = Role.Button, onClick = onClick)
             .testTag(catalogAiDeckRowTag)
     )
 }

@@ -53,8 +53,12 @@ import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
+import com.flashcardsopensourceapp.app.navigation.AiEntryPrefillRequest
 import com.flashcardsopensourceapp.app.navigation.AiImportHandoffCoordinator
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
+import com.flashcardsopensourceapp.app.navigation.CatalogAiPrefillOrigin
+import com.flashcardsopensourceapp.app.navigation.catalogAiPrefillOrigin
+import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.NotificationReconciliation
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
@@ -427,6 +431,7 @@ class AppGraph(
         },
         onFirstReviewOnboardingPersistenceFailed = ::reportFirstReviewOnboardingPersistenceFailure,
         onCloudIdentityReset = {
+            appHandoffCoordinator.clearCatalogAiPrefillForIdentityReset()
             strictRemindersManager.clearForCloudIdentityReset()
             // Queued events belong to the person who is leaving, and the server attributes a batch
             // to the credential that carries it, so they must never survive an identity boundary.
@@ -649,6 +654,41 @@ class AppGraph(
         cloudOperationCoordinator = cloudOperationCoordinator,
         appHandoffCoordinator = appHandoffCoordinator
     )
+    internal suspend fun requestCatalogAiPrefill(
+        origin: CatalogAiPrefillOrigin,
+        topic: String,
+        isCatalogCurrent: () -> Boolean,
+        onEnqueued: () -> Unit
+    ) = cloudOperationCoordinator.runExclusive {
+        val current = cloudPreferencesStore.currentCloudSettings().catalogAiPrefillOrigin()
+        if (current == null ||
+            !origin.matches(current, cloudGuestSessionCoordinator.lastLocalGuestWorkspaceMigration) ||
+            !isCatalogCurrent()
+        ) {
+            return@runExclusive
+        }
+        appHandoffCoordinator.requestCatalogAiPrefill(prefill = AiEntryPrefill.CatalogDeck(topic = topic), origin = origin)
+        onEnqueued()
+    }
+
+    internal suspend fun deliverCatalogAiPrefill(
+        request: AiEntryPrefillRequest,
+        apply: (AiEntryPrefill, String) -> Boolean
+    ) = cloudOperationCoordinator.runExclusive {
+        if (appHandoffCoordinator.observeAiEntryPrefill().value?.requestId != request.requestId) {
+            return@runExclusive
+        }
+        val origin = requireNotNull(request.catalogOrigin)
+        val current = cloudPreferencesStore.currentCloudSettings().catalogAiPrefillOrigin()
+        if (current == null || !origin.matches(current, cloudGuestSessionCoordinator.lastLocalGuestWorkspaceMigration)) {
+            appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+            return@runExclusive
+        }
+        if (aiChatRepository.hasConsent() && apply(request.prefill, current.workspaceId)) {
+            appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+        }
+    }
+
     val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
