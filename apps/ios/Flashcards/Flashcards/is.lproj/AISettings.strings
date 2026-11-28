@@ -964,6 +964,7 @@
 "settings.theme.title" = "Þema";
 "settings.theme.dark" = "Dökkt";
 "settings.theme.light" = "Ljóst";
+"settings.theme.automatic" = "Sjálfvirkt";
 "settings.theme.premiumNote" = "Ljóst þema er í boði með Premium. Vistaða þemað þitt kemur aftur þegar Premium er virkt.";
 "settings.accentColor.title" = "Áherslulitur";
 "settings.accentColor.default" = "Sjálfgefið";

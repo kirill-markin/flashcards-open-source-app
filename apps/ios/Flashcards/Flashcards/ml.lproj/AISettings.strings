@@ -964,6 +964,7 @@
 "settings.theme.title" = "തീം";
 "settings.theme.dark" = "ഡാർക്ക്";
 "settings.theme.light" = "ലൈറ്റ്";
+"settings.theme.automatic" = "സ്വയമേവ";
 "settings.theme.premiumNote" = "ലൈറ്റ് തീം Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച തീം തിരിച്ചുവരും.";
 "settings.accentColor.title" = "ഹൈലൈറ്റ് നിറം";
 "settings.accentColor.default" = "ഡിഫോൾട്ട്";

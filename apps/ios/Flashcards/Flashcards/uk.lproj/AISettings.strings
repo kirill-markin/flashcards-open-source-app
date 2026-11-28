@@ -964,6 +964,7 @@
 "settings.theme.title" = "Тема";
 "settings.theme.dark" = "Темна";
 "settings.theme.light" = "Світла";
+"settings.theme.automatic" = "Автоматично";
 "settings.theme.premiumNote" = "Світла тема доступна з Premium. Збережена тема повернеться, коли Premium буде активним.";
 "settings.accentColor.title" = "Колір акценту";
 "settings.accentColor.default" = "За замовчуванням";

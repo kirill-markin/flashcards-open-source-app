@@ -992,6 +992,7 @@
 "settings.theme.title" = "Design";
 "settings.theme.dark" = "Dunkel";
 "settings.theme.light" = "Hell";
+"settings.theme.automatic" = "Automatisch";
 "settings.theme.premiumNote" = "Das helle Design ist mit Premium verfügbar. Dein gespeichertes Design wird wieder verwendet, sobald Premium aktiv ist.";
 "settings.accentColor.title" = "Akzentfarbe";
 "settings.accentColor.default" = "Standard";

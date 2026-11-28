@@ -992,6 +992,7 @@
 "settings.theme.title" = "主題";
 "settings.theme.dark" = "深色";
 "settings.theme.light" = "淺色";
+"settings.theme.automatic" = "自動";
 "settings.theme.premiumNote" = "淺色主題需要 Premium。Premium 生效時，將恢復你儲存的主題。";
 "settings.accentColor.title" = "強調色";
 "settings.accentColor.default" = "預設";

@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Fosc";
 "settings.theme.light" = "Clar";
+"settings.theme.automatic" = "Automàtic";
 "settings.theme.premiumNote" = "El tema clar està disponible amb Premium. El tema desat torna quan Premium està actiu.";
 "settings.accentColor.title" = "Color d’accent";
 "settings.accentColor.default" = "Per defecte";
