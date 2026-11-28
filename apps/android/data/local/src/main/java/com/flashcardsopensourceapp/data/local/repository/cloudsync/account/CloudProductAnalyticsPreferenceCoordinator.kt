@@ -98,6 +98,7 @@ internal class CloudProductAnalyticsPreferenceCoordinator(
                 update = AccountPreferencesUpdate(
                     accentColor = null,
                     theme = null,
+                    followSystemAppearance = null,
                     reviewReactionAnimationsEnabled = null,
                     productAnalyticsEnabled = enabled,
                     productAnalyticsEnabledOrigin = origin,

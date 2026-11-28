@@ -210,6 +210,7 @@ private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObjec
     return JSONObject()
         .put("accentColor", preferences.accentColor)
         .put("theme", preferences.theme.wireValue)
+        .put("followSystemAppearance", preferences.followSystemAppearance)
         .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
         .put("firstReviewOnboardingCompleted", preferences.firstReviewOnboardingCompleted ?: JSONObject.NULL)
         .put("productAnalyticsEnabled", preferences.productAnalyticsEnabled ?: JSONObject.NULL)
@@ -227,6 +228,12 @@ private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreference
             parseAccountTheme(wireValue = jsonObject.getString("theme"))
         } else {
             AccountTheme.DARK
+        },
+        // A state saved before the option existed has no key; that account had it off.
+        followSystemAppearance = if (jsonObject.has("followSystemAppearance")) {
+            jsonObject.getBoolean("followSystemAppearance")
+        } else {
+            false
         },
         reviewReactionAnimationsEnabled = jsonObject.getBoolean("reviewReactionAnimationsEnabled"),
         firstReviewOnboardingCompleted = if (

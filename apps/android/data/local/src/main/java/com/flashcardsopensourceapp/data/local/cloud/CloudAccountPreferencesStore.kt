@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 private const val accentColorKey: String = "accent-color"
 private const val themeKey: String = "theme"
+private const val followSystemAppearanceKey: String = "follow-system-appearance"
 private const val reviewReactionAnimationsEnabledKey: String = "review-reaction-animations-enabled"
 private const val productAnalyticsEnabledKey: String = "product-analytics-enabled"
 private const val productAnalyticsEnabledPendingPushKey: String = "product-analytics-enabled-pending-push"
@@ -129,6 +130,7 @@ internal class CloudAccountPreferencesStore(
             metadataPreferences.edit(commit = true) {
                 putString(accentColorKey, resolvedPreferences.accentColor)
                 putString(themeKey, resolvedPreferences.theme.wireValue)
+                putBoolean(followSystemAppearanceKey, resolvedPreferences.followSystemAppearance)
                 putBoolean(
                     reviewReactionAnimationsEnabledKey,
                     resolvedPreferences.reviewReactionAnimationsEnabled
@@ -280,6 +282,7 @@ internal class CloudAccountPreferencesStore(
             metadataPreferences.edit(commit = true) {
                 remove(accentColorKey)
                 remove(themeKey)
+                remove(followSystemAppearanceKey)
                 remove(reviewReactionAnimationsEnabledKey)
                 // The verdict belonged to the identity being left, not to the answer.
                 remove(productAnalyticsEnabledPushRefusedKey)
@@ -344,6 +347,8 @@ internal class CloudAccountPreferencesStore(
             theme = parseAccountTheme(
                 wireValue = requireNotNull(metadataPreferences.getString(themeKey, AccountTheme.DARK.wireValue))
             ),
+            // A cache written before the option existed has no key; that account had it off.
+            followSystemAppearance = metadataPreferences.getBoolean(followSystemAppearanceKey, false),
             reviewReactionAnimationsEnabled = metadataPreferences.getBoolean(
                 reviewReactionAnimationsEnabledKey,
                 true

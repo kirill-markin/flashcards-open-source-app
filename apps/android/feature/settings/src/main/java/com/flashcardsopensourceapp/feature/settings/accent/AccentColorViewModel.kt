@@ -106,6 +106,7 @@ class AccentColorViewModel(
                             update = AccountPreferencesUpdate(
                                 accentColor = requested.color,
                                 theme = null,
+                                followSystemAppearance = null,
                                 reviewReactionAnimationsEnabled = null,
                                 productAnalyticsEnabled = null,
                                 locale = null,

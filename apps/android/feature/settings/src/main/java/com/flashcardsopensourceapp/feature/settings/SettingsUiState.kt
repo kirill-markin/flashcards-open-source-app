@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeChoice
 
 enum class SettingsFriendInviteAvailability {
     LOADING,
@@ -19,7 +19,7 @@ data class SettingsUiState(
     val accountStatusAttentionCount: Int,
     val friendInviteAvailability: SettingsFriendInviteAvailability,
     /** Effective value: Dark while the plan is known free; the saved choice applies again with Premium. */
-    val theme: AccountTheme,
+    val theme: ThemeChoice,
     /** Effective value: on while the plan is known free; the saved choice applies again with Premium. */
     val reviewReactionAnimationsEnabled: Boolean,
     /** The resolved answer the switch shows: an unanswered account reads as on. */

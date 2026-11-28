@@ -755,7 +755,8 @@
     <string name="settings_theme_title">ଥିମ୍</string>
     <string name="settings_theme_dark">ଗାଢ଼</string>
     <string name="settings_theme_light">ହାଲୁକା</string>
-    <string name="settings_theme_premium_note">ହାଲୁକା ଥିମ୍ ପ୍ରିମିୟମ୍‌ର ଏକ ସୁବିଧା। ମାଗଣା ପ୍ଲାନ୍‌ରେ ଗାଢ଼ ଥିମ୍ ଦେଖାଯାଏ ଓ ଆପଣଙ୍କ ସେଭ୍ ହୋଇଥିବା ପସନ୍ଦ ରହେ।</string>
+    <string name="settings_theme_system">ସିଷ୍ଟମ୍ ଡିଫଲ୍ଟ</string>
+    <string name="settings_theme_premium_note">ହାଲୁକା ଥିମ୍ ଓ ସିଷ୍ଟମ୍ ଡିଫଲ୍ଟ ପ୍ରିମିୟମ୍‌ର ସୁବିଧା। ମାଗଣା ପ୍ଲାନ୍‌ରେ ଗାଢ଼ ଥିମ୍ ଦେଖାଯାଏ ଓ ଆପଣଙ୍କ ସେଭ୍ ହୋଇଥିବା ପସନ୍ଦ ରହେ।</string>
     <string name="settings_theme_update_failed">ଥିମ୍ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
     <string name="settings_accent_title">ଆପ୍‌ର ମୁଖ୍ୟ ରଙ୍ଗ</string>
     <string name="settings_accent_selected">ବଛାଯାଇଥିବା ରଙ୍ଗ: %1$s</string>

@@ -31,7 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionUiState
-import com.flashcardsopensourceapp.feature.settings.theme.accountThemeLabel
+import com.flashcardsopensourceapp.feature.settings.theme.themeChoiceLabel
 import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 
 internal val settingsScreenCardSpacing = 16.dp
@@ -240,7 +240,7 @@ fun SettingsRoute(
                 item {
                     SettingsRootRow(
                         title = stringResource(R.string.settings_theme_title),
-                        summary = stringResource(accountThemeLabel(theme = uiState.theme)),
+                        summary = stringResource(themeChoiceLabel(theme = uiState.theme)),
                         attentionCount = null,
                         testTag = settingsThemeRowTag,
                         onClick = onOpenTheme
