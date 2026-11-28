@@ -114,7 +114,7 @@ async function loadReviewScheduleCountRowInExecutor(
       "COUNT(*) FILTER (WHERE cards.due_at >= schedule_boundaries.days_721_start)::int AS later_count",
       "FROM content.cards AS cards",
       "CROSS JOIN schedule_boundaries",
-      "WHERE cards.workspace_id = $1 AND cards.deleted_at IS NULL",
+      "WHERE cards.workspace_id = $1 AND cards.deleted_at IS NULL AND cards.status = 'active'",
     ].join(" "),
     queryParams,
   );

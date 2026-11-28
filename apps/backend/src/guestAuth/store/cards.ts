@@ -1,4 +1,4 @@
-import type { CardMetadata } from "../../cards";
+import type { CardMetadata, CardStatus } from "../../cards";
 import { appendLegacyEffortTag, normalizeCardMetadata, normalizeCardType } from "../../cards/shared";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
@@ -12,6 +12,7 @@ type CardRow = Readonly<{
   front_text: string;
   back_text: string;
   card_type: string;
+  status: CardStatus;
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   effort_level: string;
@@ -37,6 +38,7 @@ export type GuestCardRecord = Readonly<{
   frontText: string;
   backText: string;
   cardType: string;
+  status: CardStatus;
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: Date | string | null;
@@ -64,6 +66,7 @@ function mapGuestCardRecord(row: CardRow): GuestCardRecord {
     frontText: row.front_text,
     backText: row.back_text,
     cardType: normalizeCardType(row.card_type),
+    status: row.status,
     metadata: normalizeCardMetadata(row.metadata),
     tags: appendLegacyEffortTag(row.tags, legacyEffortLevel),
     dueAt: row.due_at,
@@ -99,7 +102,7 @@ export async function loadGuestCardsInExecutor(
       "SELECT",
       "card_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at, status",
       "FROM content.cards",
       "WHERE workspace_id = $1",
       "ORDER BY created_at ASC, card_id ASC",

@@ -95,6 +95,7 @@ function createWorkspacePackageImportConfirmCard(): Card {
     frontText: "Pregunta",
     backText: "Respuesta",
     cardType: "basic",
+    status: "active",
     metadata: {
       version: 1,
       source: {

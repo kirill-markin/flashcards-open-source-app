@@ -1,3 +1,4 @@
+import type { CardStatus } from "../../../cards/status";
 import { normalizeIsoTimestamp } from "../../../sync/conflicts/lww";
 import {
   planCardImportTags,
@@ -38,6 +39,7 @@ export type WorkspacePackageImportPlannedCard = Readonly<{
   backText: string;
   tags: ReadonlyArray<string>;
   cardType: string;
+  status?: CardStatus;
   metadata: WorkspacePackageCardMetadataV1;
 }>;
 
@@ -212,6 +214,7 @@ function planCard(
     ),
     tags,
     cardType: card.cardType,
+    ...(card.status === undefined ? {} : { status: card.status }),
     metadata: planCardMetadata(card, packageSource, options),
   };
 }

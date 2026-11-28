@@ -26,6 +26,7 @@ export function createCardQueryRow(card: CardState): Readonly<Record<string, unk
     front_text: card.front_text,
     back_text: card.back_text,
     card_type: card.card_type ?? "basic",
+    status: card.status ?? "active",
     metadata: card.metadata ?? createDefaultCardMetadata(card.created_at),
     tags: card.tags,
     effort_level: card.effort_level,

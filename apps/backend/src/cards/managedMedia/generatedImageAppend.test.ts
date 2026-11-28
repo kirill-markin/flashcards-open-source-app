@@ -43,6 +43,7 @@ function createCardRow(clientUpdatedAt: string): CardRow {
     front_text: "Question",
     back_text: "Answer",
     card_type: "basic",
+    status: "active",
     metadata: { version: 1, source: null },
     tags: [],
     effort_level: "fast",

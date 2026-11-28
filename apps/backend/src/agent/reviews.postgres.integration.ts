@@ -199,6 +199,43 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
         [cardId, dueAt, lastReviewedAt],
       );
 
+    await t.test("agent SQL changes suspension and review skips suspended cards", async () => {
+      await tombstoneEveryCard();
+      const sql = async (action: "query" | "execute", statement: string) => {
+        const response = await app.request(`/agent/sql/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `ApiKey ${apiKey}` },
+          body: JSON.stringify({ sql: statement }),
+        });
+        assert.equal(response.status, 200, await response.clone().text());
+        return ((await response.json()) as { data: { rows: Array<{ card_id: string; status: string }> } }).data;
+      };
+      const inserted = await sql("execute", "INSERT INTO cards (front_text, back_text, status) VALUES ('Question?', 'Answer', 'suspended') RETURNING card_id, status");
+      const card = inserted.rows[0];
+      assert.equal(card?.status, "suspended");
+      const cardId = card.card_id;
+      const where = `WHERE card_id = '${cardId}'`;
+      const review = { cardId, reviewId: randomUUID(), rating: "Good", reviewedTimeZone } as const;
+      const rejected = await post("submit", review);
+      assert.equal(rejected.status, 409);
+      assert.equal(await readCode(rejected), "CARD_SUSPENDED");
+
+      await sql("execute", `UPDATE cards SET status = 'active' ${where}; UPDATE cards SET back_text = 'New answer' ${where}`);
+      assert.deepEqual((await sql("query", `SELECT card_id, status FROM cards ${where} AND status = 'active'`)).rows, [
+        { card_id: cardId, status: "active" },
+      ]);
+      assert.equal((await nextReviewCard(actor, allCards)).card?.cardId, cardId);
+      const reviewed = await submit(review);
+      await sql("execute", `UPDATE cards SET status = 'suspended' ${where}`);
+      assert.deepEqual(await nextReviewCard(actor, allCards), { workspaceId, card: null, nextDueAt: null });
+      const stored = await getCard(userId, workspaceId, cardId);
+      assert.equal(stored.status, "suspended");
+      assert.equal(stored.dueAt, reviewed.dueAt);
+      const duplicate = await post("submit", review);
+      assert.equal(duplicate.status, 409);
+      assert.equal(await readCode(duplicate), "REVIEW_EVENT_CONFLICT");
+    });
+
     await t.test(
       "the queue puts recently reviewed due cards first, then other due cards, then new cards",
       async () => {

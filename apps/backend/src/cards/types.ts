@@ -1,5 +1,6 @@
 import type { LwwMetadata } from "../sync/conflicts/lww";
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
+import type { CardStatus } from "./status";
 import type {
   FsrsCardState,
   ReviewRating,
@@ -43,6 +44,7 @@ export type CardRow = Readonly<{
   front_text: string;
   back_text: string;
   card_type: string;
+  status: CardStatus;
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   effort_level: LegacyEffortLevel;
@@ -111,6 +113,7 @@ export type Card = Readonly<{
   frontText: string;
   backText: string;
   cardType: string;
+  status: CardStatus;
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;
@@ -200,6 +203,7 @@ export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;
   cardType?: string;
+  status?: CardStatus;
   metadata?: CardMetadata;
   tags: ReadonlyArray<string>;
 }>;
@@ -213,6 +217,7 @@ export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
   cardType?: string;
+  status?: CardStatus;
   metadata?: CardMetadata;
   tags?: ReadonlyArray<string>;
 }>;
@@ -266,6 +271,7 @@ export type CardSnapshotInput = Readonly<{
   frontText: string;
   backText: string;
   cardType?: string;
+  status?: CardStatus;
   metadata?: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;

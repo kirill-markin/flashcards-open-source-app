@@ -69,10 +69,6 @@ type UpdatedCardRow = CardRow & Readonly<{
   previous_tags: ReadonlyArray<string>;
 }>;
 
-// The three card fields a person authors, and the only ones `card_updated` is measured on. Every
-// other column content.cards carries is scheduling state (due_at and the FSRS columns), provenance
-// bookkeeping (metadata), the card's shape (card_type), or sync bookkeeping, so a review, a
-// progress reset, a settled managed image and a re-sync that moves only those is not an edit.
 type CardAuthoredFields = Readonly<{
   frontText: string;
   backText: string;
@@ -130,6 +126,7 @@ function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
     cardType: input.cardType === undefined ? undefined : normalizeCardType(input.cardType),
+    status: input.status,
     metadata: input.metadata === undefined ? undefined : normalizeCardMetadata(input.metadata),
     tags: dedupeCardTags(input.tags),
   };
@@ -142,6 +139,7 @@ function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
       : normalizeRequiredCardText(input.frontText, "frontText"),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
     cardType: input.cardType === undefined ? undefined : normalizeCardType(input.cardType),
+    status: input.status,
     metadata: input.metadata === undefined ? undefined : normalizeCardMetadata(input.metadata),
     tags: input.tags === undefined ? undefined : dedupeCardTags(input.tags),
   };
@@ -176,6 +174,11 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
     params.push(input.tags);
   }
 
+  if (input.status !== undefined) {
+    assignments.push(`status = $${assignments.length + 1}`);
+    params.push(input.status);
+  }
+
   return { assignments, params };
 }
 
@@ -202,6 +205,7 @@ function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
     ...(input.cardType === undefined ? {} : { cardType: normalizeCardType(input.cardType) }),
+    ...(input.status === undefined ? {} : { status: input.status }),
     ...(input.metadata === undefined ? {} : { metadata: normalizeCardMetadata(input.metadata) }),
     tags: dedupeCardTags(input.tags),
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
@@ -241,9 +245,10 @@ async function insertCardRowForSnapshotInExecutor(
   metadata: CardMutationMetadata,
 ): Promise<CardRow | null> {
   const cardType = input.cardType ?? "basic";
+  const status = input.status ?? "active";
   const cardMetadata = establishOnboardingDemoMetadata(
     input.metadata ?? createDefaultCardMetadata(input.createdAt),
-    { ...input, cardType },
+    { ...input, cardType, status },
   );
   const result = await executor.query<CardRow>(
     [
@@ -251,9 +256,9 @@ async function insertCardRowForSnapshotInExecutor(
       "(",
       "card_id, workspace_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at, status",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)",
+      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)",
       "ON CONFLICT DO NOTHING",
       "RETURNING",
       CARD_COLUMNS,
@@ -280,6 +285,7 @@ async function insertCardRowForSnapshotInExecutor(
       metadata.lastModifiedByReplicaId,
       metadata.lastOperationId,
       input.deletedAt,
+      status,
     ],
   );
 
@@ -467,6 +473,7 @@ export async function upsertCardSnapshotInExecutor(
       "fsrs_card_state = $9, fsrs_step_index = $10, fsrs_stability = $11, fsrs_difficulty = $12,",
       "fsrs_last_reviewed_at = $13, fsrs_scheduled_days = $14, deleted_at = $15, client_updated_at = $16,",
       "last_modified_by_replica_id = $17, last_operation_id = $18, updated_at = now(),",
+      "status = COALESCE($22, status),",
       "maintenance_snapshot_lww_at = $21,",
       "maintenance_snapshot_published_at = CASE WHEN $21::timestamptz IS NULL THEN NULL ELSE $16::timestamptz END",
       "WHERE workspace_id = $19 AND card_id = $20",
@@ -483,6 +490,7 @@ export async function upsertCardSnapshotInExecutor(
         {
           ...mergedCardWrite,
           cardType: normalizedInput.cardType ?? existingCard.cardType,
+          status: normalizedInput.status ?? existingCard.status,
           tags,
         },
       )),
@@ -503,6 +511,7 @@ export async function upsertCardSnapshotInExecutor(
       workspaceId,
       normalizedInput.cardId,
       maintenanceSnapshotLwwAt,
+      normalizedInput.status ?? null,
     ],
   );
 
@@ -603,6 +612,7 @@ export async function createCardInExecutor(
   const normalizedInput = normalizeCreateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
   const createdAt = normalizeIsoTimestamp(normalizedMetadata.clientUpdatedAt, "clientUpdatedAt");
+  const status = normalizedInput.status ?? "active";
 
   const result = await executor.query<CardRow>(
     [
@@ -610,9 +620,9 @@ export async function createCardInExecutor(
       "(",
       "card_id, workspace_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at,",
       "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_replica_id, last_operation_id",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, status",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', NULL, $8, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $9, $10, $11)",
+      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', NULL, $8, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $9, $10, $11, $12)",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
@@ -624,13 +634,14 @@ export async function createCardInExecutor(
       normalizedInput.cardType ?? "basic",
       JSON.stringify(establishOnboardingDemoMetadata(
         normalizedInput.metadata ?? createDefaultCardMetadata(createdAt),
-        { ...normalizedInput, cardType: normalizedInput.cardType ?? "basic" },
+        { ...normalizedInput, cardType: normalizedInput.cardType ?? "basic", status },
       )),
       normalizedInput.tags,
       createdAt,
       normalizedMetadata.clientUpdatedAt,
       normalizedMetadata.lastModifiedByReplicaId,
       normalizedMetadata.lastOperationId,
+      status,
     ],
   );
 
@@ -713,6 +724,7 @@ export async function updateCardInExecutor(
         frontText: normalizedInput.frontText ?? existingCard.frontText,
         backText: normalizedInput.backText ?? existingCard.backText,
         cardType: normalizedInput.cardType ?? existingCard.cardType,
+        status: normalizedInput.status ?? existingCard.status,
         tags: normalizedInput.tags ?? existingCard.tags,
       },
     ),

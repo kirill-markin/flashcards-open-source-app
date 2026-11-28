@@ -38,6 +38,7 @@ export type {
   WorkspaceTagSummary,
   WorkspaceTagsSummary,
 } from "./types";
+export type { CardStatus } from "./status";
 
 export {
   normalizeCardFilter,

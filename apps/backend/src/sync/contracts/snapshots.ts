@@ -49,6 +49,7 @@ export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotI
     frontText: payload.frontText,
     backText: payload.backText,
     ...(payload.cardType === undefined ? {} : { cardType: normalizeCardType(payload.cardType) }),
+    ...(payload.status === undefined ? {} : { status: payload.status }),
     ...(payload.metadata === undefined ? {} : { metadata: payload.metadata }),
     tags: appendLegacyEffortTag(payload.tags, payload.effortLevel),
     dueAt: payload.dueAt,

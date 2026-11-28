@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0253_chat_run_guest_session.sql",
-    expectedMigrationCount: 255,
+    migrationFileName: "0254_card_status.sql",
+    expectedMigrationCount: 256,
     testFiles: Object.freeze([
       "src/chat/customInstructions.postgres.integration.ts",
       "src/chat/runs/canonicalOwner.postgres.integration.ts",
@@ -97,6 +97,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
       "src/cards/onboardingDemo.postgres.integration.ts",
       "src/productAnalytics/serverFacts/cardAdditions.postgres.integration.ts",
       "src/productAnalytics/cardAdditionRecovery.postgres.integration.ts",
@@ -239,7 +240,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
-      "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

@@ -565,6 +565,7 @@ function buildPortablePackageCards(
       backText: rewriteMarkdownFcAssetUrlsToSharedPortablePaths(card.back_text, resolvePortablePath),
       tags: applyPackageTagRemoval(card.tags, removedTags),
       cardType: card.card_type,
+      ...(card.status === "suspended" ? { status: card.status } : {}),
       metadata: normalizeCardMetadata(card.metadata),
     }),
   }));

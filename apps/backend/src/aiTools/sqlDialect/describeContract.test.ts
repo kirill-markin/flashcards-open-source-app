@@ -38,6 +38,7 @@ const REPRESENTATIVE_CARD: Card = {
   frontText: "ubiquitous",
   backText: "Present everywhere at once.",
   cardType: "basic",
+  status: "active",
   metadata: {
     version: 1,
     source: {

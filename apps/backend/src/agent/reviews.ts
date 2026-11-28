@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { listWorkspaceTagsMatchingKeys } from "../cards";
-import type { ReviewResult } from "../cards/types";
+import type { CardStatus, ReviewResult } from "../cards";
 import { submitReviewInExecutor } from "../cards/review/reviews";
 import {
   queryWithWorkspaceScopeReadOnly,
@@ -64,6 +64,7 @@ export type AgentReviewResult = Readonly<{
 }>;
 
 type CardScheduleRow = Readonly<{
+  status: CardStatus;
   due_at: Date | null;
   reps: number;
   lapses: number;
@@ -213,7 +214,7 @@ function buildNextReviewCardQuery(tagFilter: string): string {
   const bucketQueries = reviewQueueBuckets.map((bucket, rank) =>
     [
       `(SELECT ${rank} AS bucket, card_id, front_text FROM content.cards`,
-      "WHERE workspace_id = $1 AND deleted_at IS NULL",
+      "WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'active'",
       `AND ${bucket.condition}`,
       tagFilter,
       `ORDER BY ${bucket.tieBreaks} LIMIT 1)`,
@@ -232,7 +233,7 @@ function buildNextReviewCardQuery(tagFilter: string): string {
 function buildNextDueAtQuery(tagFilter: string): string {
   return [
     "SELECT MIN(due_at) AS next_due_at FROM content.cards",
-    "WHERE workspace_id = $1 AND deleted_at IS NULL",
+    "WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'active'",
     `AND due_at IS NOT NULL AND NOT (${dueNow})`,
     tagFilter,
   ].join(" ");
@@ -430,20 +431,17 @@ export async function submitAgentReview(
       const reviewedAt = new Date();
       const reviewedAtIso = reviewedAt.toISOString();
       const cardResult = await executor.query<CardScheduleRow>(
-        "SELECT due_at, reps, lapses, fsrs_card_state, fsrs_scheduled_days, fsrs_last_reviewed_at FROM content.cards WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL FOR UPDATE",
+        "SELECT status, due_at, reps, lapses, fsrs_card_state, fsrs_scheduled_days, fsrs_last_reviewed_at FROM content.cards WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL FOR UPDATE",
         [context.workspaceId, input.cardId],
       );
       const current = cardResult.rows[0];
       if (current === undefined) throw new HttpError(404, "Card not found");
-      // computeReviewSchedule rejects a review that predates fsrs_last_reviewed_at, so answer the
-      // clock skew as a conflict instead of letting the scheduler fail the request as a 500.
       if (
-        current.fsrs_last_reviewed_at !== null &&
-        reviewedAt.getTime() <= new Date(current.fsrs_last_reviewed_at).getTime()
+        current.status === "suspended" ||
+        (current.fsrs_last_reviewed_at !== null &&
+          reviewedAt.getTime() <= new Date(current.fsrs_last_reviewed_at).getTime())
       ) {
-        // A stored instant at or after this stamp comes from a client-stamped review of the same
-        // card, which can have landed after this reviewId's own review did. A landed duplicate
-        // owes the caller its schedule instead of this skew report.
+        // A retry still owes the caller its schedule after suspension or a later device review.
         const storedCardId = await findReviewEventCardIdInExecutor(
           executor,
           context.workspaceId,
@@ -455,6 +453,10 @@ export async function submitAgentReview(
         }
         if (storedCardId !== null) {
           throw createReviewIdCardMismatchError(input.cardId, storedCardId, undefined);
+        }
+
+        if (current.status === "suspended") {
+          throw new HttpError(409, "This card is suspended. Select another card to review.", "CARD_SUSPENDED");
         }
 
         throw new HttpError(

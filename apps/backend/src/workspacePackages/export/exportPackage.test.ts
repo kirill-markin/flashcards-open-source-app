@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import type { CardStatus } from "../../cards/status";
 import type { DatabaseExecutor, SqlValue } from "../../database";
 import type {
   LoadedMediaAssetObjectBytes,
@@ -26,6 +27,7 @@ type TestCardRow = Readonly<{
   front_text: string;
   back_text: string;
   card_type: string;
+  status: CardStatus;
   metadata: WorkspacePackageCardMetadataV1;
   tags: ReadonlyArray<string>;
   created_at: string;
@@ -133,6 +135,7 @@ function createCardRow(
     front_text: frontText,
     back_text: backText,
     card_type: "basic",
+    status: "active",
     metadata: testMetadata,
     tags,
     created_at: createdAt,
@@ -443,15 +446,18 @@ test("package ZIP for text-only cards contains valid cards.json", async () => {
 
 test("package export applies tag filters to selected cards and strips generated import tags", async () => {
   const executor = createTestExecutor([
-    createCardRow(
-      cardIdA,
-      workspaceId,
-      "Science prompt",
-      "Science answer",
-      ["science", "keep", "import:2026-07-04-0"],
-      "2026-06-01T00:00:00.000Z",
-      null,
-    ),
+    {
+      ...createCardRow(
+        cardIdA,
+        workspaceId,
+        "Science prompt",
+        "Science answer",
+        ["science", "keep", "import:2026-07-04-0"],
+        "2026-06-01T00:00:00.000Z",
+        null,
+      ),
+      status: "suspended",
+    },
     createCardRow(
       cardIdB,
       workspaceId,
@@ -478,6 +484,7 @@ test("package export applies tag filters to selected cards and strips generated 
   const cardsJson = parseCardsJson(parseStoredZipEntries(packageExport.bytes));
   assert.equal(cardsJson.cards.length, 1);
   assert.equal(cardsJson.cards[0]?.frontText, "Science prompt");
+  assert.equal(cardsJson.cards[0]?.status, "suspended");
   assert.deepEqual(cardsJson.cards[0]?.tags, ["science", "keep"]);
   assert.equal(byteLoader.calls.length, 0);
 });

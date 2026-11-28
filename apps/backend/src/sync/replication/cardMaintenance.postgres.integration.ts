@@ -3,9 +3,11 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
-import { updateCard } from "../../cards";
+import { nextReviewCard } from "../../agent/reviews";
+import { getCard, summarizeDeckState, updateCard } from "../../cards";
 import { transactionWithWorkspaceScope } from "../../database";
 import { createDeck } from "../../decks";
+import { loadUserProgressReviewSchedule } from "../../progress/reports";
 import { computeReviewSchedule, type ReviewRating } from "../../scheduling";
 import { defaultWorkspaceSchedulerConfig } from "../../scheduling/workspaceConfig";
 import {
@@ -60,7 +62,9 @@ function reviewOperation(cardId: string, reviewedAtClient: string, rating: Revie
   } as const;
 }
 
-function cardOperation(payload: LegacySyncCardPayload, clientUpdatedAt: string) {
+type CardSnapshotWireInput = Omit<LegacySyncCardPayload, "status"> & Partial<Pick<LegacySyncCardPayload, "status">>;
+
+function cardOperation(payload: CardSnapshotWireInput, clientUpdatedAt: string) {
   return {
     entityType: "card",
     entityId: payload.cardId,
@@ -71,6 +75,112 @@ function cardOperation(payload: LegacySyncCardPayload, clientUpdatedAt: string) 
   } as const;
 }
 
+test("suspension survives winning legacy writes and old-device reviews", async (t) => {
+  assert.ok(process.env.TEST_DATABASE_ADMIN_URL, "Run with npm run test:postgres-integration");
+  const userId = randomUUID();
+  const owner = new pg.Pool({ connectionString: process.env.TEST_DATABASE_ADMIN_URL });
+  t.after(async () => {
+    try {
+      await owner.query(
+        "DELETE FROM org.workspaces WHERE workspace_id IN (SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1)",
+        [userId],
+      );
+      await owner.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
+    } finally {
+      await owner.end();
+    }
+  });
+  await owner.query("INSERT INTO org.user_settings (user_id) VALUES ($1)", [userId]);
+  const { workspaceId } = await createWorkspaceForUser(userId, "Card suspension integration");
+  const oldDevice = { installationId: randomUUID(), platform: "ios", isAutomation: true };
+  const newDevice = { installationId: randomUUID(), platform: "android", isAutomation: true };
+  const at = (minute: number) => new Date(Date.UTC(2026, 0, 1, 0, minute)).toISOString();
+  const { status: _status, ...legacyCard } = makeNewCard(at(0), []);
+  const { cardId } = legacyCard;
+  const initialSnapshot = {
+    entityType: "card",
+    entityId: cardId,
+    action: "upsert",
+    payload: {
+      ...legacyCard,
+      lastOperationId: randomUUID(),
+    },
+  };
+  const push = (replica: typeof oldDevice, operations: ReadonlyArray<object>) => processSyncPush(
+    workspaceId, userId, parseSyncPushInput({ ...replica, operations }),
+  );
+  const bootstrap = (replica: typeof oldDevice) => processSyncBootstrap(
+    workspaceId, userId, parseSyncBootstrapInput({ ...replica, mode: "pull", cursor: null, limit: 20 }),
+  );
+  const context = { userId, workspaceId, connectionId: randomUUID() };
+  const allCards = { kind: "allCards" } as const;
+
+  const pushed = await processSyncBootstrap(workspaceId, userId, parseSyncBootstrapInput({
+    ...oldDevice, mode: "push", entries: [initialSnapshot],
+  }));
+  assert.equal(pushed.mode, "push");
+  const initial = await bootstrap(newDevice);
+  assert.equal(initial.mode, "pull");
+  assert.equal(cardFromEntries(initial.entries, cardId).status, "active");
+  assert.equal((await nextReviewCard(context, allCards)).card?.cardId, cardId);
+  const baseline = await owner.query<{ matches: boolean }>(
+    `SELECT org.workspace_starter_baseline($1)->>'cards' =
+         encode(sha256(convert_to(jsonb_build_array(to_jsonb(card) - 'status')::text, 'UTF8')), 'hex') AS matches
+       FROM content.cards AS card WHERE card.card_id = $2`,
+    [workspaceId, cardId],
+  );
+  assert.equal(baseline.rows[0]?.matches, true);
+
+  assert.equal((await push(newDevice, [
+    cardOperation({ ...legacyCard, status: "suspended" }, at(1)),
+  ])).operations[0]?.status, "applied");
+  const suspended = await processSyncPull(
+    workspaceId, userId, parseSyncPullInput({ ...oldDevice, afterHotChangeId: initial.bootstrapHotChangeId, limit: 20 }),
+  );
+  assert.equal(cardFromEntries(suspended.changes, cardId).status, "suspended");
+  assert.equal((await nextReviewCard(context, allCards)).card, null);
+
+  const cardBeforeReview = await getCard(userId, workspaceId, cardId);
+  await updateCard(userId, workspaceId, cardId, { backText: "Edited without status" }, {
+    clientUpdatedAt: at(2),
+    lastModifiedByReplicaId: cardBeforeReview.lastModifiedByReplicaId,
+    lastOperationId: randomUUID(),
+  });
+  assert.equal((await getCard(userId, workspaceId, cardId)).status, "suspended");
+
+  const { status: _reviewStatus, ...reviewed } = withSchedule({ ...legacyCard, status: "active" }, at(3), 3);
+  const review = reviewOperation(cardId, at(3), 3);
+  const legacyPush = await push(oldDevice, [cardOperation(reviewed, at(3)), review]);
+  assert.deepEqual(legacyPush.operations.map((operation) => operation.status), ["applied", "applied"]);
+  const latest = await bootstrap(newDevice);
+  assert.equal(latest.mode, "pull");
+  const reviewedCard = cardFromEntries(latest.entries, cardId);
+  assert.equal(reviewedCard.status, "suspended");
+  assert.equal(reviewedCard.deletedAt, null);
+  assertSchedule(reviewedCard, { ...reviewed, status: "suspended" });
+  assert.deepEqual(await nextReviewCard(context, allCards), { workspaceId, card: null, nextDueAt: null });
+  const suspendedSummary = await summarizeDeckState(userId, workspaceId);
+  assert.equal(suspendedSummary.totalCards, 1);
+  assert.equal(suspendedSummary.dueCards, 0);
+  assert.equal((await loadUserProgressReviewSchedule({ userId, timeZone: "UTC" })).totalCards, 0);
+  const history = await processSyncReviewHistoryPull(workspaceId, userId, parseSyncReviewHistoryPullInput({
+    ...newDevice, afterReviewSequenceId: 0, limit: 20,
+  }));
+  assert.deepEqual(history.reviewEvents.map((event) => event.reviewEventId), [review.entityId]);
+
+  assert.equal((await push(newDevice, [
+    cardOperation({ ...reviewed, status: "active" }, at(1)),
+  ])).operations[0]?.status, "ignored");
+  assert.equal((await push(newDevice, [
+    cardOperation({ ...reviewed, status: "active" }, at(4)),
+  ])).operations[0]?.status, "applied");
+  const activeCard = await getCard(userId, workspaceId, cardId);
+  assert.equal(activeCard.status, "active");
+  assert.equal(activeCard.dueAt, reviewedCard.dueAt);
+  assert.equal((await summarizeDeckState(userId, workspaceId)).dueCards, 1);
+  assert.equal((await nextReviewCard(context, allCards)).card?.cardId, cardId);
+});
+
 function makeNewCard(createdAt: string, tags: ReadonlyArray<string>): LegacySyncCardPayload {
   return {
     cardId: randomUUID(),
@@ -78,6 +188,7 @@ function makeNewCard(createdAt: string, tags: ReadonlyArray<string>): LegacySync
     backText: "Original answer",
     tags,
     cardType: "basic",
+    status: "active",
     metadata: { version: 1, source: null },
     effortLevel: "fast",
     createdAt,

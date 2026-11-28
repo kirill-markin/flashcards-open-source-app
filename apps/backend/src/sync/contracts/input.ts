@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { normalizeOnboardingDemo } from "../../cards/onboardingDemo";
+import { cardStatusSchema } from "../../cards/status";
 import { HttpError } from "../../shared/errors";
 import type {
   HttpErrorDetails,
@@ -206,6 +207,7 @@ const cardSnapshotSchema = z.object({
   frontText: z.string().min(1),
   backText: z.string(),
   cardType: cardTypeSchema,
+  status: cardStatusSchema,
   metadata: cardMetadataSchema,
   tags: z.array(z.string()),
   effortLevel: effortLevelSchema,
@@ -224,6 +226,7 @@ const cardSnapshotSchema = z.object({
 
 const cardSnapshotInputSchema = cardSnapshotSchema.extend({
   cardType: cardTypeSchema.optional(),
+  status: cardStatusSchema.optional(),
   metadata: cardMetadataSchema.optional(),
   // TODO(old-mobile-cutoff): Remove legacy effort input during final sync wire-drop cleanup.
   effortLevel: effortLevelSchema.optional(),

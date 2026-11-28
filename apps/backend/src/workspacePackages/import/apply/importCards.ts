@@ -100,6 +100,7 @@ function buildBulkCreateCardItem(
       backText: plannedCard.backText,
       tags: plannedCard.tags,
       cardType: plannedCard.cardType,
+      ...(plannedCard.status === undefined ? {} : { status: plannedCard.status }),
       // Imports create user-owned cards even if a caller retained an exported demo claim.
       metadata: { version: 1, source: plannedCard.metadata.source },
     },

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CardStatus } from "./status";
 import type { CardMetadata, OnboardingDemoMetadata } from "./types";
 
 type OnboardingDemoCardFields = Readonly<{
@@ -7,6 +8,8 @@ type OnboardingDemoCardFields = Readonly<{
   tags: ReadonlyArray<string>;
   cardType: string;
 }>;
+
+type StoredOnboardingDemoCardFields = OnboardingDemoCardFields & Readonly<{ status: CardStatus }>;
 
 const onboardingDemoSchema = z.object({
   version: z.literal(1),
@@ -49,7 +52,7 @@ function cardFieldsDiffer(
 
 export function establishOnboardingDemoMetadata(
   metadata: CardMetadata,
-  card: OnboardingDemoCardFields,
+  card: StoredOnboardingDemoCardFields,
 ): CardMetadata {
   const baseline = metadata.onboardingDemo;
   if (baseline === undefined) {
@@ -60,15 +63,15 @@ export function establishOnboardingDemoMetadata(
     ...metadata,
     onboardingDemo: {
       ...baseline,
-      wasEdited: baseline.wasEdited === true || cardFieldsDiffer(baseline, card),
+      wasEdited: baseline.wasEdited === true || card.status === "suspended" || cardFieldsDiffer(baseline, card),
     },
   };
 }
 
 export function mergeCardMetadata(
-  existingCard: OnboardingDemoCardFields & Readonly<{ metadata: CardMetadata }>,
+  existingCard: StoredOnboardingDemoCardFields & Readonly<{ metadata: CardMetadata }>,
   incomingMetadata: CardMetadata,
-  card: OnboardingDemoCardFields,
+  card: StoredOnboardingDemoCardFields,
 ): CardMetadata {
   const existingMetadata = existingCard.metadata;
   const baseline = existingMetadata.onboardingDemo;
@@ -87,6 +90,7 @@ export function mergeCardMetadata(
       ...baseline,
       wasEdited: baseline.wasEdited === true
         || incomingMetadata.onboardingDemo?.wasEdited === true
+        || existingCard.status !== card.status
         || cardFieldsDiffer(baseline, card)
         || cardFieldsDiffer(existingCard, card)
         || JSON.stringify(existingMetadata.source) !== JSON.stringify(incomingMetadata.source),

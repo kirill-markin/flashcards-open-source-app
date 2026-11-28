@@ -86,6 +86,7 @@ test("listCardsInExecutor maps invalid persisted fsrs rows without repairing the
     front_text: "front",
     back_text: "back",
     card_type: "basic",
+    status: "active",
     metadata: createCardMetadata("2026-03-08T09:00:00.000Z"),
     tags: ["tag"],
     effort_level: "fast" as const,

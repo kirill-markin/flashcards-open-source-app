@@ -146,6 +146,7 @@ function createLegacyCardUpdateExecutor(
     front_text: "Original question",
     back_text: "Original answer",
     card_type: "cloze",
+    status: "active",
     metadata: existingMetadata,
     tags: ["original"],
     effort_level: "fast",

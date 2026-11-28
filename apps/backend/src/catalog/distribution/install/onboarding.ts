@@ -2,6 +2,7 @@ import {
   establishOnboardingDemoMetadata,
 } from "../../../cards/onboardingDemo";
 import { appendLegacyEffortTag, normalizeCardMetadata } from "../../../cards/shared";
+import type { CardStatus } from "../../../cards/status";
 import type { CardMetadata } from "../../../cards/types";
 import type { DatabaseExecutor } from "../../../database";
 import type { LegacyEffortLevel } from "../../../sync/contracts/legacyEffort";
@@ -15,6 +16,7 @@ type OnboardingCardRow = Readonly<{
   front_text: string;
   back_text: string;
   card_type: string;
+  status: CardStatus;
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   effort_level: LegacyEffortLevel;
@@ -33,7 +35,7 @@ export async function loadCatalogInstallOnboardingStateInExecutor(
   // Tombstones prove prior content too; two rows already rule out an untouched onboarding shell.
   const result = await executor.query<OnboardingCardRow>(
     [
-      "SELECT card_id, front_text, back_text, card_type, metadata, tags, effort_level, deleted_at",
+      "SELECT card_id, front_text, back_text, card_type, metadata, tags, effort_level, deleted_at, status",
       "FROM content.cards WHERE workspace_id = $1 ORDER BY card_id LIMIT 2",
     ].join(" "),
     [workspaceId],
@@ -50,6 +52,7 @@ export async function loadCatalogInstallOnboardingStateInExecutor(
           frontText: card.front_text,
           backText: card.back_text,
           cardType: card.card_type,
+          status: card.status,
           tags: appendLegacyEffortTag(card.tags, card.effort_level),
         }).onboardingDemo?.wasEdited !== false
         || source !== null && (source.label !== null || source.author !== null || source.comment !== null

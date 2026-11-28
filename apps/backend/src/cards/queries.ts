@@ -572,7 +572,7 @@ export async function summarizeDeckState(userId: string, workspaceId: string): P
     [
       "SELECT",
       "COUNT(*)::int AS total_cards,",
-      "COUNT(*) FILTER (WHERE due_at IS NULL OR due_at <= now())::int AS due_cards,",
+      "COUNT(*) FILTER (WHERE status = 'active' AND (due_at IS NULL OR due_at <= now()))::int AS due_cards,",
       "COUNT(*) FILTER (WHERE reps = 0 AND lapses = 0)::int AS new_cards,",
       "COUNT(*) FILTER (WHERE reps > 0 OR lapses > 0)::int AS reviewed_cards,",
       "COALESCE(SUM(reps), 0)::int AS total_reps,",

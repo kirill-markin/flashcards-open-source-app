@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cardStatusSchema, type CardStatus } from "../cards/status";
 
 export const workspacePackageFormatVersion = 1 as const;
 
@@ -43,6 +44,7 @@ export type PortableWorkspacePackageCardV1 = Readonly<{
   backText: string;
   tags: ReadonlyArray<string>;
   cardType: string;
+  status?: CardStatus;
   metadata: WorkspacePackageCardMetadataV1;
 }>;
 
@@ -51,6 +53,7 @@ export type PortableWorkspacePackageCardInputV1 = Readonly<{
   backText: string;
   tags: ReadonlyArray<string>;
   cardType: string;
+  status?: CardStatus;
   metadata: WorkspacePackageCardMetadataInputV1;
 }>;
 
@@ -131,6 +134,7 @@ const portableCardSchema = z.object({
   backText: z.string().transform((backText): string => backText.trim()),
   tags: z.array(requiredTrimmedStringSchema),
   cardType: z.string().transform((cardType): string => normalizeWorkspacePackageCardType(cardType)),
+  status: cardStatusSchema.optional(),
   metadata: cardMetadataSchema,
 }).transform((card): PortableWorkspacePackageCardV1 => (
   toPortableWorkspacePackageCard(card)
@@ -194,6 +198,7 @@ export function toPortableWorkspacePackageCard(
     backText: card.backText.trim(),
     tags: normalizeWorkspacePackageTags(card.tags),
     cardType: normalizeWorkspacePackageCardType(card.cardType),
+    ...(card.status === undefined ? {} : { status: card.status }),
     metadata: normalizeWorkspacePackageCardMetadataV1(card.metadata),
   };
 }

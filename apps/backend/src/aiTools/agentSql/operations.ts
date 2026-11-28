@@ -23,6 +23,7 @@ import {
   type BulkDeleteCardItem,
   type BulkUpdateCardItem,
   type CardFilter,
+  type CardStatus,
   type CreateCardInput,
   type UpdateCardInput,
 } from "../../cards";
@@ -60,23 +61,17 @@ type SharedAiToolName =
   | "update_decks"
   | "delete_decks";
 
-type AgentToolCreateCardBody = Readonly<{
-  frontText: string;
-  backText: string;
-  cardType?: string;
-  tags: ReadonlyArray<string>;
-}>;
-
 type AgentToolUpdateCardBody = Readonly<{
   cardId: string;
   frontText: string | null;
   backText: string | null;
   cardType: string | null;
+  status?: CardStatus;
   tags: ReadonlyArray<string> | null;
 }>;
 
 type AgentToolCreateCardsInput = Readonly<{
-  cards: ReadonlyArray<AgentToolCreateCardBody>;
+  cards: ReadonlyArray<CreateCardInput>;
 }>;
 
 type AgentToolUpdateCardsInput = Readonly<{
@@ -361,6 +356,7 @@ function toCreateCardInput(item: AgentToolCreateCardsInput["cards"][number]): Cr
     frontText: item.frontText,
     backText: item.backText,
     ...(item.cardType !== undefined ? { cardType: item.cardType } : {}),
+    ...(item.status !== undefined ? { status: item.status } : {}),
     tags: item.tags,
   };
 }
@@ -370,6 +366,7 @@ function toUpdateCardInput(item: AgentToolUpdateCardBody): UpdateCardInput {
     ...(item.frontText !== null ? { frontText: item.frontText } : {}),
     ...(item.backText !== null ? { backText: item.backText } : {}),
     ...(item.cardType !== null ? { cardType: item.cardType } : {}),
+    ...(item.status !== undefined ? { status: item.status } : {}),
     ...(item.tags !== null ? { tags: item.tags } : {}),
   };
 }

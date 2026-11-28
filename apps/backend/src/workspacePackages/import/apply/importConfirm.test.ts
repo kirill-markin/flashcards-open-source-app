@@ -129,6 +129,7 @@ function createCard(cardId: string, input: WorkspacePackageImportCardPersistence
     frontText: plannedCard.frontText,
     backText: plannedCard.backText,
     cardType: plannedCard.cardType,
+    status: plannedCard.status ?? "active",
     metadata: plannedCard.metadata,
     tags: plannedCard.tags,
     dueAt: null,

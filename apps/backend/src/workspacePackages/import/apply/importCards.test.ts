@@ -113,6 +113,7 @@ function createCreatedCard(item: BulkCreateCardItem, cardIndex: number): Card {
     frontText: item.input.frontText,
     backText: item.input.backText,
     cardType: item.input.cardType ?? "basic",
+    status: item.input.status ?? "active",
     metadata: item.input.metadata ?? ({ version: 1, source: null } satisfies CardMetadata),
     tags: item.input.tags,
     dueAt: null,
@@ -358,10 +359,10 @@ test("workspace package import plan output can be persisted directly", async () 
       author: "Author",
       createdAt: "2026-06-01T00:00:00.000Z",
       cards: [
-        createPortableCard(
-          "Diagram: ![cell](media/images/cell.png)",
-          "Answer",
-        ),
+        {
+          ...createPortableCard("Diagram: ![cell](media/images/cell.png)", "Answer"),
+          status: "suspended",
+        },
       ],
     },
     options: {
@@ -383,6 +384,7 @@ test("workspace package import plan output can be persisted directly", async () 
   );
 
   assert.equal(harness.createCardCalls[0]?.input.frontText, "Diagram: ![cell](fcasset:image-asset)");
+  assert.equal(harness.createCardCalls[0]?.input.status, "suspended");
   assert.deepEqual(harness.createCardCalls[0]?.input.tags, ["biology", "import:2026-06-30-0"]);
   assert.deepEqual(harness.createCardCalls[0]?.input.metadata, {
     version: 1,

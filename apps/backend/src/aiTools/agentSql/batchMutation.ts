@@ -5,6 +5,7 @@ import {
   listCardsInExecutor,
   updateCardInExecutor,
   type Card,
+  type CardStatus,
   type UpdateCardInput,
 } from "../../cards";
 import { appendLegacyEffortTag } from "../../cards/shared";
@@ -36,6 +37,7 @@ import {
   buildCreateCardInput,
   buildCreateDeckInput,
   makeBatchNormalizedSql,
+  parseSqlCardStatus,
   requireSqlMutationTargetIds,
   toCardMutationRows,
   toCardRow,
@@ -120,6 +122,7 @@ function buildCardUpdatePatch(
   let frontText: string | undefined;
   let backText: string | undefined;
   let cardType: string | undefined;
+  let status: CardStatus | undefined;
   let tags: ReadonlyArray<string> | undefined;
   let legacyEffortLevel: LegacyEffortLevel | undefined;
 
@@ -147,6 +150,10 @@ function buildCardUpdatePatch(
       cardType = assignment.value;
     }
 
+    if (assignment.columnName === "status") {
+      status = parseSqlCardStatus(assignment.value);
+    }
+
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
         throw buildInvalidSqlError("tags must be a string array", "invalid_value", "tags");
@@ -166,6 +173,7 @@ function buildCardUpdatePatch(
     frontText,
     backText,
     cardType,
+    status,
     tags: legacyEffortLevel === undefined
       ? tags
       : appendLegacyEffortTag(tags ?? existingCard.tags, legacyEffortLevel),

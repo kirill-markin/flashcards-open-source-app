@@ -1,5 +1,6 @@
-import type { Card, ReviewHistoryItem } from "../../cards";
+import type { Card, CreateCardInput, ReviewHistoryItem } from "../../cards";
 import { appendLegacyEffortTag } from "../../cards/shared";
+import { cardStatusSchema, type CardStatus } from "../../cards/status";
 import type { Deck } from "../../decks";
 import { HttpError } from "../../shared/errors";
 import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
@@ -223,6 +224,7 @@ export function toCardRow(card: Card): SqlRow {
     front_text: card.frontText,
     back_text: card.backText,
     card_type: card.cardType,
+    status: card.status,
     metadata: card.metadata,
     tags: card.tags,
     due_at: card.dueAt,
@@ -353,15 +355,18 @@ export function assertNoLiteralCardTextEscape(columnName: "front_text" | "back_t
   );
 }
 
+export function parseSqlCardStatus(value: AgentSqlMutationAssignmentValue | undefined): CardStatus {
+  const parsed = cardStatusSchema.safeParse(value);
+  if (!parsed.success) {
+    throw buildInvalidSqlError("status must be active or suspended", "invalid_value", "status");
+  }
+  return parsed.data;
+}
+
 export function buildCreateCardInput(
   columnNames: ReadonlyArray<string>,
   row: ReadonlyArray<AgentSqlMutationAssignmentValue>,
-): Readonly<{
-  frontText: string;
-  backText: string;
-  cardType?: string;
-  tags: ReadonlyArray<string>;
-}> {
+): CreateCardInput {
   const values = new Map(columnNames.map((columnName, index) => [columnName, row[index]] as const));
   const frontText = values.get("front_text");
   const backText = values.get("back_text");
@@ -392,6 +397,7 @@ export function buildCreateCardInput(
     frontText,
     backText,
     ...(cardType !== undefined ? { cardType } : {}),
+    ...(values.has("status") ? { status: parseSqlCardStatus(values.get("status")) } : {}),
     tags: appendLegacyEffortTag(
       Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
       effortLevel,
@@ -474,6 +480,7 @@ export function buildCardUpdateInput(
   frontText: string | null;
   backText: string | null;
   cardType: string | null;
+  status?: CardStatus;
   tags: ReadonlyArray<string> | null;
 }> {
   const cardId = row.card_id;
@@ -484,6 +491,7 @@ export function buildCardUpdateInput(
   let frontText: string | null = null;
   let backText: string | null = null;
   let cardType: string | null = null;
+  let status: CardStatus | undefined;
   let tags: ReadonlyArray<string> | null = null;
   let legacyEffortLevel: LegacyEffortLevel | null = null;
 
@@ -511,6 +519,10 @@ export function buildCardUpdateInput(
       cardType = assignment.value;
     }
 
+    if (assignment.columnName === "status") {
+      status = parseSqlCardStatus(assignment.value);
+    }
+
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
         throw buildInvalidSqlError("tags must be a string array", "invalid_value", "tags");
@@ -535,6 +547,7 @@ export function buildCardUpdateInput(
     frontText,
     backText,
     cardType,
+    ...(status === undefined ? {} : { status }),
     tags: resolvedTags,
   };
 }

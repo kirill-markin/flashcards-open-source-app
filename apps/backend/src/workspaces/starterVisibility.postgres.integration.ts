@@ -245,6 +245,23 @@ test("starter omission preserves complete membership, runtime defaults and late 
           FROM org.workspaces AS workspace WHERE workspace_id = $1`, [hidden, preservedId, origin]);
         await owner.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES ($1,$2,'owner')", [preservedId, userId]);
         assert.equal((await owner.query("SELECT org.workspace_is_unused_starter($1) AS unused", [preservedId])).rows[0].unused, false);
+        if (origin === "unknown") {
+          const preservedCardId = randomUUID();
+          await owner.query(`INSERT INTO content.cards
+            SELECT (jsonb_populate_record(NULL::content.cards, to_jsonb(card)
+              || jsonb_build_object('workspace_id',$2::uuid,'card_id',$3::uuid))).*
+            FROM content.cards AS card WHERE card_id = $1`, [cardId, preservedId, preservedCardId]);
+          const unusedWithCurrentBaseline = async (): Promise<boolean> => {
+            const result = await owner.query<{ unused: boolean }>(
+              "SELECT org.workspace_is_unused_starter($1, org.workspace_starter_baseline($1)) AS unused",
+              [preservedId],
+            );
+            return result.rows[0].unused;
+          };
+          assert.equal(await unusedWithCurrentBaseline(), true);
+          await owner.query("UPDATE content.cards SET status = 'suspended' WHERE card_id = $1", [preservedCardId]);
+          assert.equal(await unusedWithCurrentBaseline(), false);
+        }
         await owner.query("SET LOCAL ROLE backend_app");
         await applyUserDatabaseScopeInExecutor(executorFor(owner), { userId });
         assert.ok((await owner.query<{ workspace_id: string }>("SELECT workspace_id FROM org.visible_workspace_ids(NULL)")).rows.some((row) => row.workspace_id === preservedId));
@@ -260,6 +277,7 @@ test("starter omission preserves complete membership, runtime defaults and late 
       { label: "malformed demo", sql: "UPDATE content.cards SET metadata = jsonb_set(metadata, '{onboardingDemo}', '42') WHERE card_id = $2" },
       { label: "unknown metadata", sql: "UPDATE content.cards SET metadata = metadata || '{\"future\":true}' WHERE card_id = $2" },
       { label: "unknown card type", sql: "UPDATE content.cards SET card_type = 'future' WHERE card_id = $2" },
+      { label: "suspended demo", sql: "UPDATE content.cards SET status = 'suspended' WHERE card_id = $2" },
       { label: "changed source", sql: "UPDATE content.cards SET metadata = jsonb_set(metadata, '{source}', '{\"label\":\"Mine\"}') WHERE card_id = $2" },
       { label: "changed prompt", sql: "UPDATE content.cards SET front_text = 'Authored prompt' WHERE card_id = $2" },
       { label: "changed answer", sql: "UPDATE content.cards SET back_text = 'Authored answer' WHERE card_id = $2" },

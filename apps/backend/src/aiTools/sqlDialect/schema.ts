@@ -44,6 +44,15 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     description: "Canonical card rendering type.",
   },
   {
+    columnName: "status",
+    type: "string",
+    nullable: false,
+    readOnly: false,
+    filterable: true,
+    sortable: true,
+    description: "Review eligibility: active (default) or suspended. Suspension preserves the card's schedule.",
+  },
+  {
     columnName: "metadata",
     type: "json",
     nullable: false,

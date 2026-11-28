@@ -336,6 +336,7 @@ export async function processSyncBootstrap(
         "      'frontText', cards.front_text,",
         "      'backText', cards.back_text,",
         "      'cardType', CASE WHEN btrim(cards.card_type) = '' THEN 'basic' ELSE cards.card_type END,",
+        "      'status', cards.status,",
         "      'metadata', (cards.metadata - 'maintenanceRevision') || CASE WHEN cards.maintenance_revision = 0 THEN '{}'::jsonb",
         "        ELSE jsonb_build_object('maintenanceRevision', cards.maintenance_revision) END,",
         "      'tags', cards.tags,",

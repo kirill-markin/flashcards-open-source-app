@@ -96,6 +96,7 @@ type RemediationMeaning =
   | "workspace_selection_required"
   | "workspace_not_found"
   | "review_schedule_stale"
+  | "review_card_suspended"
   | "review_already_recorded"
   | "review_id_reused_on_another_card"
   | "commit_outcome_unknown"
@@ -107,6 +108,7 @@ const MEANING_BY_CODE: Readonly<Record<string, RemediationMeaning | undefined>> 
   WORKSPACE_SELECTION_REQUIRED: "workspace_selection_required",
   WORKSPACE_NOT_FOUND: "workspace_not_found",
   REVIEW_STALE: "review_schedule_stale",
+  CARD_SUSPENDED: "review_card_suspended",
   REVIEW_EVENT_CONFLICT: "review_already_recorded",
   REVIEW_ID_CARD_MISMATCH: "review_id_reused_on_another_card",
   DATABASE_COMMIT_OUTCOME_UNKNOWN: "commit_outcome_unknown",
@@ -160,6 +162,9 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
   },
   review_schedule_stale: {
     shared: "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.",
+  },
+  review_card_suspended: {
+    shared: "Select the next card from the same review filter.",
   },
   review_already_recorded: {
     shared: "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.",

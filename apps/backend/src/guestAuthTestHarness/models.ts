@@ -1,3 +1,5 @@
+import type { CardStatus } from "../cards/status";
+
 export type GuestSessionState = Readonly<{
   session_id: string;
   session_secret_hash: string;
@@ -71,6 +73,7 @@ export type CardState = Readonly<{
   front_text: string;
   back_text: string;
   card_type?: string;
+  status?: CardStatus;
   metadata?: Readonly<{
     version: 1;
     source: Readonly<{

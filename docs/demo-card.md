@@ -20,7 +20,7 @@ New client seeds may carry optional `metadata.onboardingDemo`
 plus a sticky `wasEdited`.
 
 Only the first server insertion establishes the baseline. Later winning writes keep that baseline,
-including when released clients omit it, and latch `wasEdited` for content, type or source changes.
+including when released clients omit it, and latch `wasEdited` for content, type, source, or suspension changes.
 Local editors must also latch it to retain an edit reverted before the server observes it.
 Sync, first-link forks and actual guest transfers retain provenance; arbitrary package copies strip
 it and keep ordinary source attribution. Missing, invalid or unknown provenance means ordinary

@@ -1,3 +1,4 @@
+import type { CardStatus } from "../../cards/status";
 import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
@@ -69,6 +70,7 @@ export type WorkspacePackageExportSelectedCardRow = Readonly<{
   front_text: string;
   back_text: string;
   card_type: string;
+  status: CardStatus;
   metadata: unknown;
   tags: ReadonlyArray<string>;
 }>;
@@ -222,7 +224,7 @@ export function buildWorkspacePackageExportSelectedCardsQuery(
   case "allActiveCards":
     return {
       text: [
-        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags, status",
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
@@ -252,7 +254,7 @@ export function buildWorkspacePackageExportSelectedCardsQuery(
     params.push(rowLimit);
     return {
       text: [
-        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags, status",
         "FROM content.cards",
         clauses.join(" "),
         "ORDER BY created_at DESC, card_id ASC",
@@ -265,7 +267,7 @@ export function buildWorkspacePackageExportSelectedCardsQuery(
   case "explicitCardIds":
     return {
       text: [
-        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags, status",
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND card_id = ANY($2::uuid[])",

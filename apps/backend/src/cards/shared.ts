@@ -53,7 +53,7 @@ export function authoredTagsChanged(
 export const CARD_COLUMNS = [
   "card_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
   "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-  "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
+  "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at, status",
 ].join(" ");
 
 export const REVIEWABLE_CARD_COLUMNS = [
@@ -231,6 +231,7 @@ export function mapCard(row: CardRow): Card {
     frontText: row.front_text,
     backText: row.back_text,
     cardType: normalizeCardType(row.card_type),
+    status: row.status,
     metadata: normalizeCardMetadata(row.metadata),
     tags: row.tags,
     dueAt: row.due_at === null ? null : toIsoString(row.due_at),

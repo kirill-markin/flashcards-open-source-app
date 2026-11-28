@@ -39,7 +39,7 @@ Cards that become due after `Again` or another short-step review can therefore r
 
 ### Review counts
 
-Review counts include new cards and cards due now or overdue in the selected workspace, using the queue eligibility above. Deleted cards are excluded. On web, iOS/iPadOS, Mac Catalyst, and Android:
+Review counts include new cards and cards due now or overdue in the selected workspace, using the queue eligibility above. Deleted and suspended cards are excluded from review. Suspending a card preserves its FSRS state and due date. On web, iOS/iPadOS, Mac Catalyst, and Android:
 
 - When Review is inactive, its navigation badge shows the count for the whole workspace.
 - When Review is active, the filter control shows the count for the applied filter and the navigation badge is hidden. On Apple platforms, use a native toolbar badge where available and an inline count beside the filter elsewhere.

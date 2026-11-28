@@ -33,6 +33,7 @@ type CardBootstrapPayload = CardSnapshotInput & Readonly<{
 function createCardBootstrapPayload(fixture: CardDueAtFixture): CardBootstrapPayload {
   return {
     ...createCardSnapshotPayload(fixture),
+    status: "active",
     effortLevel: "fast",
     clientUpdatedAt: "2026-02-28T09:30:00.000Z",
     lastModifiedByReplicaId: "replica-1",
@@ -65,6 +66,7 @@ function createHotPullCardRow(effortLevel: LegacyEffortLevel): CardRow {
     front_text: "Question",
     back_text: "Answer",
     card_type: "basic",
+    status: "active",
     metadata: createCardMetadata("2026-02-28T09:00:00.000Z"),
     tags: ["sync"],
     effort_level: effortLevel,
