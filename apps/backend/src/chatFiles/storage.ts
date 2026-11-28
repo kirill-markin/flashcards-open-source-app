@@ -6,7 +6,11 @@ import {
   S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "../mediaAssets/storage/config";
+import {
+  createMediaAssetsS3Client,
+  getMediaAssetsS3Client,
+  getMediaAssetsStorageConfig,
+} from "../mediaAssets/storage/config";
 
 /** The chat sandbox uses a URL within the one call it is signed for. */
 const sandboxObjectUrlExpiresSeconds = 5 * 60;
@@ -101,7 +105,7 @@ export async function headChatFileObjectSize(s3Key: string): Promise<number | nu
  * upload, so checksums are added only where an operation requires one.
  */
 function getPresignS3Client(): S3Client {
-  presignS3Client ??= new S3Client({
+  presignS3Client ??= createMediaAssetsS3Client("public_presign", {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });

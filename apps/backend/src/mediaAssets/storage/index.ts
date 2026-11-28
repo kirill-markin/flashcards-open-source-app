@@ -6,6 +6,7 @@ import type {
 } from "../types";
 import {
   getMediaBlobCleanupS3Client,
+  getMediaAssetsPresignS3Client,
   getMediaAssetsS3Client,
   getMediaAssetsStorageConfig,
 } from "./config";
@@ -145,7 +146,7 @@ export async function createPresignedMediaAssetUpload(
   input: PresignMediaAssetUploadInput,
 ): Promise<PresignedMediaAssetUpload> {
   return createPresignedMediaAssetUploadWithDependencies(input, {
-    s3Client: getMediaAssetsS3Client(),
+    s3Client: getMediaAssetsPresignS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
 }
@@ -154,7 +155,7 @@ export async function createPresignedMediaAssetUploadParts(
   input: PresignMultipartMediaAssetUploadPartsInput,
 ): Promise<ReadonlyArray<PresignedMediaAssetUploadPart>> {
   return createPresignedMediaAssetUploadPartsWithDependencies(input, {
-    s3Client: getMediaAssetsS3Client(),
+    s3Client: getMediaAssetsPresignS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
 }
@@ -163,7 +164,7 @@ export async function createPresignedMediaAssetDownload(
   input: PresignMediaAssetDownloadInput,
 ): Promise<PresignedMediaAssetDownload> {
   return createPresignedMediaAssetDownloadWithDependencies(input, {
-    s3Client: getMediaAssetsS3Client(),
+    s3Client: getMediaAssetsPresignS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
 }

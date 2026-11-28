@@ -96,6 +96,17 @@ async function normalizeMultipartStagingObjectWithDependencies(
     storageKey: input.stagingStorageKey,
     observationScope: input.observationScope,
   };
+  if (config.fullObjectChecksumSource === "content_read") {
+    // A self-copy cannot turn this store's COMPOSITE checksum into a full-object one; the bytes read are the proof.
+    const stagingMetadata =
+      await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+        stagingObjectInput,
+        input.signal,
+        dependencies,
+      );
+    assertMediaAssetObjectMetadataMatches(stagingObjectInput, stagingMetadata);
+    return;
+  }
 
   try {
     await runMediaAssetStorageOperationWithRetriesAndAbortSignal(

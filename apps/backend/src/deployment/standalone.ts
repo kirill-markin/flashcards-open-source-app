@@ -19,6 +19,7 @@ const awsOnlyVariableNames: ReadonlyArray<string> = [
 const standaloneSecretFileVariableNames: ReadonlyArray<string> = [
   "BACKEND_CSRF_SECRET_FILE",
   "BACKEND_CHAT_LIVE_AUTH_SECRET_FILE",
+  "MEDIA_ASSETS_S3_SECRET_ACCESS_KEY_FILE",
 ];
 
 const minimumSecretFileBytes = 32;

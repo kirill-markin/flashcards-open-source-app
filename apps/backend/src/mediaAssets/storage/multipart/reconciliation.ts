@@ -1,7 +1,6 @@
 import {
   CompleteMultipartUploadCommand,
   CopyObjectCommand,
-  HeadObjectCommand,
   ListPartsCommand,
   S3ServiceException,
   type CompletedPart,
@@ -11,6 +10,7 @@ import { createHash } from "node:crypto";
 import { addBackendRuntimeBreadcrumb } from "../../../observability/runtime";
 import { HttpError } from "../../../shared/errors";
 import type { MediaAssetObjectMetadata } from "../../types";
+import { headMediaObjectWithFullObjectChecksum } from "../checksumHead";
 import type {
   AssertMediaAssetObjectInput,
   MediaAssetStorageDependencies,
@@ -263,18 +263,15 @@ async function headObject(
   bucketName: string,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<MultipartReconciliationObjectMetadata | null> {
-  const command = new HeadObjectCommand({
-    Bucket: bucketName,
-    Key: storageKey,
-    ChecksumMode: "ENABLED",
-  });
   try {
     const response = await runS3Operation(
       input,
       "head_object",
-      async () => dependencies.s3Client.send(
-        command,
-        { abortSignal: input.signal },
+      async () => headMediaObjectWithFullObjectChecksum(
+        dependencies,
+        bucketName,
+        storageKey,
+        input.signal,
       ),
     );
     return toObjectMetadata(response);

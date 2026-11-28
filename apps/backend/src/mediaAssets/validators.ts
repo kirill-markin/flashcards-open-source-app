@@ -13,6 +13,10 @@ import type {
   MediaAssetUploadSessionPartUrlsInput,
 } from "./types";
 import { isValidMediaAssetLastOperationId } from "./lastOperationId";
+import {
+  getMediaAssetsFullObjectChecksumSource,
+  maximumContentReadMediaUploadBytes,
+} from "./storage/config";
 
 const mimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
 const sha256Pattern = /^[0-9a-f]{64}$/i;
@@ -117,6 +121,17 @@ function expectMultipartUploadSizeBytes(value: unknown, fieldName: string): numb
     throw new HttpError(
       400,
       `${fieldName} must be at most ${maximumMultipartUploadBytes} bytes for multipart media uploads`,
+      "MEDIA_ASSET_SIZE_TOO_LARGE",
+    );
+  }
+
+  if (
+    getMediaAssetsFullObjectChecksumSource() === "content_read"
+    && value > maximumContentReadMediaUploadBytes
+  ) {
+    throw new HttpError(
+      400,
+      `${fieldName} must be at most ${maximumContentReadMediaUploadBytes} bytes for multipart media uploads on this server, whose object store cannot prove checksums, so every upload is verified by reading it back`,
       "MEDIA_ASSET_SIZE_TOO_LARGE",
     );
   }

@@ -1,6 +1,5 @@
 import {
   CopyObjectCommand,
-  HeadObjectCommand,
   PutObjectCommand,
   type HeadObjectCommandOutput,
 } from "@aws-sdk/client-s3";
@@ -18,6 +17,7 @@ import {
 } from "../../uploadSessions";
 import type { BackendObservationScope } from "../../../observability/sentry/events";
 import { HttpError } from "../../../shared/errors";
+import { headMediaObjectWithFullObjectChecksum } from "../checksumHead";
 import type {
   AssertMediaAssetObjectInput,
   MediaBlobStorageContext,
@@ -262,11 +262,12 @@ async function storeContentAddressedMediaBlobBytesIfAbsentWithDependencies(
     "head_object",
     () => {
       assertMutationAuthorized();
-      return dependencies.s3Client.send(new HeadObjectCommand({
-        Bucket: config.bucketName,
-        Key: input.storageKey,
-        ChecksumMode: "ENABLED",
-      }), { abortSignal: input.signal });
+      return headMediaObjectWithFullObjectChecksum(
+        dependencies,
+        config.bucketName,
+        input.storageKey,
+        input.signal,
+      );
     },
   );
   assertWinnerMatches(response);

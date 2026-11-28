@@ -307,6 +307,14 @@ async function deleteExistingObject(
     return "deleted";
   } catch (error) {
     if (isMissingObjectError(error)) return "not_found";
+    // A fresh HEAD tells the standalone store's 412 for a missing key from a changed object.
+    if (
+      getS3ErrorStatusCode(error) === 412
+      && dependencies.getMediaAssetsStorageConfigFn().conditionalDeleteOfMissingKeyFails
+      && await loadObjectETag(input, bucketName, dependencies) === null
+    ) {
+      return "not_found";
+    }
     if (isConditionalDeleteConflict(error)) {
       throw new MediaBlobCleanupStorageConditionalConflictError(
         getS3ErrorStatusCode(error) ?? 412,

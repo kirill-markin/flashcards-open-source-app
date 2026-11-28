@@ -50,6 +50,8 @@ export const testObservationScope: BackendObservationScope = createBackendObserv
 export function getTestMediaAssetsStorageConfig(): MediaAssetsStorageConfig {
   return {
     bucketName: "test-media-assets-bucket",
+    fullObjectChecksumSource: "store",
+    conditionalDeleteOfMissingKeyFails: false,
   };
 }
 

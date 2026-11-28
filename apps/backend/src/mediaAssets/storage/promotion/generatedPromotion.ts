@@ -1,5 +1,5 @@
 import {
-  CopyObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client,
+  CopyObjectCommand, PutObjectCommand, type S3Client,
 } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
 import {
@@ -11,7 +11,8 @@ import { addBackendBreadcrumb, type BackendObservationScope } from "../../../obs
 import { MediaBlobWriterFenceError } from "../../blobLifecycle";
 import { imageJpegCardMediaBlobMimeType, type MediaAssetObjectMetadata } from "../../types";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../storageKeys";
-import { getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "../config";
+import { headMediaObjectWithFullObjectChecksum } from "../checksumHead";
+import { createMediaAssetsS3Client, getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "../config";
 import type { MediaAssetStorageDependencies } from "../contracts";
 import { getS3ErrorStatusCode } from "../errors";
 import {
@@ -193,13 +194,11 @@ async function headObject(
   try {
     return toMetadata(await runS3(input, "head_object", async () => {
       authorizeAttempt();
-      return dependencies.s3Client.send(
-        new HeadObjectCommand({
-          Bucket: dependencies.getMediaAssetsStorageConfigFn().bucketName,
-          Key: key,
-          ChecksumMode: "ENABLED",
-        }),
-        { abortSignal: input.signal },
+      return headMediaObjectWithFullObjectChecksum(
+        dependencies,
+        dependencies.getMediaAssetsStorageConfigFn().bucketName,
+        key,
+        input.signal,
       );
     }));
   } catch (error) {
@@ -464,7 +463,7 @@ export function getGeneratedMediaPromotionS3Client(): S3Client {
   if (generatedMediaPromotionS3Client !== undefined) {
     return generatedMediaPromotionS3Client;
   }
-  generatedMediaPromotionS3Client = new S3Client({ maxAttempts: 1 });
+  generatedMediaPromotionS3Client = createMediaAssetsS3Client("private", { maxAttempts: 1 });
   return generatedMediaPromotionS3Client;
 }
 export async function loadGeneratedMediaStagingObject(

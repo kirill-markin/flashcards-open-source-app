@@ -1,10 +1,8 @@
-import {
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
 import { HttpError } from "../../shared/errors";
 import type { MediaAssetObjectMetadata } from "../types";
+import { headMediaObjectWithFullObjectChecksum } from "./checksumHead";
 import type {
   AssertMediaAssetObjectInput,
   LoadedMediaAssetObjectBytes,
@@ -132,11 +130,12 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
     const response = await runMediaAssetStorageOperationWithRetries(
       context,
       "head_object",
-      async () => dependencies.s3Client.send(new HeadObjectCommand({
-        Bucket: config.bucketName,
-        Key: input.storageKey,
-        ChecksumMode: "ENABLED",
-      })),
+      async () => headMediaObjectWithFullObjectChecksum(
+        dependencies,
+        config.bucketName,
+        input.storageKey,
+        null,
+      ),
     );
 
     return {
@@ -176,11 +175,12 @@ export async function loadMediaAssetObjectMetadataWithAbortSignalAndDependencies
         context,
         "head_object",
         signal,
-        async () => dependencies.s3Client.send(new HeadObjectCommand({
-          Bucket: config.bucketName,
-          Key: input.storageKey,
-          ChecksumMode: "ENABLED",
-        }), { abortSignal: signal }),
+        async () => headMediaObjectWithFullObjectChecksum(
+          dependencies,
+          config.bucketName,
+          input.storageKey,
+          signal,
+        ),
       );
 
     return {
