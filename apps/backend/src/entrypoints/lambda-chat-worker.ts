@@ -1,5 +1,6 @@
 import type { Handler } from "aws-lambda";
 import type { ChatWorkerEvent } from "../chat/worker";
+import { createChatWorkerFailureDetails } from "../chat/worker/failureDetails";
 import {
   captureBackendException,
   continueBackendTrace,
@@ -7,7 +8,6 @@ import {
   initializeBackendSentry,
   normalizeCaughtError,
   startBackendSpan,
-  type ChatWorkerFailureDetails,
   wrapBackendHandler,
 } from "../observability/sentry";
 
@@ -41,27 +41,6 @@ function getChatWorkerRuntime(): Promise<ChatWorkerRuntime> {
   }
 
   return chatWorkerRuntimePromise;
-}
-
-function createChatWorkerFailureDetails(
-  event: ChatWorkerEvent,
-  lambdaRequestId: string | null,
-  error: Error,
-  HttpError: HttpErrorClass | null,
-): ChatWorkerFailureDetails {
-  const isHttpError = HttpError !== null && error instanceof HttpError;
-  return {
-    lambdaRequestId,
-    routeRequestId: event.routeRequestId ?? null,
-    chatRequestId: event.chatRequestId ?? null,
-    runId: event.runId,
-    sessionId: event.sessionId ?? null,
-    userId: event.userId,
-    workspaceId: event.workspaceId,
-    statusCode: isHttpError ? error.statusCode : null,
-    code: isHttpError ? error.code : null,
-    message: error.message,
-  };
 }
 
 const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context) => {

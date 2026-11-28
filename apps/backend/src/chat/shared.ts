@@ -27,6 +27,7 @@ import {
   maximumSqlCallsPerCommand,
 } from "../chatSandbox/contract";
 import { maximumImageIngestionOriginalBytes } from "../mediaAssets/validators";
+import { isChatSandboxAvailable } from "../chatSandbox/availability";
 import type {
   ProductAnalyticsClientReportablePlatform,
   ProductAnalyticsDeviceType,
@@ -148,12 +149,13 @@ function buildChatReplySection(): string {
   ]);
 }
 
-function buildWritePolicySection(): string {
+function buildWritePolicySection(sandboxAvailable: boolean): string {
+  const workFileClause = sandboxAvailable ? " (parsing an attached file into /work up front is fine)" : "";
   return joinLines([
     "Write policy:",
     ...CARD_DUPLICATE_CHECK_RULE_LINES,
     "- For a card creation job, meaning more than a few new cards, state the plan in one line with the count, tags, starting batch size and any duplicates skipped, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time, skipping 40 that already exist.\", then start at once without listing the cards; ask first only when what to make is unclear, including how it overlaps existing cards, or the user asked to see the cards before saving.",
-    "- Save such a job batch by batch as each batch is ready, never after writing every card's text first (parsing an attached file into /work up front is fine), and reply with a short summary; print every card's full text in chat only when asked.",
+    `- Save such a job batch by batch as each batch is ready, never after writing every card's text first${workFileClause}, and reply with a short summary; print every card's full text in chat only when asked.`,
     "- To continue a stopped job, first read back what was saved, then do only the rest.",
     "- Never write hidden FSRS fields, sync metadata, or non-product tables.",
   ]);
@@ -263,14 +265,15 @@ function buildSandboxSqlSection(): string {
   ]);
 }
 
-function buildGeneratedImagePolicySection(): string {
+function buildGeneratedImagePolicySection(sandboxAvailable: boolean): string {
+  const uploadedIdClause = sandboxAvailable ? " or an id fc-media-put just printed" : "";
   return joinLines([
     "Generated-image policy:",
     "- Use only for an explicit image request or delegated visual augmentation; inspect the target card with sql_query first, then announce the selected card and side.",
     "- add_generated_image_to_card works only on cards in the workspace the user has open, so never give it a card that was read with a different workspaceId.",
     "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
     "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
-    "- Never type an fcasset: destination other than one you just read on that card or an id fc-media-put just printed, and never repeat one to the user.",
+    `- Never type an fcasset: destination other than one you just read on that card${uploadedIdClause}, and never repeat one to the user.`,
   ]);
 }
 
@@ -315,20 +318,20 @@ export function buildSystemInstructions(
   generatedImageEligible: boolean,
   clientApp: ChatClientApp | null,
 ): string {
+  const sandboxAvailable = isChatSandboxAvailable();
   return buildPromptFromSections([
     buildAssistantSection(clientApp),
     buildWorkspaceSection(),
     buildCardRulesSection(),
     buildCardManagedImageSection(),
     buildChatReplySection(),
-    buildWritePolicySection(),
+    buildWritePolicySection(sandboxAvailable),
     buildSqlRoutingSection(),
     buildReviewSection(),
-    buildChatFilesSection(),
-    buildAnkiImportSection(),
-    buildOtherAppImportSection(),
-    buildSandboxSqlSection(),
-    generatedImageEligible ? buildGeneratedImagePolicySection() : "",
+    ...(sandboxAvailable
+      ? [buildChatFilesSection(), buildAnkiImportSection(), buildOtherAppImportSection(), buildSandboxSqlSection()]
+      : []),
+    generatedImageEligible ? buildGeneratedImagePolicySection(sandboxAvailable) : "",
     buildRepairSection(),
   ]);
 }

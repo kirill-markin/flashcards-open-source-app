@@ -19,6 +19,8 @@ import {
   type PublicHttpErrorDetails,
 } from "../shared/errors";
 import { createChatRoutes } from "../routes/chat";
+import { createChatLiveRoutes } from "../routes/chatLive";
+import { isStandaloneDeployment } from "../deployment/standalone";
 import { createAiConsentRoutes } from "../routes/aiConsent";
 import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
 import { createAgentRoutes } from "../routes/agent";
@@ -588,6 +590,10 @@ function createMountedApp(
   }));
   app.route("/", createAiConsentRoutes({ allowedOrigins }));
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
+  // AWS serves the live stream from its own Lambda function URL.
+  if (isStandaloneDeployment()) {
+    app.route("/", createChatLiveRoutes());
+  }
   app.route("/", createChatRoutes({ allowedOrigins }));
   app.route("/", createSyncRoutes({ allowedOrigins }));
 

@@ -19,6 +19,7 @@ import {
   type ChatFileDerivativeIndex,
   type ChatFileDerivatives,
 } from "../../../chatFiles";
+import { chatSandboxUnavailableReason, isChatSandboxAvailable } from "../../../chatSandbox/availability";
 import { findChatFileDerivativeKind } from "../../../chatSandbox/contract";
 import {
   normalizeStoredOpenAIReplayItems,
@@ -75,7 +76,13 @@ function describeFileDerivatives(part: FileContentPart, derivatives: ChatFileDer
 
 /** `derivatives` is undefined for an attachment nothing was derived from yet. */
 function buildFileManifestText(part: FileContentPart, derivatives: ChatFileDerivatives | undefined): string {
-  return `Attached file: ${part.path} (${part.mediaType}, ${formatChatFileSize(part.sizeBytes)})`
+  const fileHeader = `Attached file: ${part.path} (${part.mediaType}, ${formatChatFileSize(part.sizeBytes)})`;
+  if (!isChatSandboxAvailable()) {
+    return `${fileHeader}; it cannot be read, because ${chatSandboxUnavailableReason}. `
+      + "Ask the user to paste the text you need from it.";
+  }
+
+  return fileHeader
     + `${describeFileDerivatives(part, derivatives)}. `
     + "It is in the chat workspace; read it with the workspace tools instead of asking the user to paste it.";
 }

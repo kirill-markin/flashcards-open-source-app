@@ -30,3 +30,14 @@ export const OPENAI_VIEW_FILE_TOOL: FunctionTool = {
     additionalProperties: false,
   },
 };
+
+/** Offered in place of `OPENAI_VIEW_FILE_TOOL` when there is no sandbox to render PDF pages or run `bash`. */
+export const OPENAI_VIEW_FILE_TOOL_WITHOUT_SANDBOX: FunctionTool = {
+  ...OPENAI_VIEW_FILE_TOOL,
+  description: [
+    "Look at one attached image (PNG, JPEG, GIF, WebP) from /files; pass null for page.",
+    "Use it for what text does not carry, such as photos, scans, charts and layout.",
+    "PDF pages and other files cannot be shown on this server: ask the user to paste the text you need.",
+    "You see the image during this turn only: later turns keep a [view_file showed ...] note, so call view_file again to look again.",
+  ].join(" "),
+};

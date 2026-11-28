@@ -55,7 +55,8 @@ import {
 import { executeBashToolCall } from "./bashTool";
 import { BASH_TOOL_NAME, OPENAI_BASH_TOOL } from "./bashToolContract";
 import { executeViewFileToolCall } from "./viewFileTool";
-import { OPENAI_VIEW_FILE_TOOL, VIEW_FILE_TOOL_NAME } from "./viewFileToolContract";
+import { OPENAI_VIEW_FILE_TOOL, OPENAI_VIEW_FILE_TOOL_WITHOUT_SANDBOX, VIEW_FILE_TOOL_NAME } from "./viewFileToolContract";
+import { isChatSandboxAvailable } from "../../../chatSandbox/availability";
 import {
   loadAiUsageStatus,
   resolveAiUsageTierForFacts,
@@ -504,9 +505,12 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
 export function buildOpenAIChatTools(
   generatedImageEligible: boolean,
 ): ReadonlyArray<OpenAI.Responses.FunctionTool> {
+  const fileTools = isChatSandboxAvailable()
+    ? [OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL]
+    : [OPENAI_VIEW_FILE_TOOL_WITHOUT_SANDBOX];
   return generatedImageEligible
-    ? [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
-    : [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL];
+    ? [...OPENAI_CHAT_TOOLS, ...fileTools, OPENAI_GENERATED_IMAGE_TOOL]
+    : [...OPENAI_CHAT_TOOLS, ...fileTools];
 }
 
 /**

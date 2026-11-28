@@ -22,6 +22,7 @@ import { createWorkspaceInExecutor } from "../workspaces/create";
 import type { ChatActiveRun } from "./contract";
 import { claimChatRun, prepareChatRun } from "./runs/lifecycleService";
 import { withProviderTestServer, writeJsonResponse, writeRawResponse } from "./cardImages/provider/providerTestServer.testSupport";
+import { setOpenAIBaseUrlForTests } from "./openai/client";
 import { createAssistantMessageItem, createResponse } from "./openai/loop/loop.testSupport";
 import { handleChatWorkerEvent } from "./worker";
 import { createRoutesWithHttpErrorJson } from "./tests/routes/testSupport";
@@ -45,6 +46,7 @@ test("workspace chat instructions use the authenticated workspace and the exact 
   setTestEnv("OPENAI_API_KEY", "chat-instructions-test-platform-key");
   resetAuthConfigForTests();
   t.after(resetAuthConfigForTests);
+  t.after(() => setOpenAIBaseUrlForTests(null));
 
   const testCsrfSecret = "chat-instructions-test-csrf-key";
   const origin = "https://app.example.test";
@@ -375,7 +377,7 @@ test("workspace chat instructions use the authenticated workspace and the exact 
       writeRawResponse(response, 200, "native-replay-completed", "text/event-stream",
         events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""));
     }, async (provider) => {
-      setTestEnv("OPENAI_BASE_URL", provider.baseURL);
+      setOpenAIBaseUrlForTests(provider.baseURL);
       const runGuestTurn = async (expectedInstructions: string | null): Promise<string> => {
         const requestId = randomUUID();
         const turn = await expectInstructions(await sendTurn(
@@ -526,7 +528,7 @@ test("workspace chat instructions use the authenticated workspace and the exact 
         error: { message: "input exceeds context window", code: "context_length_exceeded", type: "invalid_request_error" },
       });
     }, async (provider) => {
-      setTestEnv("OPENAI_BASE_URL", provider.baseURL);
+      setOpenAIBaseUrlForTests(provider.baseURL);
       const worker = { userId: browserGuest.userId, workspaceId: browserGuest.workspaceId };
       const execution = { lambdaRequestId: null, getRemainingTimeInMillis: () => 300_000 };
       await handleChatWorkerEvent({

@@ -20,6 +20,7 @@ import {
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
 } from "../../../chatSandbox/contract";
+import { chatSandboxUnavailableReason, isChatSandboxAvailable } from "../../../chatSandbox/availability";
 import { createChatSandboxBridges } from "../../../chatSandbox/sqlBridge/capability";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
@@ -298,6 +299,17 @@ export async function executeBashToolCall(
   context: OpenAIToolContext,
 ): Promise<ExecutedChatToolCall> {
   context.signal?.throwIfAborted();
+  // `bash` is not offered without the sandbox, but an OpenAI-compatible endpoint may not hold the model to the
+  // offered tools, so the call fails like a tool call instead of ending the run.
+  if (!isChatSandboxAvailable()) {
+    return createBashToolResult(
+      `Error: bash is not available, because ${chatSandboxUnavailableReason}.`,
+      false,
+      false,
+      false,
+      "BashSandboxUnavailable",
+    );
+  }
   const startedAt = Date.now();
   let command: string;
   try {

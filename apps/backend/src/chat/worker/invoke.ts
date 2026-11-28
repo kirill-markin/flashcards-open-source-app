@@ -1,14 +1,20 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { isStandaloneDeployment } from "../../deployment/standalone";
 import {
   captureBackendException,
+  continueBackendTrace,
   createBackendObservationScope,
   getBackendTraceCarrier,
   normalizeCaughtError,
+  startBackendSpan,
   type BackendExceptionEvent,
   type BackendTraceCarrier,
 } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import { markQueuedChatRunDispatchFailed } from "../runs";
 import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
+import { createChatWorkerFailureDetails } from "./failureDetails";
 
 export type ChatWorkerDispatch = Readonly<{
   runId: string;
@@ -74,6 +80,13 @@ type ChatWorkerDispatchFailureDependencies = Readonly<{
 
 let lambdaClient: LambdaClient | null = null;
 
+/** The chat worker Lambda's timeout, so a standalone run winds down when it would on AWS. */
+const inProcessChatWorkerBudgetMs = 15 * 60 * 1000;
+
+// Taken at module load, outside any request: a detached run must not inherit the request's async context,
+// such as a database deadline or the request's span, and continues the trace it was handed instead.
+const runOutsideRequestContext = AsyncLocalStorage.snapshot();
+
 function getLambdaClient(): LambdaClient {
   if (lambdaClient === null) {
     lambdaClient = new LambdaClient({});
@@ -135,9 +148,70 @@ export async function invokeChatWorkerWithDependencies(
   await dependencies.sendCommand(command);
 }
 
+/**
+ * Standalone runs the worker in this process and does not wait for it, as the asynchronous Lambda invoke
+ * does not. A run a restart cuts off is ended by stale-run recovery, as a lost Lambda run is.
+ */
+async function runChatWorkerInProcess(
+  payload: ChatWorkerDispatch,
+  invocation: ChatWorkerInvocation,
+  startedAtMs: number,
+): Promise<void> {
+  try {
+    const { handleChatWorkerEvent } = await import("./index");
+    await continueBackendTrace(invocation.traceContext, async () => startBackendSpan(
+      "chat.worker.run",
+      "queue.process",
+      async () => handleChatWorkerEvent(invocation, {
+        lambdaRequestId: null,
+        getRemainingTimeInMillis: (): number => Math.max(0, inProcessChatWorkerBudgetMs - (Date.now() - startedAtMs)),
+      }),
+    ));
+  } catch (error) {
+    const workerError = normalizeCaughtError(error);
+    captureBackendException({
+      action: "chat_worker_failed",
+      error: workerError,
+      scope: createBackendObservationScope(
+        "chat-worker",
+        null,
+        null,
+        null,
+        invocation.userId,
+        invocation.workspaceId,
+        invocation.chatRequestId ?? null,
+        invocation.runId,
+        invocation.sessionId ?? null,
+        null,
+        null,
+      ),
+      details: createChatWorkerFailureDetails(invocation, null, workerError, HttpError),
+    });
+    // Nothing delivers the run again, as Lambda's retries would, so a run the worker left queued ends now.
+    try {
+      await markQueuedChatRunDispatchFailed(payload.userId, payload.workspaceId, payload.runId);
+    } catch (markError) {
+      const persistenceError = createDispatchPersistenceFailureError(workerError, normalizeCaughtError(markError));
+      captureBackendException(createChatWorkerDispatchFailedEvent(payload, persistenceError, persistenceError.message));
+    }
+  }
+}
+
+function startChatWorkerInProcess(payload: ChatWorkerDispatch): void {
+  assertTrustedChatWorkerInvocation(payload);
+  const invocation = createChatWorkerInvocation(payload, getBackendTraceCarrier());
+  const startedAtMs = Date.now();
+  void runOutsideRequestContext(async () => runChatWorkerInProcess(payload, invocation, startedAtMs));
+}
+
 export async function invokeChatWorker(
   payload: ChatWorkerDispatch,
 ): Promise<void> {
+  if (isStandaloneDeployment()) {
+    startChatWorkerInProcess(payload);
+    return;
+  }
+
   await invokeChatWorkerWithDependencies(payload, {
     getTraceCarrier: getBackendTraceCarrier,
     getFunctionName: getChatWorkerFunctionName,

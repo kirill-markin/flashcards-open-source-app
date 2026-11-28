@@ -9,6 +9,7 @@ import {
 import {
   createUserOpenAIClient,
   getOpenAIClient,
+  resolveChatModel,
 } from "../client";
 import { prepareChatFileDerivatives, type ChatFileDerivativeIndex } from "../../../chatFiles";
 import { isDatabaseDeadlineExpiry } from "../../../database";
@@ -162,7 +163,7 @@ async function recordModelCallUsage(
     occurredAt: new Date(),
     surface: "chat",
     provider: "openai",
-    modelId: params.modelId,
+    modelId: resolveChatModel(params.modelId),
     requestId: params.requestId,
     tierAtCall: params.tierAtCall,
     counters: toOpenAIResponsesUsageCounters(modelCall.finalResponse.usage),

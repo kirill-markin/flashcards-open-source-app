@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { chatSandboxUnavailableReason, isChatSandboxAvailable } from "../chatSandbox/availability";
 import { ChatSandboxUnansweredError, invokeChatSandbox, type ChatSandboxInvocation } from "../chatSandbox/client";
 import {
   chatSandboxPrepareResponseSchema,
@@ -427,6 +428,13 @@ export async function prepareChatFileDerivatives(
     const kind = findChatFileDerivativeKind(file.mediaType);
     return file.origin === "attachment" && !file.derivativesPrepared && kind !== null ? [{ file, kind }] : [];
   });
+  if (!isChatSandboxAvailable()) {
+    // Nothing is recorded, so the attachments stay unprepared rather than failed.
+    return new Map([
+      ...buildChatFileDerivativeIndex(files),
+      ...pendingAttachments.map(({ file }) => [file.fileId, { derivedPaths: [], error: chatSandboxUnavailableReason }] as const),
+    ]);
+  }
   for (const [index, pending] of pendingAttachments.entries()) {
     const unansweredErrorClass = await prepareAttachmentDerivatives(
       scope,

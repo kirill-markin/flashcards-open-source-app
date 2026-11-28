@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import type OpenAI from "openai";
 import type { z } from "zod";
 import { createChatFileDownloadUrl, getChatFileObjectBytes, listChatSessionFiles } from "../../../chatFiles";
+import { chatSandboxUnavailableReason, isChatSandboxAvailable } from "../../../chatSandbox/availability";
 import { ChatSandboxUnansweredError, invokeChatSandbox } from "../../../chatSandbox/client";
 import { chatSandboxPdfPageResponseSchema, type ChatSandboxPdfPageRequest } from "../../../chatSandbox/contract";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
@@ -172,11 +173,14 @@ async function viewFile(args: ViewFileArguments, context: OpenAIToolContext): Pr
     context.sessionId,
   );
   const file = sessionFiles.find((candidate) => candidate.path === args.path);
+  const sandboxAvailable = isChatSandboxAvailable();
   if (file === undefined) {
     return {
       result: createViewFileFailure(
         "ViewFileNotFound",
-        `no file at ${args.path}. List the chat's files with bash: find /files /work -type f`,
+        sandboxAvailable
+          ? `no file at ${args.path}. List the chat's files with bash: find /files /work -type f`
+          : `no file at ${args.path}. Pass the path from an Attached image line.`,
       ),
       mediaType: null,
       sandboxRequestId: null,
@@ -185,6 +189,17 @@ async function viewFile(args: ViewFileArguments, context: OpenAIToolContext): Pr
 
   if (viewableImageMediaTypes.has(file.mediaType)) {
     return { result: await viewImage(file, args.page), mediaType: file.mediaType, sandboxRequestId: null };
+  }
+
+  if (file.mediaType === pdfMediaType && !sandboxAvailable) {
+    return {
+      result: createViewFileFailure(
+        "ViewFileSandboxUnavailable",
+        `${file.path}: PDF pages cannot be shown, because ${chatSandboxUnavailableReason}; ask the user to paste the text you need.`,
+      ),
+      mediaType: file.mediaType,
+      sandboxRequestId: null,
+    };
   }
 
   if (file.mediaType === pdfMediaType) {
@@ -200,7 +215,9 @@ async function viewFile(args: ViewFileArguments, context: OpenAIToolContext): Pr
   return {
     result: createViewFileFailure(
       "ViewFileUnsupportedType",
-      `view_file shows PNG, JPEG, GIF and WebP images and PDF pages, and ${file.path} is ${file.mediaType}; read it with bash instead.`,
+      sandboxAvailable
+        ? `view_file shows PNG, JPEG, GIF and WebP images and PDF pages, and ${file.path} is ${file.mediaType}; read it with bash instead.`
+        : `view_file shows PNG, JPEG, GIF and WebP images, and ${file.path} is ${file.mediaType}, which cannot be read because ${chatSandboxUnavailableReason}; ask the user to paste the text you need.`,
     ),
     mediaType: file.mediaType,
     sandboxRequestId: null,

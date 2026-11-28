@@ -12,7 +12,7 @@ import {
   CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
   CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
 } from "./config";
-import { getOpenAIClient } from "./openai/client";
+import { getOpenAIClient, resolveChatModel } from "./openai/client";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 import type { ContentPart } from "./types";
 import { parseUiCopyLocale, resolveSpecializedUiCopyLocale } from "../uiCopyLocale";
@@ -690,7 +690,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   const normalizedUiLocale = normalizeChatComposerSuggestionsUiLocale(uiLocale);
 
   const request: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model: CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
+    model: resolveChatModel(CHAT_COMPOSER_SUGGESTIONS_MODEL_ID),
     reasoning: {
       effort: CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
     },
@@ -758,7 +758,7 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
     occurredAt: new Date(),
     surface: "composer_suggestion",
     provider: "openai",
-    modelId: CHAT_COMPOSER_SUGGESTIONS_MODEL_ID,
+    modelId: resolveChatModel(CHAT_COMPOSER_SUGGESTIONS_MODEL_ID),
     requestId: usageAttribution.requestId,
     tierAtCall: usageAttribution.tierAtCall,
     counters: toOpenAIResponsesUsageCounters(response.usage),

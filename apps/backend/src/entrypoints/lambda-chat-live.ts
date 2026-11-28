@@ -6,7 +6,11 @@
 import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
 import type { APIGatewayProxyEventV2, StreamifyHandler } from "aws-lambda";
-import { readOptionalChatRequestIdHeader, type LiveStreamParams } from "../chat/live/request";
+import {
+  getLiveAuthorizationScheme,
+  readOptionalChatRequestIdHeader,
+  type LiveStreamParams,
+} from "../chat/live/request";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -33,30 +37,6 @@ declare const awslambda: {
 
 function getLiveRequestId(event: APIGatewayProxyEventV2): string {
   return event.requestContext.requestId ?? randomUUID();
-}
-
-function getLiveAuthorizationScheme(authorizationHeader: string | undefined): string {
-  if (authorizationHeader === undefined || authorizationHeader === "") {
-    return "missing";
-  }
-
-  if (authorizationHeader.startsWith("Bearer ")) {
-    return "bearer";
-  }
-
-  if (authorizationHeader.startsWith("Live ")) {
-    return "live";
-  }
-
-  if (authorizationHeader.startsWith("Guest ")) {
-    return "guest";
-  }
-
-  if (authorizationHeader.startsWith("ApiKey ")) {
-    return "api_key";
-  }
-
-  return "unknown";
 }
 
 function hasLiveTraceCarrierValue(traceCarrier: BackendTraceCarrier | null | undefined): traceCarrier is BackendTraceCarrier {

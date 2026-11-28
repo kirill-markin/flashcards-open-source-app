@@ -100,6 +100,31 @@ export function readOptionalChatRequestIdHeader(
   return readOptionalUuidHeader(headers, "X-Chat-Request-Id");
 }
 
+/** Logged instead of the header, which carries a credential. */
+export function getLiveAuthorizationScheme(authorizationHeader: string | undefined): string {
+  if (authorizationHeader === undefined || authorizationHeader === "") {
+    return "missing";
+  }
+
+  if (authorizationHeader.startsWith("Bearer ")) {
+    return "bearer";
+  }
+
+  if (authorizationHeader.startsWith("Live ")) {
+    return "live";
+  }
+
+  if (authorizationHeader.startsWith("Guest ")) {
+    return "guest";
+  }
+
+  if (authorizationHeader.startsWith("ApiKey ")) {
+    return "api_key";
+  }
+
+  return "unknown";
+}
+
 /**
  * Parses and authenticates the live SSE request.
  * The backend live endpoint is only a temporary overlay for an already-known
