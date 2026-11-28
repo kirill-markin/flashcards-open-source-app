@@ -195,13 +195,9 @@ function buildGroupSourceJoinSqlLines(
     ];
   }
 
-  // The first launch's own row, found the way `step_events` finds steps: the range's launch rows joined
-  // to the unfiltered `actor_first_events` on the actor and the first launch's instant, never to the
-  // filtered cohort, whose one-row estimate would rescan the view per person. Actors outside the cohort
-  // drop out at the outer join. The cohort pass's launch, trust and auth-origin rules and the platform
-  // filter stay on the launch row, so only a row the cohort could anchor on names the group, never a
-  // reconstructed open at that instant. Two launches at that instant are the cohort's own tie, so the
-  // row is picked in the platform dimension's order, then an open before a screen view.
+  // Join to unfiltered history to avoid a small cohort estimate that can trigger a view scan per
+  // actor. Apply the cohort's launch rules so only an eligible launch can supply the group key.
+  // Break ties in the platform dimension's order, then prefer an open to a screen view.
   if (
     groupByDimension?.id === signInStateGroupByDimensionId
     || groupByDimension?.id === appVersionGroupByDimensionId
@@ -244,11 +240,6 @@ function buildGroupSourceJoinSqlLines(
  * and no dimension source is joined at all, and any other dimension joins only the one source its
  * own key reads.
  *
- * NO STEP HERE JOINS A COHORT TO `analytics.product_events_resolved` BY MEMBERSHIP, and that is what
- * keeps a long range inside the 30 s statement timeout. The view's `actor_id` is a computed
- * `COALESCE` that no index serves, and an `= ANY (ARRAY(...))` membership is compared entry by entry,
- * so each view row costs the size of the cohort, and a year's cohort is too large for that. Instead:
- *
  * - `actor_first_events` makes one pass over trusted history up to the range end and groups it by
  *   actor. The pass reads no cohort, so it costs the same for a week as for a year. A launch is an
  *   `app_opened` or a `screen_viewed` the app reported (`buildLaunchEventSql`): either can be the
@@ -263,16 +254,8 @@ function buildGroupSourceJoinSqlLines(
  *   nothing else is. The allowance is not simply "any `card_created`": a person whose first activity
  *   was creating cards through the agent API or MCP must not pass as new. Trusted is `buildTrustedActorRowsFilterSql`,
  *   so a marketing-site visit sent through the credential-free collector is not an earlier event.
- * - `step_events` hash-joins the step event rows in the range to `actor_first_events`. That relation
- *   is the per-actor aggregate, and it is scanned with no filter of its own, so the planner never sees
- *   the one-row guess that would make it rescan the view per person. Each row is bounded to its own
- *   actor's `[first launch, first launch + 7 days]`, so only the first week of people whose first
- *   launch is in the range is read. Rows of people who are not in the cohort are dropped when the
- *   cohort joins the step aggregates.
- * - Each step is then a `GROUP BY` over those rows, joined to the step above it, so no step is a
- *   per-person scan.
- * - A sign-in state or app version reads the first launch's own row the same way, launch rows joined
- *   to `actor_first_events` rather than to the cohort, and only while that dimension is selected
+ * - A sign-in state or app version reads the first launch's own row from launch rows joined
+ *   to `actor_first_events`, and only while that dimension is selected
  *   (`buildGroupSourceJoinSqlLines`).
  *
  * A person can add their first card before or after their first accepted review. The engagement
@@ -303,6 +286,7 @@ export function buildFirstLaunchFunnelSql(
     : `COALESCE(${groupByDimension.buildGroupKeySql(filters)}, ${escapeSqlStringLiteral(unresolvedFunnelGroupKey)})::text`;
   const groupSourceJoinSqlLines = buildGroupSourceJoinSqlLines(groupByDimension, filters, rangeStartSql, rangeEndSql);
   const launchEventSql = buildLaunchEventSql("resolved");
+  const liveCardCreationSql = "(step_event.event_name = 'card_created' AND step_event.origin = 'server')";
 
   return [
     "WITH actor_first_events AS MATERIALIZED (",
@@ -353,7 +337,7 @@ export function buildFirstLaunchFunnelSql(
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), step_events AS MATERIALIZED (",
     "  SELECT",
-    "    history.actor_id,",
+    "    cohort.actor_id,",
     "    step_event.event_name,",
     "    step_time.step_at,",
     // A synced review may keep its device time, but a manual save uses a corrected clock.
@@ -367,14 +351,14 @@ export function buildFirstLaunchFunnelSql(
     "  FROM analytics.product_events_resolved AS step_event",
     // Live creations can carry a timestamp from before the write committed.
     "  CROSS JOIN LATERAL (SELECT CASE",
-    "    WHEN step_event.event_name = 'card_created' AND step_event.origin = 'server'",
+    `    WHEN ${liveCardCreationSql}`,
     "      THEN step_event.server_received_at",
     "    ELSE step_event.occurred_at",
     "  END AS step_at) AS step_time",
-    "  INNER JOIN actor_first_events AS history",
-    "    ON history.actor_id = step_event.actor_id",
-    "    AND step_time.step_at >= history.first_launch_at",
-    `    AND step_time.step_at <= history.first_launch_at + ${windowSql}`,
+    "  INNER JOIN cohort",
+    "    ON cohort.actor_id = step_event.actor_id",
+    "    AND step_time.step_at >= cohort.first_launch_at",
+    `    AND step_time.step_at <= cohort.first_launch_at + ${windowSql}`,
     "  WHERE (",
     "      step_event.event_name IN ('review_card_revealed', 'review_answered')",
     "      OR (step_event.event_name = 'screen_viewed' AND step_event.screen = 'review')",
@@ -392,8 +376,15 @@ export function buildFirstLaunchFunnelSql(
     "        AND step_event.event_properties->'card_count' > '0'::jsonb)",
     "    )",
     `    AND ${buildTrustedActorRowsFilterSql("step_event.trust_level")}`,
-    `    AND step_time.step_at >= ${rangeStartSql}`,
-    `    AND step_time.step_at < ${stepWindowEndSql}`,
+    // Bounds on the actual timestamp columns let Postgres estimate the scan and hash the small cohort.
+    "    AND (",
+    `      (${liveCardCreationSql}`,
+    `        AND step_event.server_received_at >= ${rangeStartSql}`,
+    `        AND step_event.server_received_at < ${stepWindowEndSql})`,
+    `      OR (NOT ${liveCardCreationSql}`,
+    `        AND step_event.occurred_at >= ${rangeStartSql}`,
+    `        AND step_event.occurred_at < ${stepWindowEndSql})`,
+    "    )",
     "), review_screens AS MATERIALIZED (",
     "  SELECT screen_event.actor_id, MIN(screen_event.step_at) AS review_screen_at",
     "  FROM step_events AS screen_event",
@@ -439,9 +430,26 @@ export function buildFirstLaunchFunnelSql(
     "  INNER JOIN first_reviews AS first_review ON first_review.actor_id = creation.actor_id",
     `  WHERE creation.occurred_at >= cohort.first_launch_at - INTERVAL '${firstLaunchDemoCardAllowanceSeconds} seconds'`,
     `    AND creation.occurred_at <= cohort.first_launch_at + ${windowSql}`,
+    "), observed_card_additions AS MATERIALIZED (",
+    "  SELECT actor_id, MIN(ordering_at) AS ordering_at",
+    "  FROM step_events",
+    "  WHERE event_name IN ('manual_card_saved', 'card_created', 'card_addition_committed', 'card_addition_recovered',",
+    "    'catalog_deck_installed', 'workspace_package_imported')",
+    "  GROUP BY actor_id",
+    // A recovered addition must beat the observed one to affect the funnel. Its card was created
+    // by that cutoff or the end of the first week, and its demo seed was created earlier still.
+    "), workspaces_to_recover AS MATERIALIZED (",
+    "  SELECT creation.workspace_id,",
+    `    MAX(LEAST(creation.first_launch_at + ${windowSql}, observed.ordering_at)) AS last_relevant_card_at`,
+    "  FROM recoverable_card_events AS creation",
+    "  LEFT JOIN observed_card_additions AS observed ON observed.actor_id = creation.actor_id",
+    "  WHERE (creation.event_name = 'card_created' OR creation.demo_status = 'unknown')",
+    "    AND (observed.ordering_at IS NULL OR creation.occurred_at < observed.ordering_at)",
+    "  GROUP BY creation.workspace_id",
     "), candidate_workspaces AS MATERIALIZED (",
-    "  SELECT workspace.workspace_id, workspace.event_name",
+    "  SELECT workspace.workspace_id, workspace.event_name, recovery.last_relevant_card_at",
     "  FROM (SELECT DISTINCT workspace_id, event_name FROM recoverable_card_events) AS workspace",
+    "  INNER JOIN workspaces_to_recover AS recovery USING (workspace_id)",
     // Skip deriving keys for entire libraries with no possible seed.
     "  WHERE EXISTS (",
     "    SELECT 1 FROM content.cards AS possible_seed",
@@ -459,7 +467,8 @@ export function buildFirstLaunchFunnelSql(
     "    card.metadata->'onboardingDemo'->'version' = '1'::jsonb AS marked_demo",
     "  FROM candidate_workspaces AS workspace",
     "  INNER JOIN content.cards AS card ON card.workspace_id = workspace.workspace_id",
-    `  WHERE card.created_at < ${stepWindowEndSql}`,
+    "  WHERE card.created_at <= workspace.last_relevant_card_at",
+    `    AND card.created_at < ${stepWindowEndSql}`,
     `    AND (card.created_at >= ${rangeStartSql} OR card.metadata ? 'onboardingDemo')`,
     "), matched_card_creations AS MATERIALIZED (",
     "  SELECT creation.*, card.card_id, card.created_at, card.has_demo_marker, card.marked_demo,",
@@ -513,9 +522,7 @@ export function buildFirstLaunchFunnelSql(
     "), first_card_additions AS MATERIALIZED (",
     "  SELECT added.actor_id, MIN(added.ordering_at) AS first_addition_ordering_at",
     "  FROM (",
-    "    SELECT actor_id, ordering_at FROM step_events",
-    "    WHERE event_name IN ('manual_card_saved', 'card_created', 'card_addition_committed', 'card_addition_recovered',",
-    "      'catalog_deck_installed', 'workspace_package_imported')",
+    "    SELECT actor_id, ordering_at FROM observed_card_additions",
     "    UNION ALL",
     "    SELECT actor_id, ordering_at FROM recovered_card_additions",
     "  ) AS added",
