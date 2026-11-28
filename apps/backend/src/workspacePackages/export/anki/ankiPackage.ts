@@ -65,11 +65,12 @@ export function buildAnkiWorkspacePackage(
     const database = new DatabaseSync(path);
     try {
       createAnkiCollection(database, exported.metadata.label, generatedAt, exported.cards.map(({ cardId, card }) => ({
+        cardId,
         guid: createHash("sha256").update(workspaceId + "/" + cardId).digest("base64url").slice(0, 22),
         front: renderMarkdown(card.frontText),
         back: renderMarkdown(card.backText),
         tags: card.tags,
-      })));
+      })), exported.studyProgress);
     } finally {
       database.close();
     }

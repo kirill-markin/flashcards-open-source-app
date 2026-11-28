@@ -218,10 +218,11 @@ test("Anki export returns an archive inline and a signed URL for a larger archiv
       assert.equal(checkedWorkspaceId, workspaceId);
     },
     ankiExportOptions: {
-      loadWorkspacePackageExportFn: async (userId, requestedWorkspaceId, input) => {
+      loadWorkspacePackageExportFn: async (userId, requestedWorkspaceId, input, includeStudyProgress) => {
         assert.equal(userId, "user-1");
         assert.equal(requestedWorkspaceId, workspaceId);
         assertExportInput(input);
+        assert.equal(includeStudyProgress, false);
         return {
           metadata: { label: "Starter deck" },
           cards: [{
@@ -235,6 +236,7 @@ test("Anki export returns an archive inline and a signed URL for a larger archiv
             },
           }],
           mediaFiles: [{ path: mediaPath, mimeType: "text/plain", bytes: mediaBytes }],
+          studyProgress: null,
         };
       },
       createAnkiWorkspacePackageDownloadFn: async (requestedWorkspaceId, archive) => {
@@ -246,16 +248,16 @@ test("Anki export returns an archive inline and a signed URL for a larger archiv
       },
     },
   }));
-  const requestExport = async (): Promise<Response> => app.request(
+  const requestExport = async (options: Record<string, string | boolean>): Promise<Response> => app.request(
     "http://localhost/workspaces/" + workspaceId + "/packages/export/anki",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createWorkspacePackageExportRequestBody()),
+      body: JSON.stringify({ ...createWorkspacePackageExportRequestBody(), ...options }),
     },
   );
 
-  const inline = await requestExport();
+  const inline = await requestExport({});
   assert.equal(inline.status, 200);
   assert.equal(inline.headers.get("cache-control"), "private, no-store");
   assert.equal(inline.headers.get("content-type"), "application/apkg");
@@ -286,7 +288,7 @@ test("Anki export returns an archive inline and a signed URL for a larger archiv
   }
 
   mediaBytes = Buffer.alloc(ankiExportMaxInlineBytes, 0x61);
-  const signed = await requestExport();
+  const signed = await requestExport({ includeStudyProgress: false });
   assert.equal(signed.status, 200);
   assert.equal(signed.headers.get("cache-control"), "private, no-store");
   assert.match(signed.headers.get("content-type") ?? "", /^application\/json\b/u);
@@ -297,6 +299,10 @@ test("Anki export returns an archive inline and a signed URL for a larger archiv
     contentType: "application/apkg",
   });
   assert.equal(signedArchiveCount, 1);
+
+  const invalid = await requestExport({ includeStudyProgress: "true" });
+  assert.equal(invalid.status, 400);
+  assert.equal((await invalid.json() as ErrorResponseBody).code, "WORKSPACE_PACKAGE_EXPORT_REQUEST_INVALID");
 });
 
 test("workspace package export routes stop before service calls when workspace access is denied", async () => {

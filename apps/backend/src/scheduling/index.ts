@@ -109,6 +109,7 @@ const DEFAULT_W: ReadonlyArray<number> = Object.freeze([
   0.0658,
   0.1542,
 ]);
+export { DEFAULT_W as fsrsDefaultWeights };
 // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::fsrsMinimumStability.
 const S_MIN = 0.001;
 // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::W17_W18_CEILING.

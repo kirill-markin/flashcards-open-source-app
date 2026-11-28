@@ -13,8 +13,8 @@
  * Source-of-truth docs: docs/fsrs-scheduling-logic.md
  */
 import {
-  queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
+  transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -209,9 +209,17 @@ export async function getWorkspaceSchedulerSettings(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceSchedulerSettings> {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, (executor) => (
+    loadWorkspaceSchedulerSettingsInExecutor(executor, workspaceId)
+  ));
+}
+
+export async function loadWorkspaceSchedulerSettingsInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<WorkspaceSchedulerSettings> {
   // Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
-  const result = await queryWithWorkspaceScopeReadOnly<WorkspaceSchedulerSettingsRow>(
-    { userId, workspaceId },
+  const result = await executor.query<WorkspaceSchedulerSettingsRow>(
     [
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",

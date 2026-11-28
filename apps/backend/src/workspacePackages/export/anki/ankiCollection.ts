@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
+import { toDate } from "../../../cards/shared";
+import { fsrsDefaultWeights } from "../../../scheduling";
+import { ankiCollectionCreatedAt, ankiRolloverHour, buildAnkiCardSchedule, buildAnkiReviewHistory } from "./ankiScheduling";
+import type { AnkiExportReview, AnkiStudyProgress } from "./studyProgress";
 
 type AnkiNote = Readonly<{
+  cardId: string;
   guid: string;
   front: string;
   back: string;
@@ -91,7 +96,7 @@ function serializeTags(tags: ReadonlyArray<string>): string {
   return values.length === 0 ? "" : " " + values.join(" ") + " ";
 }
 
-function createDeck(id: number, name: string, modifiedAt: number) {
+function createDeck(id: number, name: string, modifiedAt: number, configId: number) {
   return {
     id,
     name,
@@ -105,7 +110,7 @@ function createDeck(id: number, name: string, modifiedAt: number) {
     browserCollapsed: false,
     desc: "",
     dyn: 0,
-    conf: 1,
+    conf: configId,
     extendNew: 0,
     extendRev: 0,
   };
@@ -116,14 +121,35 @@ export function createAnkiCollection(
   label: string | undefined,
   generatedAt: string,
   notes: ReadonlyArray<AnkiNote>,
+  studyProgress: AnkiStudyProgress | null,
 ): void {
   const nowMs = Date.parse(generatedAt);
   const now = Math.floor(nowMs / 1_000);
   const normalizedName = label?.normalize("NFC").replace(/\p{Cc}+/gu, " ").replace(/:{2,}/gu, "：").replace(/^[\s:]+|[\s:]+$/gu, "");
   const name = normalizedName || defaultAnkiExportDeckName;
   const deckId = name.toLowerCase() === "default" ? 1 : 2;
-  const decks = { 1: createDeck(1, "Default", 0), [deckId]: createDeck(deckId, name, now) };
-  const config = { curModel: noteTypeId, curDeck: deckId, activeDecks: [deckId], nextPos: notes.length + 1, schedVer: 2 };
+  const configId = studyProgress === null ? 1 : nowMs;
+  const decks = { 1: createDeck(1, "Default", 0, 1), [deckId]: createDeck(deckId, name, now, configId) };
+  const config = {
+    curModel: noteTypeId, curDeck: deckId, activeDecks: [deckId], nextPos: notes.length + 1, schedVer: 2,
+    ...(studyProgress === null ? {} : { fsrs: true, creationOffset: 0, rollover: ankiRolloverHour }),
+  };
+  const createdAt = studyProgress === null ? now : ankiCollectionCreatedAt(now);
+  const deckConfigs = studyProgress === null ? { 1: defaultDeckConfig } : {
+    1: defaultDeckConfig,
+    [configId]: {
+      ...defaultDeckConfig,
+      id: configId,
+      name: "Nibomo FSRS",
+      mod: now,
+      usn: -1,
+      new: { ...defaultDeckConfig.new, delays: studyProgress.settings.learningStepsMinutes },
+      rev: { ...defaultDeckConfig.rev, maxIvl: studyProgress.settings.maximumIntervalDays },
+      lapse: { ...defaultDeckConfig.lapse, delays: studyProgress.settings.relearningStepsMinutes },
+      fsrsParams6: fsrsDefaultWeights,
+      desiredRetention: studyProgress.settings.desiredRetention,
+    },
+  };
 
   database.exec(
     "CREATE TABLE col (id integer PRIMARY KEY, crt integer NOT NULL, mod integer NOT NULL, scm integer NOT NULL, "
@@ -150,25 +176,67 @@ export function createAnkiCollection(
   );
 
   database.prepare("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')").run(
-    now,
+    createdAt,
     nowMs,
     nowMs,
     JSON.stringify(config),
     JSON.stringify({ [noteTypeId]: basicNoteType }),
     JSON.stringify(decks),
-    JSON.stringify({ 1: defaultDeckConfig }),
+    JSON.stringify(deckConfigs),
   );
   const insertNote = database.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, -1, ?, ?, ?, ?, 0, '')");
-  const insertNewCard = database.prepare(
+  const insertCard = database.prepare(
     "INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data) "
-    + "VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '{}')",
+    + "VALUES (?, ?, ?, 0, ?, -1, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)",
   );
+  const reviewsByCard = new Map<string, Array<AnkiExportReview>>();
+  for (const review of studyProgress?.reviews ?? []) {
+    const reviews = reviewsByCard.get(review.card_id);
+    if (reviews === undefined) {
+      reviewsByCard.set(review.card_id, [review]);
+    } else {
+      reviews.push(review);
+    }
+  }
+  const historyByReview = new Map<AnkiExportReview, {
+    cardId: number;
+    kind: number;
+    interval: number;
+    factor: number;
+  }>();
   for (const [index, note] of notes.entries()) {
     const noteId = nowMs + index;
     const sortField = ankiSortField(note.front);
     const checksum = createHash("sha1").update(sortField).digest().readUInt32BE();
     insertNote.run(noteId, note.guid, noteTypeId, now, serializeTags(note.tags), note.front + "\u001f" + note.back, sortField, checksum);
-    insertNewCard.run(noteId + notes.length, noteId, deckId, now, index + 1);
+    const cardId = noteId + notes.length;
+    const schedule = buildAnkiCardSchedule(studyProgress, note.cardId, index + 1, createdAt, now);
+    insertCard.run(
+      cardId, noteId, deckId, now, schedule.type, schedule.queue, schedule.due, schedule.interval,
+      schedule.type >= 2 ? defaultDeckConfig.new.initialFactor : 0,
+      schedule.reps, schedule.lapses, schedule.remainingSteps, schedule.data,
+    );
+    const reviews = reviewsByCard.get(note.cardId);
+    if (reviews !== undefined) {
+      const history = buildAnkiReviewHistory(reviews, schedule);
+      for (const [index, review] of reviews.entries()) {
+        historyByReview.set(review, { cardId, ...history[index] });
+      }
+    }
+  }
+  if (studyProgress !== null) {
+    const insertReview = database.prepare("INSERT INTO revlog VALUES (?, ?, -1, ?, ?, 0, ?, 0, ?)");
+    let previousReviewId = Number.NEGATIVE_INFINITY;
+    for (const review of studyProgress.reviews) {
+      const history = historyByReview.get(review);
+      if (history === undefined) {
+        throw new Error(`Anki export received history for unselected card ${review.card_id}`);
+      }
+      // Revlog keys are timestamps, so move colliding rows forward in source order.
+      const id = Math.max(toDate(review.reviewed_at_client).getTime(), previousReviewId + 1);
+      insertReview.run(id, history.cardId, review.rating + 1, history.interval, history.factor, history.kind);
+      previousReviewId = id;
+    }
   }
   database.exec("COMMIT");
 }

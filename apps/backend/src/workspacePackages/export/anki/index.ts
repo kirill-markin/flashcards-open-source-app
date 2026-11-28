@@ -9,6 +9,10 @@ export type AnkiWorkspacePackageExportOptions = Readonly<{
   createAnkiWorkspacePackageDownloadFn?: typeof createAnkiWorkspacePackageDownload;
 }>;
 
+type AnkiWorkspacePackageExportInput = WorkspacePackageExportPackageInput & Readonly<{
+  includeStudyProgress: boolean;
+}>;
+
 type AnkiWorkspacePackageDelivery = Readonly<{
   archive: AnkiWorkspacePackage;
   downloadUrl?: string;
@@ -21,12 +25,13 @@ export function createAnkiWorkspacePackageExporter(options: AnkiWorkspacePackage
   return async (
     userId: string,
     workspaceId: string,
-    input: WorkspacePackageExportPackageInput,
+    input: AnkiWorkspacePackageExportInput,
   ): Promise<AnkiWorkspacePackageDelivery> => {
+    const { includeStudyProgress, ...packageInput } = input;
     const exported = await loadWorkspacePackageExportFn(userId, workspaceId, {
-      ...input,
+      ...packageInput,
       packageMetadata: { ...input.packageMetadata, label: input.packageMetadata.label ?? defaultAnkiExportDeckName },
-    });
+    }, includeStudyProgress);
     const archive = buildAnkiWorkspacePackage(workspaceId, exported, input.generatedAt);
     if (archive.bytes.byteLength <= ankiExportMaxInlineBytes) {
       return { archive };

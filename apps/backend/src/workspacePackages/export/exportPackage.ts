@@ -37,6 +37,7 @@ import {
   type WorkspacePackageCardsJsonV1,
   type WorkspacePackageMetadataV1,
 } from "../types";
+import { loadAnkiStudyProgressInExecutor, type AnkiStudyProgress } from "./anki/studyProgress";
 
 export const workspacePackageExportPackageDefaultMaxSelectedCards = 5_000;
 export const workspacePackageExportPackageDefaultMaxMediaFiles = 10_000;
@@ -99,12 +100,14 @@ type PreparedWorkspacePackageExport = Readonly<{
   cards: ReadonlyArray<WorkspacePackageExportCard>;
   mediaFiles: ReadonlyArray<WorkspacePackageMediaFile>;
   limits: WorkspacePackageExportPackageLimits;
+  studyProgress: AnkiStudyProgress | null;
 }>;
 
 export type LoadedWorkspacePackageExport = Readonly<{
   metadata: WorkspacePackageMetadataV1;
   cards: ReadonlyArray<WorkspacePackageExportCard>;
   mediaFiles: ReadonlyArray<LoadedWorkspacePackageMediaFile>;
+  studyProgress: AnkiStudyProgress | null;
 }>;
 
 type ZipEntry = Readonly<{
@@ -776,6 +779,7 @@ export async function exportWorkspacePackageInExecutor(
     workspaceId,
     input,
     limits,
+    false,
   );
 
   const loadedExport = await loadPreparedWorkspacePackageExport(workspaceId, input, dependencies, preparedExport);
@@ -787,6 +791,7 @@ async function prepareWorkspacePackageExportInExecutor(
   workspaceId: string,
   input: WorkspacePackageExportPackageInput,
   limits: WorkspacePackageExportPackageLimits,
+  includeStudyProgress: boolean,
 ): Promise<PreparedWorkspacePackageExport> {
   const normalizedLimits = normalizePackageLimits(limits);
   const normalizedSelection = canonicalizePackageCardSelection(
@@ -820,11 +825,15 @@ async function prepareWorkspacePackageExportInExecutor(
   const packageCards = buildPortablePackageCards(selectedCards, new Set(
     tagsSelectedForRemoval.map((tagCount) => tagCount.tag),
   ), portablePathsByAssetId);
+  const studyProgress = includeStudyProgress
+    ? await loadAnkiStudyProgressInExecutor(executor, workspaceId, selectedCards.map((card) => card.card_id))
+    : null;
   return {
     metadata: packageMetadata,
     cards: packageCards,
     mediaFiles,
     limits: normalizedLimits,
+    studyProgress,
   };
 }
 
@@ -845,6 +854,7 @@ async function loadPreparedWorkspacePackageExport(
     metadata: preparedExport.metadata,
     cards: preparedExport.cards,
     mediaFiles: loadedMediaFiles,
+    studyProgress: preparedExport.studyProgress,
   };
 }
 
@@ -878,6 +888,7 @@ export async function loadWorkspacePackageExport(
   userId: string,
   workspaceId: string,
   input: WorkspacePackageExportPackageInput,
+  includeStudyProgress: boolean,
 ): Promise<LoadedWorkspacePackageExport> {
   const limits: WorkspacePackageExportPackageLimits = {
     maxSelectedCards: workspacePackageExportPackageDefaultMaxSelectedCards,
@@ -894,6 +905,7 @@ export async function loadWorkspacePackageExport(
       workspaceId,
       input,
       limits,
+      includeStudyProgress,
     )
   ));
 
@@ -905,6 +917,6 @@ export async function exportWorkspacePackage(
   workspaceId: string,
   input: WorkspacePackageExportPackageInput,
 ): Promise<WorkspacePackageExportPackage> {
-  const loadedExport = await loadWorkspacePackageExport(userId, workspaceId, input);
+  const loadedExport = await loadWorkspacePackageExport(userId, workspaceId, input, false);
   return assembleWorkspacePackageExport(loadedExport);
 }

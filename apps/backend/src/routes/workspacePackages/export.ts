@@ -118,14 +118,18 @@ const workspacePackageExportRouteInputSchema = z.object({
   selection: workspacePackageExportSelectionSchema,
   tagPolicy: workspacePackageExportTagPolicySchema,
   packageMetadata: workspacePackageExportMetadataSchema,
-}).transform((input): WorkspacePackageExportRouteInput => ({
-  selection: input.selection,
-  tagPolicy: input.tagPolicy,
-  packageMetadata: input.packageMetadata,
-}));
+});
+
+const ankiExportRouteInputSchema = workspacePackageExportRouteInputSchema.extend({
+  includeStudyProgress: z.boolean().default(false),
+});
 
 export function parseWorkspacePackageExportRouteInput(value: unknown): WorkspacePackageExportRouteInput {
-  const parsedInput = workspacePackageExportRouteInputSchema.safeParse(value);
+  return parseExportRouteInput(workspacePackageExportRouteInputSchema, value);
+}
+
+function parseExportRouteInput<Input>(schema: z.ZodType<Input>, value: unknown): Input {
+  const parsedInput = schema.safeParse(value);
   if (parsedInput.success) {
     return parsedInput.data;
   }
@@ -208,9 +212,14 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
     downloadUrl?: string;
   }>;
 
-  function addPackageDownloadRoute(
+  function addPackageDownloadRoute<RouteInput extends WorkspacePackageExportRouteInput>(
     path: string,
-    prepareDownload: (userId: string, workspaceId: string, input: WorkspacePackageExportPackageInput) => Promise<PackageDownload>,
+    schema: z.ZodType<RouteInput>,
+    prepareDownload: (
+      userId: string,
+      workspaceId: string,
+      input: RouteInput & WorkspacePackageExportPackageInput,
+    ) => Promise<PackageDownload>,
   ): void {
     app.post(path, async (context) => {
       const requestId = context.get("requestId");
@@ -223,9 +232,10 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
         workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
         await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
         const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
-        const routeInput = parseWorkspacePackageExportRouteInput(await parseJsonBody(context.req.raw));
-        const input: WorkspacePackageExportPackageInput = {
-          ...createWorkspacePackageExportInput(routeInput, new Date().toISOString()),
+        const routeInput = parseExportRouteInput(schema, await parseJsonBody(context.req.raw));
+        const input = {
+          ...routeInput,
+          generatedAt: new Date().toISOString(),
           observationScope: scope,
         };
         const { archive, downloadUrl } = await prepareDownload(requestContext.userId, workspaceId, input);
@@ -273,10 +283,12 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
 
   addPackageDownloadRoute(
     "/workspaces/:workspaceId/packages/export",
+    workspacePackageExportRouteInputSchema,
     async (userId, workspaceId, input) => ({ archive: await exportWorkspacePackageFn(userId, workspaceId, input) }),
   );
   addPackageDownloadRoute(
     "/workspaces/:workspaceId/packages/export/anki",
+    ankiExportRouteInputSchema,
     prepareAnkiWorkspacePackageDownload,
   );
 
