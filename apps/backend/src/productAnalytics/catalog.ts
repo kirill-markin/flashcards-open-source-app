@@ -2323,6 +2323,13 @@ export const productAnalyticsEventCatalog = {
       page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
     },
   },
+  catalog_ai_deck_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      result_count: { kind: "nonNegativeInteger" },
+    },
+  },
   // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer
   // mints one any more, and released clients that still send it stay valid.
   catalog_install_clicked: {
