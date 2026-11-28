@@ -59,6 +59,7 @@ const urCatalog: TranslationCatalog = {
     subtitle: "ایپ کے لیے گہری یا ہلکی شکل منتخب کریں۔",
     dark: "گہری",
     light: "ہلکی",
+    system: "سسٹم",
     premiumNote: "ہلکی تھیم Premium میں شامل ہے۔ Premium فعال ہونے پر آپ کا محفوظ کردہ انتخاب واپس آ جاتا ہے۔",
   },
   accentColorSettings: {

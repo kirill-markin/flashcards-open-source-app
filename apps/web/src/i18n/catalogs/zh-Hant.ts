@@ -59,6 +59,7 @@ export const zhHantCatalog = {
     subtitle: "為應用程式選擇深色或淺色外觀。",
     dark: "深色",
     light: "淺色",
+    system: "跟隨系統",
     premiumNote: "淺色主題是 Premium 功能。啟用 Premium 後，就會套用你先前儲存的選擇。",
   },
   accentColorSettings: {

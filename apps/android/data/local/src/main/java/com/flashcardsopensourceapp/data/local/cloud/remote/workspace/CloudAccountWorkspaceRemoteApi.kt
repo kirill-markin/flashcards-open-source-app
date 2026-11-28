@@ -95,6 +95,9 @@ internal class CloudAccountWorkspaceRemoteApi(
         update.theme?.let { theme ->
             body.put("theme", theme.wireValue)
         }
+        update.followSystemAppearance?.let { enabled ->
+            body.put("followSystemAppearance", enabled)
+        }
         update.reviewReactionAnimationsEnabled?.let { enabled ->
             body.put("reviewReactionAnimationsEnabled", enabled)
         }
@@ -389,6 +392,10 @@ internal fun parseAccountPreferences(
     return AccountPreferences(
         accentColor = preferences.requireCloudString("accentColor", "$fieldPath.accentColor"),
         theme = parseAccountTheme(wireValue = preferences.requireCloudString("theme", "$fieldPath.theme")),
+        followSystemAppearance = preferences.requireCloudBoolean(
+            "followSystemAppearance",
+            "$fieldPath.followSystemAppearance"
+        ),
         reviewReactionAnimationsEnabled = preferences.requireCloudBoolean(
             "reviewReactionAnimationsEnabled",
             "$fieldPath.reviewReactionAnimationsEnabled"

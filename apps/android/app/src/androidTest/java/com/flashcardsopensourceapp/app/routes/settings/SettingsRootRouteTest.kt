@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptConfigDefaults
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
@@ -61,6 +60,7 @@ import com.flashcardsopensourceapp.feature.settings.testSettingsLocalSyncDiagnos
 import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsTechnicalErrorRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeChoice
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -347,7 +347,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         accountStatusTitle = "Not signed in",
                         accountStatusAttentionCount = 0,
                         friendInviteAvailability = friendInviteAvailability,
-                        theme = AccountTheme.DARK,
+                        theme = ThemeChoice.DARK,
                         reviewReactionAnimationsEnabled = true,
                         productAnalyticsEnabled = true,
                         firstReviewOnboardingCompleted = false,

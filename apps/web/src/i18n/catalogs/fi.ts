@@ -59,6 +59,7 @@ const fiCatalog: TranslationCatalog = {
     subtitle: "Valitse sovellukselle tumma tai vaalea ulkoasu.",
     dark: "Tumma",
     light: "Vaalea",
+    system: "Järjestelmä",
     premiumNote: "Vaalea teema sisältyy Premiumiin. Tallentamasi valinta palaa käyttöön, kun Premium on voimassa.",
   },
   accentColorSettings: {

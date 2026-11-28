@@ -739,6 +739,7 @@ extension FlashcardsStore {
                 productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
                 accentColor: previousPreferences.accentColor,
                 theme: previousPreferences.theme,
+                followSystemAppearance: previousPreferences.followSystemAppearance,
                 firstReviewOnboardingCompleted: previousPreferences.firstReviewOnboardingCompleted
             )
             self.accountPreferences.firstReviewOnboardingSnapshotGeneration = previousPreferences.firstReviewOnboardingSnapshotGeneration
@@ -781,9 +782,9 @@ extension FlashcardsStore {
         self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
     }
 
-    func updateTheme(_ theme: AccountTheme) async throws {
-        guard theme == .defaultTheme || self.canCustomizeStyle else {
-            throw LocalStoreError.validation("The light theme requires Premium")
+    func updateThemeSelection(_ selection: AccountThemeSelection) async throws {
+        guard selection == .defaultSelection || self.canCustomizeStyle else {
+            throw LocalStoreError.validation("This theme requires Premium")
         }
         let identityKey = self.accountPreferencesIdentityKey
         let identityGeneration = self.accentColorIdentityGeneration
@@ -794,24 +795,43 @@ extension FlashcardsStore {
                 outcome.failure = LocalStoreError.validation("The account changed before the theme could be saved")
                 return
             }
-            guard theme == .defaultTheme || self.canCustomizeStyle else {
-                outcome.failure = LocalStoreError.validation("The light theme requires Premium")
+            guard selection == .defaultSelection || self.canCustomizeStyle else {
+                outcome.failure = LocalStoreError.validation("This theme requires Premium")
                 return
             }
             let previousPreferences = self.accountPreferences
             let updateGeneration = self.accountPreferencesRefreshGeneration
+            // Automatic sends only followSystemAppearance; Dark or Light sends only theme, which the server pairs with followSystemAppearance=false.
+            let theme: AccountTheme
+            let followSystemAppearance: Bool
+            let patch: AccountPreferencesPatchRequest
+            switch selection {
+            case .dark:
+                theme = .dark
+                followSystemAppearance = false
+                patch = AccountPreferencesPatchRequest(theme: .dark)
+            case .light:
+                theme = .light
+                followSystemAppearance = false
+                patch = AccountPreferencesPatchRequest(theme: .light)
+            case .automatic:
+                theme = previousPreferences.theme
+                followSystemAppearance = true
+                patch = AccountPreferencesPatchRequest(followSystemAppearance: true)
+            }
             self.accountPreferences = AccountPreferences(
                 reviewReactionAnimationsEnabled: previousPreferences.reviewReactionAnimationsEnabled,
                 productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
                 accentColor: previousPreferences.accentColor,
                 theme: theme,
+                followSystemAppearance: followSystemAppearance,
                 firstReviewOnboardingCompleted: previousPreferences.firstReviewOnboardingCompleted
             )
             self.accountPreferences.firstReviewOnboardingSnapshotGeneration = previousPreferences.firstReviewOnboardingSnapshotGeneration
 
             do {
                 let updateResult = try await self.updateCloudAccountPreferences(
-                    patch: AccountPreferencesPatchRequest(theme: theme),
+                    patch: patch,
                     validateResolvedSession: { session in
                         let identity = AccountPreferencesIdentity(
                             userId: session.userId,

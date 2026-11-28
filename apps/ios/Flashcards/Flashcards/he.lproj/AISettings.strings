@@ -964,6 +964,7 @@
 "settings.theme.title" = "ערכת נושא";
 "settings.theme.dark" = "כהה";
 "settings.theme.light" = "בהיר";
+"settings.theme.automatic" = "אוטומטי";
 "settings.theme.premiumNote" = "ערכת הנושא הבהירה זמינה עם Premium. ערכת הנושא השמורה שלך חוזרת כאשר Premium פעיל.";
 "settings.accentColor.title" = "צבע הדגשה";
 "settings.accentColor.default" = "ברירת מחדל";

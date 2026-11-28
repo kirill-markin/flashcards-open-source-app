@@ -51,6 +51,7 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && value.preferences.accentColor.length === 7
     && /^#[0-9A-F]{6}$/.test(value.preferences.accentColor)
     && (value.preferences.theme === "dark" || value.preferences.theme === "light")
+    && typeof value.preferences.followSystemAppearance === "boolean"
     && typeof value.preferences.reviewReactionAnimationsEnabled === "boolean"
     && typeof value.preferences.firstReviewOnboardingCompleted === "boolean"
     && (value.preferences.analyticsConsent === null
@@ -94,12 +95,18 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
       ? { ...migratedAccentValue, session: { ...migratedAccentValue.session,
         preferences: { ...migratedAccentValue.session.preferences, firstReviewOnboardingCompleted: true } } }
       : migratedAccentValue;
-    const parsedValue = isRecord(migratedOnboardingValue) && isRecord(migratedOnboardingValue.session)
+    const migratedThemeValue = isRecord(migratedOnboardingValue) && isRecord(migratedOnboardingValue.session)
       && isRecord(migratedOnboardingValue.session.preferences)
       && !("theme" in migratedOnboardingValue.session.preferences)
       ? { ...migratedOnboardingValue, session: { ...migratedOnboardingValue.session,
         preferences: { ...migratedOnboardingValue.session.preferences, theme: defaultAppTheme } } }
       : migratedOnboardingValue;
+    const parsedValue = isRecord(migratedThemeValue) && isRecord(migratedThemeValue.session)
+      && isRecord(migratedThemeValue.session.preferences)
+      && !("followSystemAppearance" in migratedThemeValue.session.preferences)
+      ? { ...migratedThemeValue, session: { ...migratedThemeValue.session,
+        preferences: { ...migratedThemeValue.session.preferences, followSystemAppearance: false } } }
+      : migratedThemeValue;
     if (
       isRecord(parsedValue) === false
       || parsedValue.version !== WARM_START_SNAPSHOT_VERSION

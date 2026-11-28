@@ -129,6 +129,7 @@ export const seededSession: SessionInfo = {
   preferences: {
     accentColor: "#FF6719",
     theme: "dark",
+    followSystemAppearance: false,
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: true,
     analyticsConsent: null,
@@ -225,6 +226,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     preferences: {
       accentColor: "#FF6719",
       theme: "dark",
+      followSystemAppearance: false,
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
       analyticsConsent: null,

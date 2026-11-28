@@ -964,6 +964,7 @@
 "settings.theme.title" = "Itimu";
 "settings.theme.dark" = "Okumnyama";
 "settings.theme.light" = "Okukhanyayo";
+"settings.theme.automatic" = "Okuzenzakalelayo";
 "settings.theme.premiumNote" = "Itimu ekhanyayo iyatholakala nge-Premium. Itimu yakho egciniwe ibuya lapho i-Premium isebenza.";
 "settings.accentColor.title" = "Umbala wokugqamisa";
 "settings.accentColor.default" = "Okuzenzakalelayo";

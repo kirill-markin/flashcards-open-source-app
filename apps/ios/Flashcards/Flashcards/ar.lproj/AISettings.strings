@@ -992,6 +992,7 @@
 "settings.theme.title" = "السمة";
 "settings.theme.dark" = "داكن";
 "settings.theme.light" = "فاتح";
+"settings.theme.automatic" = "تلقائي";
 "settings.theme.premiumNote" = "السمة الفاتحة متاحة مع Premium. تعود سمتك المحفوظة عندما يكون Premium نشطًا.";
 "settings.accentColor.title" = "لون التمييز";
 "settings.accentColor.default" = "الافتراضي";

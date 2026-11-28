@@ -59,6 +59,7 @@ const lvCatalog: TranslationCatalog = {
     subtitle: "Izvēlieties lietotnei tumšu vai gaišu izskatu.",
     dark: "Tumšs",
     light: "Gaišs",
+    system: "Kā sistēmā",
     premiumNote: "Gaišais motīvs ir iekļauts Premium. Jūsu saglabātā izvēle atgriežas, kad Premium ir aktīvs.",
   },
   accentColorSettings: {

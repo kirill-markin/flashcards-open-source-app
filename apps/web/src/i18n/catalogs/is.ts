@@ -59,6 +59,7 @@ const isCatalog: TranslationCatalog = {
     subtitle: "Veldu dökkt eða ljóst útlit fyrir appið.",
     dark: "Dökkt",
     light: "Ljóst",
+    system: "Kerfi",
     premiumNote: "Ljósa þemað fylgir Premium. Vistaða valið þitt tekur aftur gildi þegar Premium er virkt.",
   },
   accentColorSettings: {

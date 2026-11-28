@@ -267,12 +267,27 @@ test("a bound guest refuses a second subject and a merge into another account, a
   }
 });
 
-test("guest merge adopts a guest accent and theme only for a default destination and preserves them on replay", async () => {
+test("guest merge adopts a guest accent and appearance only for a default destination and preserves them on replay", async () => {
   const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
   const userIds: Array<string> = [];
   const workspaceIds: Array<string> = [];
+  const cases = [
+    { targetColor: "#FF6719", targetAppearance: {}, expectedTheme: "light", expectedFollowSystemAppearance: true },
+    {
+      targetColor: "#4D8DFF",
+      targetAppearance: { followSystemAppearance: true },
+      expectedTheme: "dark",
+      expectedFollowSystemAppearance: true,
+    },
+    {
+      targetColor: "#C44B2D",
+      targetAppearance: { theme: "light" },
+      expectedTheme: "light",
+      expectedFollowSystemAppearance: false,
+    },
+  ] as const;
   try {
-    for (const targetColor of ["#FF6719", "#4D8DFF", "#C44B2D"]) {
+    for (const { targetColor, targetAppearance, expectedTheme, expectedFollowSystemAppearance } of cases) {
       const guest = await createGuestSession("android", null);
       userIds.push(guest.userId);
       workspaceIds.push(guest.workspaceId);
@@ -287,16 +302,20 @@ test("guest merge adopts a guest accent and theme only for a default destination
       workspaceIds.push(targetWorkspaceId);
       await updateAccountPreferences(
         guest.userId,
-        parseAccountPreferencesInput({ accentColor: "#F472B6", theme: "light" }),
+        parseAccountPreferencesInput({ accentColor: "#F472B6", theme: "light", followSystemAppearance: true }),
       );
-      await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: targetColor }));
+      await updateAccountPreferences(
+        target.userId,
+        parseAccountPreferencesInput({ accentColor: targetColor, ...targetAppearance }),
+      );
       assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
       const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
       await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
       const expectedColor = targetColor === "#FF6719" ? "#F472B6" : targetColor;
       const merged = (await ensureCognitoUserProfile(subject, null)).preferences;
       assert.equal(merged.accentColor, expectedColor);
-      assert.equal(merged.theme, "light");
+      assert.equal(merged.theme, expectedTheme);
+      assert.equal(merged.followSystemAppearance, expectedFollowSystemAppearance);
 
       await updateAccountPreferences(
         target.userId,
@@ -307,6 +326,7 @@ test("guest merge adopts a guest accent and theme only for a default destination
       const replayed = (await ensureCognitoUserProfile(subject, null)).preferences;
       assert.equal(replayed.accentColor, "#EAB308");
       assert.equal(replayed.theme, "dark");
+      assert.equal(replayed.followSystemAppearance, false);
     }
   } finally {
     try {

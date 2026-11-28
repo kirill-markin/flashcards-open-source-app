@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Gelap";
 "settings.theme.light" = "Cerah";
+"settings.theme.automatic" = "Automatik";
 "settings.theme.premiumNote" = "Tema cerah tersedia dengan Premium. Tema yang anda simpan akan digunakan semula apabila Premium aktif.";
 "settings.accentColor.title" = "Warna aksen";
 "settings.accentColor.default" = "Lalai";

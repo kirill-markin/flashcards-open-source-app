@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
@@ -28,19 +27,20 @@ import com.flashcardsopensourceapp.feature.settings.settingsThemeOptionTag
 import com.flashcardsopensourceapp.feature.settings.settingsThemeScreenTag
 
 @StringRes
-fun accountThemeLabel(theme: AccountTheme): Int {
+fun themeChoiceLabel(theme: ThemeChoice): Int {
     return when (theme) {
-        AccountTheme.DARK -> R.string.settings_theme_dark
-        AccountTheme.LIGHT -> R.string.settings_theme_light
+        ThemeChoice.DARK -> R.string.settings_theme_dark
+        ThemeChoice.LIGHT -> R.string.settings_theme_light
+        ThemeChoice.SYSTEM -> R.string.settings_theme_system
     }
 }
 
 @Composable
 fun ThemeRoute(
     uiState: ThemeUiState,
-    effectiveTheme: AccountTheme,
+    effectiveTheme: ThemeChoice,
     isPremiumRequired: Boolean,
-    onSelectTheme: (AccountTheme) -> Unit,
+    onSelectTheme: (ThemeChoice) -> Unit,
     onBack: () -> Unit
 ) {
     val isEnabled = uiState.canManagePreferences
@@ -72,11 +72,11 @@ fun ThemeRoute(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
-            items(items = AccountTheme.entries, key = { theme -> theme.wireValue }) { theme ->
+            items(items = ThemeChoice.entries, key = { theme -> theme.tagValue }) { theme ->
                 val selected = effectiveTheme == theme
                 Card(
                     modifier = Modifier.fillMaxWidth()
-                        .testTag(settingsThemeOptionTag(theme = theme.wireValue))
+                        .testTag(settingsThemeOptionTag(theme = theme.tagValue))
                         .selectable(
                             selected = selected,
                             enabled = isEnabled,
@@ -85,7 +85,7 @@ fun ThemeRoute(
                         )
                 ) {
                     ListItem(
-                        headlineContent = { Text(stringResource(accountThemeLabel(theme = theme))) },
+                        headlineContent = { Text(stringResource(themeChoiceLabel(theme = theme))) },
                         trailingContent = {
                             RadioButton(selected = selected, onClick = null, enabled = isEnabled)
                         }

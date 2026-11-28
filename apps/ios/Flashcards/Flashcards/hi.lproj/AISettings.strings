@@ -992,6 +992,7 @@
 "settings.theme.title" = "थीम";
 "settings.theme.dark" = "डार्क";
 "settings.theme.light" = "लाइट";
+"settings.theme.automatic" = "स्वचालित";
 "settings.theme.premiumNote" = "लाइट थीम Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई थीम वापस आ जाती है।";
 "settings.accentColor.title" = "एक्सेंट रंग";
 "settings.accentColor.default" = "डिफ़ॉल्ट";

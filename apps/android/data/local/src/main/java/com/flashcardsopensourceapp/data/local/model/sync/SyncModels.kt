@@ -57,6 +57,8 @@ fun parseAccountTheme(wireValue: String): AccountTheme {
 data class AccountPreferences(
     val accentColor: String,
     val theme: AccountTheme,
+    /** True shows the device's dark theme setting instead of [theme], which stays stored beside it. */
+    val followSystemAppearance: Boolean,
     val reviewReactionAnimationsEnabled: Boolean,
     /**
      * The product-analytics off switch. Null is "nobody answered", which reads as on: the basis is
@@ -94,7 +96,10 @@ enum class AnalyticsPreferenceWriteOrigin(val wireValue: String) {
 /** Mirrors `PATCH /v1/me/preferences`: a null field is one this update leaves alone. */
 data class AccountPreferencesUpdate(
     val accentColor: String?,
+    /** Sent alone; the route then stores `followSystemAppearance = false`. */
     val theme: AccountTheme?,
+    /** Only `true` is sent, alone; choosing Dark or Light turns it off through [theme]. */
+    val followSystemAppearance: Boolean?,
     val reviewReactionAnimationsEnabled: Boolean?,
     val productAnalyticsEnabled: Boolean?,
     /**
@@ -117,6 +122,7 @@ fun defaultAccountPreferences(): AccountPreferences {
     return AccountPreferences(
         accentColor = defaultAccentColor,
         theme = AccountTheme.DARK,
+        followSystemAppearance = false,
         reviewReactionAnimationsEnabled = true,
         productAnalyticsEnabled = null,
         firstReviewOnboardingCompleted = false
@@ -134,6 +140,8 @@ fun applyAccountPreferencesUpdate(
     return AccountPreferences(
         accentColor = update.accentColor ?: preferences.accentColor,
         theme = update.theme ?: preferences.theme,
+        followSystemAppearance = update.followSystemAppearance
+            ?: if (update.theme != null) false else preferences.followSystemAppearance,
         reviewReactionAnimationsEnabled = update.reviewReactionAnimationsEnabled
             ?: preferences.reviewReactionAnimationsEnabled,
         productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled,

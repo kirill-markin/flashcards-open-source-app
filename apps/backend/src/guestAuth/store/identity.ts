@@ -35,15 +35,15 @@ export async function carryGuestAccentColorToAccountInExecutor(
   }
 }
 
-/** The guest's theme lands only on an account still on Dark, so an account's own choice wins. */
+/** The guest's theme and Follow System land only on an account still at the default, so an account's own choice wins. */
 export async function carryGuestThemeToAccountInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
   targetUserId: string,
 ): Promise<void> {
   await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
-  const guestResult = await executor.query<Readonly<{ theme: AccountTheme }>>(
-    "SELECT theme FROM org.user_settings WHERE user_id = $1",
+  const guestResult = await executor.query<Readonly<{ theme: AccountTheme; follow_system_appearance: boolean }>>(
+    "SELECT theme, follow_system_appearance FROM org.user_settings WHERE user_id = $1",
     [guestUserId],
   );
   const guestSettings = guestResult.rows[0];
@@ -55,11 +55,14 @@ export async function carryGuestThemeToAccountInExecutor(
   const targetResult = await executor.query(
     [
       "UPDATE org.user_settings",
-      "SET theme = CASE WHEN theme = 'dark' THEN $2::TEXT ELSE theme END",
+      // Both right-hand sides read the row as it was before this UPDATE.
+      "SET theme = CASE WHEN theme = 'dark' AND follow_system_appearance = FALSE THEN $2::TEXT ELSE theme END,",
+      "follow_system_appearance = CASE WHEN theme = 'dark' AND follow_system_appearance = FALSE",
+      "THEN $3::BOOLEAN ELSE follow_system_appearance END",
       "WHERE user_id = $1",
       "RETURNING user_id",
     ].join(" "),
-    [targetUserId, guestSettings.theme],
+    [targetUserId, guestSettings.theme, guestSettings.follow_system_appearance],
   );
   if (targetResult.rows.length === 0) {
     throw new Error(`Cannot transfer theme: target user ${targetUserId} has no settings.`);

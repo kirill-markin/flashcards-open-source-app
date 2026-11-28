@@ -28,14 +28,14 @@ import kotlinx.coroutines.launch
 
 data class ThemeUiState(
     /** The saved theme, or the one being saved; the displayed theme also depends on Premium. */
-    val selectedTheme: AccountTheme,
+    val selectedTheme: ThemeChoice,
     val identityKey: String,
     val canManagePreferences: Boolean,
     val isSaving: Boolean,
     val errorMessage: String?
 )
 
-private data class PendingTheme(val theme: AccountTheme, val identityKey: String)
+private data class PendingTheme(val theme: ThemeChoice, val identityKey: String)
 private data class ThemeSaveError(val message: String, val identityKey: String)
 
 class ThemeViewModel(
@@ -58,7 +58,7 @@ class ThemeViewModel(
         val identityKey = accountPreferencesIdentityKey(settings = cloudSettings)
         val activePending = pending?.takeIf { it.identityKey == identityKey }
         ThemeUiState(
-            selectedTheme = activePending?.theme ?: preferences.theme,
+            selectedTheme = activePending?.theme ?: savedThemeChoice(preferences = preferences),
             identityKey = identityKey,
             canManagePreferences = cloudSettings.cloudState == CloudAccountState.GUEST ||
                 cloudSettings.cloudState == CloudAccountState.LINKED,
@@ -69,7 +69,7 @@ class ThemeViewModel(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = ThemeUiState(
-            selectedTheme = preferencesStore.currentAccountPreferences().theme,
+            selectedTheme = savedThemeChoice(preferences = preferencesStore.currentAccountPreferences()),
             identityKey = accountPreferencesIdentityKey(settings = preferencesStore.currentCloudSettings()),
             canManagePreferences = false,
             isSaving = false,
@@ -77,7 +77,7 @@ class ThemeViewModel(
         )
     )
 
-    fun selectTheme(theme: AccountTheme, identityKey: String) {
+    fun selectTheme(theme: ThemeChoice, identityKey: String) {
         val settings = preferencesStore.currentCloudSettings()
         if (identityKey != accountPreferencesIdentityKey(settings = settings) ||
             (settings.cloudState != CloudAccountState.GUEST && settings.cloudState != CloudAccountState.LINKED)
@@ -85,7 +85,7 @@ class ThemeViewModel(
             return
         }
         saveError.value = null
-        if (pendingTheme.value == null && theme == preferencesStore.currentAccountPreferences().theme) {
+        if (pendingTheme.value == null && theme == savedThemeChoice(preferences = preferencesStore.currentAccountPreferences())) {
             return
         }
         pendingTheme.value = PendingTheme(theme = theme, identityKey = identityKey)
@@ -104,7 +104,12 @@ class ThemeViewModel(
                         cloudAccountRepository.updateAccountPreferences(
                             update = AccountPreferencesUpdate(
                                 accentColor = null,
-                                theme = requested.theme,
+                                theme = when (requested.theme) {
+                                    ThemeChoice.DARK -> AccountTheme.DARK
+                                    ThemeChoice.LIGHT -> AccountTheme.LIGHT
+                                    ThemeChoice.SYSTEM -> null
+                                },
+                                followSystemAppearance = if (requested.theme == ThemeChoice.SYSTEM) true else null,
                                 reviewReactionAnimationsEnabled = null,
                                 productAnalyticsEnabled = null,
                                 locale = null,

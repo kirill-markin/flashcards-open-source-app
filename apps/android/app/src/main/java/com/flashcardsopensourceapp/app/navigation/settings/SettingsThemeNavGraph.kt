@@ -13,7 +13,7 @@ import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumResult
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
-import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeChoice
 import com.flashcardsopensourceapp.feature.settings.theme.ThemeRoute
 import com.flashcardsopensourceapp.feature.settings.theme.ThemeViewModel
 
@@ -35,12 +35,12 @@ internal fun NavGraphBuilder.registerThemeDestination(
         key(premiumPresenter, uiState.identityKey) {
             ThemeRoute(
                 uiState = uiState,
-                effectiveTheme = if (canCustomizeStyle) uiState.selectedTheme else AccountTheme.DARK,
+                effectiveTheme = if (canCustomizeStyle) uiState.selectedTheme else ThemeChoice.DARK,
                 isPremiumRequired = canCustomizeStyle.not(),
                 onSelectTheme = { theme ->
                     val identityKey = uiState.identityKey
                     when (theme) {
-                        AccountTheme.DARK -> {
+                        ThemeChoice.DARK -> {
                             premiumPresenter.dismiss()
                             // Writing Dark here would overwrite the retained premium selection that resubscription restores.
                             if (canCustomizeStyle) {
@@ -48,7 +48,8 @@ internal fun NavGraphBuilder.registerThemeDestination(
                             }
                         }
 
-                        AccountTheme.LIGHT -> {
+                        ThemeChoice.LIGHT,
+                        ThemeChoice.SYSTEM -> {
                             premiumPresenter.requestFeature(
                                 paywallEntryPoint = AnalyticsPaywallEntryPoint.THEME
                             ) { result ->

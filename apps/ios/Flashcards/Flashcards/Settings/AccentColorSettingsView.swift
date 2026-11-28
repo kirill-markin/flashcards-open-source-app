@@ -31,6 +31,7 @@ private func accentColorPresets() -> [AccentColorPreset] {
 struct AccentColorSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
 
     @State private var customColor: AccountAccentColor = .defaultColor
     @State private var hexText: String = AccountAccentColor.defaultColor.hex
@@ -65,7 +66,7 @@ struct AccentColorSettingsView: View {
                     } label: {
                         HStack {
                             Circle()
-                                .fill(preset.color.displayed(theme: self.store.effectiveAccountTheme).color)
+                                .fill(preset.color.displayed(colorScheme: self.colorScheme).color)
                                 .frame(width: 24, height: 24)
                             Text(preset.name)
                                 .foregroundStyle(Color.primary)

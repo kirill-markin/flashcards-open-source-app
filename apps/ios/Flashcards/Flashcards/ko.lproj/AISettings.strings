@@ -964,6 +964,7 @@
 "settings.theme.title" = "테마";
 "settings.theme.dark" = "다크";
 "settings.theme.light" = "라이트";
+"settings.theme.automatic" = "자동";
 "settings.theme.premiumNote" = "라이트 테마는 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 테마로 돌아갑니다.";
 "settings.accentColor.title" = "강조 색상";
 "settings.accentColor.default" = "기본값";

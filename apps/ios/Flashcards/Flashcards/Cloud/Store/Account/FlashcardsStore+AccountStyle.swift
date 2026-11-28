@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 @MainActor
 extension FlashcardsStore {
@@ -16,15 +16,19 @@ extension FlashcardsStore {
         return self.accountPreferences.accentColor
     }
 
-    /// The accent to paint with; selecting and saving compare `effectiveAccountAccentColor`.
-    var displayedAccountAccentColor: AccountAccentColor {
-        self.effectiveAccountAccentColor.displayed(theme: self.effectiveAccountTheme)
+    /// The accent to paint with in the resolved `colorScheme`; selecting and saving compare `effectiveAccountAccentColor`.
+    func displayedAccountAccentColor(colorScheme: ColorScheme) -> AccountAccentColor {
+        self.effectiveAccountAccentColor.displayed(colorScheme: colorScheme)
     }
 }
 
 @MainActor
 extension FlashcardsStore {
-    var effectiveAccountTheme: AccountTheme {
-        self.canCustomizeStyle ? self.accountPreferences.theme : .defaultTheme
+    var effectiveAccountThemeSelection: AccountThemeSelection {
+        guard self.canCustomizeStyle else { return .defaultSelection }
+        return AccountThemeSelection(
+            theme: self.accountPreferences.theme,
+            followSystemAppearance: self.accountPreferences.followSystemAppearance
+        )
     }
 }

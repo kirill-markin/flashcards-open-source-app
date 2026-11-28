@@ -964,6 +964,7 @@
 "settings.theme.title" = "Téma";
 "settings.theme.dark" = "Sötét";
 "settings.theme.light" = "Világos";
+"settings.theme.automatic" = "Automatikus";
 "settings.theme.premiumNote" = "A világos téma a Premium része. A mentett téma visszatér, amikor a Premium aktív.";
 "settings.accentColor.title" = "Kiemelőszín";
 "settings.accentColor.default" = "Alapértelmezett";

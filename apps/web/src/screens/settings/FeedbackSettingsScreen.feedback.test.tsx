@@ -69,6 +69,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       preferences: {
         accentColor: "#FF6719",
         theme: "dark",
+        followSystemAppearance: false,
         reviewReactionAnimationsEnabled: true,
         firstReviewOnboardingCompleted: true,
       },
@@ -109,6 +110,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     refreshAccountPreferences: vi.fn(async () => ({
       accentColor: "#FF6719",
       theme: "dark",
+      followSystemAppearance: false,
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
     })),

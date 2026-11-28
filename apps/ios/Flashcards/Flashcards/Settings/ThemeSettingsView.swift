@@ -7,14 +7,14 @@ func themeSettingsTitle() -> String {
 private struct PendingThemeSelection {
     let requestId: UUID
     let identityKey: String?
-    let theme: AccountTheme
+    let theme: AccountThemeSelection
 }
 
 struct ThemeSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
 
-    @State private var pendingTheme: AccountTheme? = nil
+    @State private var pendingTheme: AccountThemeSelection? = nil
     @State private var pendingSelection: PendingThemeSelection? = nil
     @State private var guidanceMessage: String = ""
     @State private var isPreparingAccount: Bool = true
@@ -44,7 +44,7 @@ struct ThemeSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ForEach(AccountTheme.allCases) { theme in
+                ForEach(AccountThemeSelection.allCases) { theme in
                     Button {
                         self.selectTheme(theme: theme)
                     } label: {
@@ -54,13 +54,13 @@ struct ThemeSettingsView: View {
                             Spacer()
                             if self.pendingTheme == theme {
                                 ProgressView()
-                            } else if self.store.effectiveAccountTheme == theme {
+                            } else if self.store.effectiveAccountThemeSelection == theme {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.tint)
                             }
                         }
                     }
-                    .accessibilityAddTraits(self.store.effectiveAccountTheme == theme ? [.isSelected] : [])
+                    .accessibilityAddTraits(self.store.effectiveAccountThemeSelection == theme ? [.isSelected] : [])
                     .accessibilityIdentifier(UITestIdentifier.themeOptionPrefix + theme.rawValue)
                 }
             }
@@ -118,11 +118,11 @@ struct ThemeSettingsView: View {
         }
     }
 
-    private func selectTheme(theme: AccountTheme) {
+    private func selectTheme(theme: AccountThemeSelection) {
         guard self.isUnavailable == false else { return }
         if self.store.canCustomizeStyle == false {
             // Writing Dark here would overwrite the retained premium selection that resubscription restores.
-            guard theme != .defaultTheme else { return }
+            guard theme != .defaultSelection else { return }
             guard self.pendingSelection == nil else { return }
             let requestId = self.premiumPresenter.present(
                 reason: .premiumFeature(requiredTierRank: premiumTierRank),
@@ -137,11 +137,11 @@ struct ThemeSettingsView: View {
             )
             return
         }
-        guard theme != self.store.effectiveAccountTheme else { return }
+        guard theme != self.store.effectiveAccountThemeSelection else { return }
         self.updateTheme(theme: theme)
     }
 
-    private func updateTheme(theme: AccountTheme) {
+    private func updateTheme(theme: AccountThemeSelection) {
         guard self.pendingTheme == nil else {
             return
         }
@@ -153,7 +153,7 @@ struct ThemeSettingsView: View {
             }
 
             do {
-                try await self.store.updateTheme(theme)
+                try await self.store.updateThemeSelection(theme)
                 self.guidanceMessage = ""
             } catch {
                 self.handleThemeFailure(error: error)

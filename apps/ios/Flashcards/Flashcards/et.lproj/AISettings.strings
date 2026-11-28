@@ -964,6 +964,7 @@
 "settings.theme.title" = "Teema";
 "settings.theme.dark" = "Tume";
 "settings.theme.light" = "Hele";
+"settings.theme.automatic" = "Automaatne";
 "settings.theme.premiumNote" = "Hele teema on saadaval Premiumiga. Salvestatud teema taastub, kui Premium on aktiivne.";
 "settings.accentColor.title" = "Rõhuvärv";
 "settings.accentColor.default" = "Vaikimisi";

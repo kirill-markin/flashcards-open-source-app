@@ -59,6 +59,7 @@ const teCatalog: TranslationCatalog = {
     subtitle: "యాప్ కోసం ముదురు లేదా లేత రూపాన్ని ఎంచుకోండి.",
     dark: "ముదురు",
     light: "లేత",
+    system: "సిస్టమ్",
     premiumNote: "లేత థీమ్ Premiumలో ఉంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన ఎంపిక తిరిగి వస్తుంది.",
   },
   accentColorSettings: {

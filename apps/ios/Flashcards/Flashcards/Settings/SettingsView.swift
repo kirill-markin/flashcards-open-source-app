@@ -16,6 +16,7 @@ struct SyncStatusPresentation: Equatable {
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
     /// iPad beside the side chat, whose bar spans both columns; the selected tab or sidebar row names the section.
     @Environment(\.showsAICompanionBarBackground) private var isBesideCompanion
 
@@ -132,7 +133,7 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.theme) {
                     SettingsNavigationRow(
                         title: themeSettingsTitle(),
-                        value: store.effectiveAccountTheme.title,
+                        value: store.effectiveAccountThemeSelection.title,
                         systemImage: "circle.lefthalf.filled",
                         attentionCount: nil
                     )
@@ -150,7 +151,7 @@ struct SettingsView: View {
                         }
                         Spacer()
                         Circle()
-                            .fill(store.displayedAccountAccentColor.color)
+                            .fill(store.displayedAccountAccentColor(colorScheme: self.colorScheme).color)
                             .frame(width: 22, height: 22)
                             .accessibilityLabel(store.effectiveAccountAccentColor.hex)
                     }

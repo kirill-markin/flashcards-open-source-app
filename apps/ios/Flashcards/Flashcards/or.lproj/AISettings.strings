@@ -992,6 +992,7 @@
 "settings.theme.title" = "ଥିମ୍";
 "settings.theme.dark" = "ଗାଢ଼";
 "settings.theme.light" = "ହାଲୁକା";
+"settings.theme.automatic" = "ସ୍ୱୟଂଚାଳିତ";
 "settings.theme.premiumNote" = "ହାଲୁକା ଥିମ୍ Premiumରେ ଉପଲବ୍ଧ। Premium ସକ୍ରିୟ ହେଲେ ସେଭ୍ କରିଥିବା ଥିମ୍ ପୁଣି ଫେରିବ।";
 "settings.accentColor.title" = "ମୁଖ୍ୟ ରଙ୍ଗ";
 "settings.accentColor.default" = "ଡିଫଲ୍ଟ";

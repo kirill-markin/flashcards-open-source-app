@@ -63,6 +63,7 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
   return {
     accent_color: "#FF6719",
     theme: "dark",
+    follow_system_appearance: false,
     user_id: userId,
     workspace_id: workspaceId,
     email,

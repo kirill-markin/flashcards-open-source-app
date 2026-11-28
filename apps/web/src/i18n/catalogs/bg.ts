@@ -59,6 +59,7 @@ const bgCatalog: TranslationCatalog = {
     subtitle: "Изберете тъмен или светъл вид на приложението.",
     dark: "Тъмна",
     light: "Светла",
+    system: "Системна",
     premiumNote: "Светлата тема е включена в Premium. Запазеният ви избор се връща, когато Premium е активен.",
   },
   accentColorSettings: {

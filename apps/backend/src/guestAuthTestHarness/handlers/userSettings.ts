@@ -122,7 +122,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   if (
     text.startsWith(
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,"
-      + " product_analytics_enabled, accent_color, theme, first_review_onboarding_completed, created_at",
+      + " product_analytics_enabled, accent_color, theme, follow_system_appearance, first_review_onboarding_completed, created_at",
     )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
@@ -136,6 +136,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       locale: "en",
       accent_color: row.accent_color,
       theme: row.theme,
+      follow_system_appearance: row.follow_system_appearance,
       review_reaction_animations_enabled: true,
       first_review_onboarding_completed: row.first_review_onboarding_completed,
       analytics_consent: row.analytics_consent,
@@ -213,16 +214,21 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }
 
-  if (text === "SELECT theme FROM org.user_settings WHERE user_id = $1") {
+  if (text === "SELECT theme, follow_system_appearance FROM org.user_settings WHERE user_id = $1") {
     const userId = String(params[0]);
     scope.requireCurrentUserScope(userId);
     const row = state.userSettings.get(userId);
-    return createQueryResult<Row>(row === undefined ? [] : [{ theme: row.theme } as unknown as Row]);
+    return createQueryResult<Row>(row === undefined ? [] : [{
+      theme: row.theme,
+      follow_system_appearance: row.follow_system_appearance,
+    } as unknown as Row]);
   }
 
   if (
-    text === "UPDATE org.user_settings SET theme = CASE WHEN theme = 'dark'"
-      + " THEN $2::TEXT ELSE theme END WHERE user_id = $1 RETURNING user_id"
+    text === "UPDATE org.user_settings SET theme = CASE WHEN theme = 'dark' AND follow_system_appearance = FALSE"
+      + " THEN $2::TEXT ELSE theme END, follow_system_appearance = CASE WHEN theme = 'dark'"
+      + " AND follow_system_appearance = FALSE THEN $3::BOOLEAN ELSE follow_system_appearance END"
+      + " WHERE user_id = $1 RETURNING user_id"
   ) {
     const userId = String(params[0]);
     scope.requireCurrentUserScope(userId);
@@ -234,9 +240,17 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     if (guestTheme !== "dark" && guestTheme !== "light") {
       throw new Error(`Guest auth test harness received an invalid theme: ${String(guestTheme)}`);
     }
+    const guestFollowSystemAppearance = params[2];
+    if (typeof guestFollowSystemAppearance !== "boolean") {
+      throw new Error(
+        `Guest auth test harness received an invalid follow_system_appearance: ${String(guestFollowSystemAppearance)}`,
+      );
+    }
+    const isDefault = current.theme === "dark" && !current.follow_system_appearance;
     state.userSettings.set(userId, {
       ...current,
-      theme: current.theme === "dark" ? guestTheme : current.theme,
+      theme: isDefault ? guestTheme : current.theme,
+      follow_system_appearance: isDefault ? guestFollowSystemAppearance : current.follow_system_appearance,
     });
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }

@@ -4,7 +4,7 @@ import { ApiContractError, parseEnum, parseObject, parseString } from "../apiCon
 import { parseStripeSessionId, parseStripeUuid } from "../apiContracts/stripeBilling";
 import { validatedPricingCountry } from "./regionalCountry";
 import type { SessionInfo } from "../types";
-import type { AppTheme } from "../types/account";
+import type { AppThemeSelection } from "../types/account";
 
 const intentKey = "flashcards-stripe-intent";
 const invalidationKey = "flashcards-stripe-invalidation";
@@ -76,12 +76,12 @@ export function readPaywallReturn(query: URLSearchParams): PaywallPresentation |
 
 export type PremiumContinuation =
   | Readonly<{ accentColor: string; requiredRank: number }>
-  | Readonly<{ theme: AppTheme; requiredRank: number }>;
+  | Readonly<{ theme: AppThemeSelection; requiredRank: number }>;
 
 function parsePremiumContinuation(value: unknown): PremiumContinuation {
   const pending = parseObject(value, "Premium continuation", "continuation");
   if (pending.theme !== undefined) {
-    const theme = parseEnum<AppTheme>(pending.theme, "Premium continuation", "theme", ["dark", "light"]);
+    const theme = parseEnum<AppThemeSelection>(pending.theme, "Premium continuation", "theme", ["dark", "light", "system"]);
     if (pending.requiredRank !== 20) {
       throw new ApiContractError("Premium continuation", "continuation", "theme Premium intent");
     }
