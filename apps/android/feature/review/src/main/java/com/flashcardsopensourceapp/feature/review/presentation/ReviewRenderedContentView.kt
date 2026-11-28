@@ -18,6 +18,7 @@ internal fun ReviewRenderedContentView(
     content: ReviewRenderedContent,
     renderMarkdownImmediately: Boolean,
     reviewImagePreparer: ReviewImagePreparer,
+    reviewAudioPlayback: ReviewAudioPlayback,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     modifier: Modifier
 ) {
@@ -70,6 +71,7 @@ internal fun ReviewRenderedContentView(
                                     reference = block.reference,
                                     sideHasText = sideHasText,
                                     reviewImagePreparer = reviewImagePreparer,
+                                    reviewAudioPlayback = reviewAudioPlayback,
                                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                                     presentation = ReviewManagedMediaPresentation.BLOCK
                                 )
@@ -84,6 +86,7 @@ internal fun ReviewRenderedContentView(
                                                 reference = item.reference,
                                                 sideHasText = sideHasText,
                                                 reviewImagePreparer = reviewImagePreparer,
+                                                reviewAudioPlayback = reviewAudioPlayback,
                                                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                                                 presentation = ReviewManagedMediaPresentation.GALLERY_CELL
                                             )

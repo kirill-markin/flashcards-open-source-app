@@ -18,14 +18,16 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Audiotrack
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,17 +49,24 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
+import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
@@ -117,6 +126,7 @@ internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
     sideHasText: Boolean,
     reviewImagePreparer: ReviewImagePreparer,
+    reviewAudioPlayback: ReviewAudioPlayback,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     presentation: ReviewManagedMediaPresentation
 ) {
@@ -197,10 +207,11 @@ internal fun ReviewManagedMediaContent(
                 )
             )
         } else {
-            ReviewManagedMediaPlaceholderRow(
+            ReviewManagedMediaStatusRow(
                 label = label,
                 supportingText = supportingText,
-                icon = Icons.Outlined.WarningAmber
+                icon = Icons.Outlined.WarningAmber,
+                action = {}
             )
         }
         return
@@ -222,11 +233,18 @@ internal fun ReviewManagedMediaContent(
             onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
         )
 
-        ReviewManagedMediaCategory.AUDIO,
-        ReviewManagedMediaCategory.VIDEO -> ReviewManagedMediaPlaceholderRow(
+        ReviewManagedMediaCategory.AUDIO -> ReviewManagedMediaAudio(
+            mediaAsset = checkNotNull(mediaAsset),
+            label = label,
+            categoryLabel = categoryLabel,
+            playback = reviewAudioPlayback
+        )
+
+        ReviewManagedMediaCategory.VIDEO -> ReviewManagedMediaStatusRow(
             label = label,
             supportingText = categoryLabel,
-            icon = reviewManagedMediaCategoryIcon(category = category)
+            icon = Icons.Outlined.Movie,
+            action = {}
         )
     }
 }
@@ -682,10 +700,70 @@ private fun ReviewManagedMediaAttachment(
 }
 
 @Composable
-private fun ReviewManagedMediaPlaceholderRow(
+private fun ReviewManagedMediaAudio(
+    mediaAsset: MediaAsset,
+    label: String,
+    categoryLabel: String,
+    playback: ReviewAudioPlayback
+) {
+    val control = remember(mediaAsset.mediaAssetId, mediaAsset.sha256) {
+        ReviewAudioControl(mediaAssetId = mediaAsset.mediaAssetId)
+    }
+    DisposableEffect(playback, control) {
+        onDispose { playback.stopIfOwnedBy(control = control) }
+    }
+    val state = playback.stateFor(control = control)
+    val isPlaying = state == ReviewAudioPlaybackState.PLAYING
+    val locale = currentResourceLocale(resources = LocalContext.current.resources)
+    val actionLabel = stringResource(
+        id = if (isPlaying) R.string.review_media_audio_stop else R.string.review_media_audio_play,
+        bidiWrap(text = label, locale = locale)
+    )
+    val supportingText = when (state) {
+        ReviewAudioPlaybackState.LOADING -> stringResource(id = R.string.review_media_loading)
+        ReviewAudioPlaybackState.FAILED -> stringResource(id = R.string.review_media_unavailable)
+        ReviewAudioPlaybackState.IDLE, ReviewAudioPlaybackState.PLAYING -> categoryLabel
+    }
+    ReviewManagedMediaStatusRow(
+        label = label,
+        supportingText = supportingText,
+        icon = if (state == ReviewAudioPlaybackState.FAILED) Icons.Outlined.WarningAmber else Icons.Outlined.Audiotrack,
+        action = {
+            FilledTonalIconButton(
+                onClick = { playback.toggle(control = control) },
+                enabled = state != ReviewAudioPlaybackState.LOADING,
+                modifier = Modifier
+                    .testTag(reviewMediaAudioPlaybackButtonTag)
+                    .semantics {
+                        contentDescription = actionLabel
+                        if (state == ReviewAudioPlaybackState.LOADING || state == ReviewAudioPlaybackState.FAILED) {
+                            stateDescription = supportingText
+                        }
+                        liveRegion = LiveRegionMode.Polite
+                    }
+            ) {
+                if (state == ReviewAudioPlaybackState.LOADING) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(reviewManagedMediaActionIconSize),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun ReviewManagedMediaStatusRow(
     label: String,
     supportingText: String,
-    icon: ImageVector
+    icon: ImageVector,
+    action: @Composable () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -720,6 +798,7 @@ private fun ReviewManagedMediaPlaceholderRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        action()
     }
 }
 
@@ -754,15 +833,6 @@ internal fun reviewManagedMediaImageFileAsset(reference: ReviewManagedMediaRefer
         isImageSyntax = reference.isImageSyntax
     )
     return if (category == ReviewManagedMediaCategory.IMAGE) mediaAsset else null
-}
-
-private fun reviewManagedMediaCategoryIcon(category: ReviewManagedMediaCategory): ImageVector {
-    return when (category) {
-        ReviewManagedMediaCategory.IMAGE -> Icons.Outlined.Image
-        ReviewManagedMediaCategory.AUDIO -> Icons.Outlined.Audiotrack
-        ReviewManagedMediaCategory.VIDEO -> Icons.Outlined.Movie
-        ReviewManagedMediaCategory.ATTACHMENT -> Icons.Outlined.AttachFile
-    }
 }
 
 private fun reviewManagedMediaCategoryLabelResId(category: ReviewManagedMediaCategory): Int {

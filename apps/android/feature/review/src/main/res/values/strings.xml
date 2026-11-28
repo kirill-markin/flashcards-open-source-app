@@ -70,6 +70,8 @@
     <string name="review_speech_unavailable">Speech is unavailable on this device.</string>
     <string name="review_media_attachment_label">Attachment</string>
     <string name="review_media_audio_label">Audio attachment</string>
+    <string name="review_media_audio_play">Play %1$s</string>
+    <string name="review_media_audio_stop">Stop %1$s</string>
     <string name="review_media_copy_link">Copy link</string>
     <string name="review_media_image_label">Managed image</string>
     <string name="review_media_loading">Loading media...</string>

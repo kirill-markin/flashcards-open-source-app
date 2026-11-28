@@ -389,6 +389,13 @@ private fun groupReviewManagedMediaMatches(
                 )
             }
         }
+        if (items.any { item ->
+                item is ReviewImageGalleryItem.Managed &&
+                    item.reference.mediaAsset?.mimeType?.startsWith("audio/", ignoreCase = true) == true
+            }
+        ) {
+            return@mapNotNull null
+        }
         // Splitting cuts a nested paragraph out of its list or quote, which managed references do anyway;
         // a nested paragraph of linked images stays in its Markdown fragment.
         if (paragraph.parent != markdownTree && items.none { item -> item is ReviewImageGalleryItem.Managed }) {

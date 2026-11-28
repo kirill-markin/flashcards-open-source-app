@@ -66,6 +66,8 @@
     <string name="review_speech_unavailable">Bacaan suara tidak tersedia pada peranti ini.</string>
     <string name="review_media_attachment_label">Lampiran</string>
     <string name="review_media_audio_label">Lampiran audio</string>
+    <string name="review_media_audio_play">Mainkan %1$s</string>
+    <string name="review_media_audio_stop">Hentikan %1$s</string>
     <string name="review_media_copy_link">Salin pautan</string>
     <string name="review_media_image_label">Imej terurus</string>
     <string name="review_media_loading">Memuatkan media…</string>

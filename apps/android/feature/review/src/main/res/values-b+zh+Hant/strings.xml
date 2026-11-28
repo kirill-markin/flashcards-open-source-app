@@ -66,6 +66,8 @@
     <string name="review_speech_unavailable">此裝置無法使用朗讀功能。</string>
     <string name="review_media_attachment_label">附件</string>
     <string name="review_media_audio_label">音訊附件</string>
+    <string name="review_media_audio_play">播放 %1$s</string>
+    <string name="review_media_audio_stop">停止播放 %1$s</string>
     <string name="review_media_copy_link">複製連結</string>
     <string name="review_media_image_label">受管理的圖片</string>
     <string name="review_media_loading">正在載入媒體…</string>

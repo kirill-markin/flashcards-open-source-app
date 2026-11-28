@@ -43,6 +43,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.SingletonImageLoader
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
@@ -203,6 +204,25 @@ fun ReviewRoute(
         )
     }
     val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
+    val reviewAudioPlaybackScope = rememberCoroutineScope()
+    val reviewAudioPlayback = remember(context, lifecycleOwner, reviewSpeechController) {
+        ReviewAudioPlayback(
+            context = context,
+            lifecycle = lifecycleOwner.lifecycle,
+            scope = reviewAudioPlaybackScope,
+            loadManagedMediaFile = { mediaAssetId -> currentLoadManagedMediaFile.value(mediaAssetId) },
+            onPlaybackRequested = reviewSpeechController::stop
+        )
+    }
+    LifecycleResumeEffect(
+        reviewAudioPlayback,
+        workspaceId,
+        uiState.preparedCurrentCard?.card?.cardId,
+        uiState.isAnswerVisible || widgetAnswerRequestId != null,
+        lifecycleOwner = lifecycleOwner
+    ) {
+        onPauseOrDispose { reviewAudioPlayback.stop() }
+    }
     // Outlives each image-set effect below, so a rating cancels only the jobs the preparer drops.
     val reviewImagePreparationScope = rememberCoroutineScope()
     val reviewImagePreparer = remember(context, reviewImagePreparationScope) {
@@ -580,10 +600,12 @@ fun ReviewRoute(
                 onCreateCardWithAi = onCreateCardWithAi,
                 onSwitchToAllCards = onSwitchToAllCards,
                 reviewImagePreparer = reviewImagePreparer,
+                reviewAudioPlayback = reviewAudioPlayback,
                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                 onConsumeRelocationTarget = onConsumeRelocationTarget,
                 onToggleFrontSpeech = {
                     uiState.preparedCurrentCard?.let { currentCard ->
+                        reviewAudioPlayback.stop()
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.FRONT,
                             speakableText = currentCard.frontSpeakableText,
@@ -596,6 +618,7 @@ fun ReviewRoute(
                 },
                 onToggleBackSpeech = {
                     uiState.preparedCurrentCard?.let { currentCard ->
+                        reviewAudioPlayback.stop()
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.BACK,
                             speakableText = currentCard.backSpeakableText,

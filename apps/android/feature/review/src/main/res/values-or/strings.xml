@@ -66,6 +66,8 @@
     <string name="review_speech_unavailable">ଏହି ଡିଭାଇସ୍‌ରେ ପଢ଼ି ଶୁଣାଇବା ସୁବିଧା ଉପଲବ୍ଧ ନାହିଁ।</string>
     <string name="review_media_attachment_label">ସଂଲଗ୍ନ ଫାଇଲ୍</string>
     <string name="review_media_audio_label">ସଂଲଗ୍ନ ଅଡିଓ</string>
+    <string name="review_media_audio_play">%1$s ଚଲାନ୍ତୁ</string>
+    <string name="review_media_audio_stop">%1$s ବନ୍ଦ କରନ୍ତୁ</string>
     <string name="review_media_copy_link">ଲିଙ୍କ୍ କପି କରନ୍ତୁ</string>
     <string name="review_media_image_label">ଆପ୍‌ରେ ସେଭ୍ ହୋଇଥିବା ଛବି</string>
     <string name="review_media_loading">ମିଡିଆ ଲୋଡ୍ ହେଉଛି…</string>
