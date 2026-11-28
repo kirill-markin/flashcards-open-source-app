@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Mörkt";
 "settings.theme.light" = "Ljust";
+"settings.theme.automatic" = "Automatiskt";
 "settings.theme.premiumNote" = "Ljust tema är tillgängligt med Premium. Ditt sparade tema återkommer när Premium är aktivt.";
 "settings.accentColor.title" = "Accentfärg";
 "settings.accentColor.default" = "Standard";

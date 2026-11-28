@@ -19,6 +19,7 @@ struct ReviewView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.tabBarPlacement) private var tabBarPlacement
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
@@ -308,7 +309,7 @@ struct ReviewView: View {
                        CGRect(origin: .zero, size: geometry.size).contains(target) {
                         FirstReviewOnboardingOverlay(
                             target: target, size: geometry.size,
-                            accent: self.store.displayedAccountAccentColor,
+                            accent: self.store.displayedAccountAccentColor(colorScheme: self.colorScheme),
                             animates: self.reduceMotion == false && self.isLowPowerModeEnabled == false
                         )
                     }
@@ -390,7 +391,7 @@ struct ReviewView: View {
         actions.append(MacToolbarAction(
             identifier: UITestIdentifier.reviewProgressBadge, symbol: badge.iconSystemName,
             label: formatReviewProgressBadgeAccessibilityLabel(badgeState: streak),
-            symbolColor: streak.hasReviewedToday ? UIColor(self.store.displayedAccountAccentColor.color) : nil,
+            symbolColor: streak.hasReviewedToday ? UIColor(self.store.displayedAccountAccentColor(colorScheme: self.colorScheme).color) : nil,
             title: formatReviewProgressBadgeValue(badgeState: streak),
             value: self.reviewProgressBadgeAccessibilityValue(badgeState: streak),
             isEnabled: streak.isInteractive,
@@ -431,7 +432,7 @@ struct ReviewView: View {
                         onSingleChoice: self.dismissReviewFilterPopover
                     )
                     .environment(\.locale, self.locale)
-                    .tint(self.store.displayedAccountAccentColor.color)
+                    .tint(self.store.displayedAccountAccentColor(colorScheme: self.colorScheme).color)
                 }
             }
         )
@@ -831,7 +832,7 @@ struct ReviewView: View {
                     self.beginEditing(card: card)
                 },
                 showsAiButton: false,
-                aiButtonAccentColor: self.store.displayedAccountAccentColor,
+                aiButtonAccentColor: self.store.displayedAccountAccentColor(colorScheme: self.colorScheme),
                 onOpenAi: {},
                 surfaceStyle: .front,
                 showsShortcutHints: UIDevice.current.userInterfaceIdiom == .pad && self.reviewScreen.isAnswerVisible == false,
@@ -865,7 +866,7 @@ struct ReviewView: View {
                         self.beginEditing(card: card)
                     },
                     showsAiButton: true,
-                    aiButtonAccentColor: self.store.displayedAccountAccentColor,
+                    aiButtonAccentColor: self.store.displayedAccountAccentColor(colorScheme: self.colorScheme),
                     onOpenAi: {
                         self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
                     },

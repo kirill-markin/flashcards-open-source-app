@@ -59,6 +59,7 @@ const esMxCatalog: TranslationCatalog = {
     subtitle: "Elige un aspecto oscuro o claro para la aplicación.",
     dark: "Oscuro",
     light: "Claro",
+    system: "Sistema",
     premiumNote: "El tema claro está incluido en Premium. Tu elección guardada vuelve cuando Premium está activo.",
   },
   accentColorSettings: {

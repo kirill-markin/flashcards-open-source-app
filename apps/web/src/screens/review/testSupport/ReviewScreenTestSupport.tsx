@@ -277,6 +277,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     refreshAccountPreferences: vi.fn(async () => ({
       accentColor: "#FF6719",
       theme: "dark",
+      followSystemAppearance: false,
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
     })),

@@ -964,6 +964,7 @@
 "settings.theme.title" = "Thema";
 "settings.theme.dark" = "Donker";
 "settings.theme.light" = "Licht";
+"settings.theme.automatic" = "Automatisch";
 "settings.theme.premiumNote" = "Het lichte thema is beschikbaar met Premium. Je opgeslagen thema keert terug wanneer Premium actief is.";
 "settings.accentColor.title" = "Accentkleur";
 "settings.accentColor.default" = "Standaard";

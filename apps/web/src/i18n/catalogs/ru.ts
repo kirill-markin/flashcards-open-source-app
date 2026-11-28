@@ -59,6 +59,7 @@ export const ruCatalog = {
     subtitle: "Выберите тёмное или светлое оформление приложения.",
     dark: "Тёмная",
     light: "Светлая",
+    system: "Системная",
     premiumNote: "Светлая тема доступна в Premium. Ваш сохранённый выбор вернётся, когда Premium будет активен.",
   },
   accentColorSettings: {

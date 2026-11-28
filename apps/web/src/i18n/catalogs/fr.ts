@@ -59,6 +59,7 @@ const frCatalog: TranslationCatalog = {
     subtitle: "Choisissez une apparence sombre ou claire pour l’application.",
     dark: "Sombre",
     light: "Clair",
+    system: "Système",
     premiumNote: "Le thème clair est inclus avec Premium. Votre choix enregistré revient lorsque Premium est actif.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const zuCatalog: TranslationCatalog = {
     subtitle: "Khetha ukubukeka okumnyama noma okukhanyayo kohlelo lokusebenza.",
     dark: "Okumnyama",
     light: "Okukhanyayo",
+    system: "Isistimu",
     premiumNote: "Itimu ekhanyayo ifakiwe ku-Premium. Ukukhetha kwakho okulondoloziwe kubuya lapho i-Premium isebenza.",
   },
   accentColorSettings: {

@@ -241,6 +241,7 @@ export function createAppData(): AppDataContextValue {
     refreshAccountPreferences: vi.fn(async () => ({
       accentColor: "#FF6719",
       theme: "dark",
+      followSystemAppearance: false,
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
     })),

@@ -59,6 +59,7 @@ const deCatalog: TranslationCatalog = {
     subtitle: "Wähle ein dunkles oder helles Erscheinungsbild für die App.",
     dark: "Dunkel",
     light: "Hell",
+    system: "System",
     premiumNote: "Das helle Design ist in Premium enthalten. Deine gespeicherte Auswahl gilt wieder, sobald Premium aktiv ist.",
   },
   accentColorSettings: {

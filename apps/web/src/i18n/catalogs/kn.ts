@@ -59,6 +59,7 @@ const knCatalog: TranslationCatalog = {
     subtitle: "ಆ್ಯಪ್‌ಗೆ ಗಾಢ ಅಥವಾ ತಿಳಿ ನೋಟವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
     dark: "ಗಾಢ",
     light: "ತಿಳಿ",
+    system: "ಸಿಸ್ಟಂ",
     premiumNote: "ತಿಳಿ ಥೀಮ್ Premiumನಲ್ಲಿ ಸೇರಿದೆ. Premium ಸಕ್ರಿಯವಾಗಿದ್ದಾಗ ನಿಮ್ಮ ಉಳಿಸಿದ ಆಯ್ಕೆ ಮರಳಿ ಬರುತ್ತದೆ.",
   },
   accentColorSettings: {

@@ -742,7 +742,8 @@
     <string name="settings_theme_title">主題</string>
     <string name="settings_theme_dark">深色</string>
     <string name="settings_theme_light">淺色</string>
-    <string name="settings_theme_premium_note">Premium 方案包含淺色主題。使用免費方案時會顯示深色主題，你先前儲存的選擇也會保留。</string>
+    <string name="settings_theme_system">系統預設</string>
+    <string name="settings_theme_premium_note">Premium 方案包含淺色主題和「系統預設」。使用免費方案時會顯示深色主題，你先前儲存的選擇也會保留。</string>
     <string name="settings_theme_update_failed">無法儲存主題。請檢查網路連線後再試一次。</string>
     <string name="settings_accent_title">強調色</string>
     <string name="settings_accent_selected">選取的顏色：%1$s</string>

@@ -16,6 +16,7 @@ struct MeResponse: Decodable {
         let firstReviewOnboardingCompleted: Bool
         let accentColor: AccountAccentColor
         let theme: AccountTheme
+        let followSystemAppearance: Bool
     }
 
     let userId: String

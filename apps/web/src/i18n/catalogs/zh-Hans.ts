@@ -59,6 +59,7 @@ export const zhHansCatalog = {
     subtitle: "为应用选择深色或浅色外观。",
     dark: "深色",
     light: "浅色",
+    system: "跟随系统",
     premiumNote: "浅色主题包含在Premium中。Premium激活后，将恢复你保存的选择。",
   },
   accentColorSettings: {

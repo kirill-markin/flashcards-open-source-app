@@ -964,6 +964,7 @@
 "settings.theme.title" = "Mandhari";
 "settings.theme.dark" = "Giza";
 "settings.theme.light" = "Angavu";
+"settings.theme.automatic" = "Kiotomatiki";
 "settings.theme.premiumNote" = "Mandhari angavu yanapatikana kwa Premium. Mandhari uliyohifadhi yatarudi Premium inapokuwa hai.";
 "settings.accentColor.title" = "Rangi ya msisitizo";
 "settings.accentColor.default" = "Chaguomsingi";

@@ -78,6 +78,16 @@ private func analyticsWidgetKind(kind: WidgetDeepLinkKind) -> AnalyticsWidgetKin
     }
 }
 
+/// Reads the appearance the window resolves, which under Automatic is the system's.
+private struct DisplayedAccountAccent: ViewModifier {
+    let store: FlashcardsStore
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
+
+    func body(content: Content) -> some View {
+        content.appAccent(self.store.displayedAccountAccentColor(colorScheme: self.colorScheme).color)
+    }
+}
+
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -246,8 +256,8 @@ struct FlashcardsApp: App {
                 #if targetEnvironment(macCatalyst)
                 .macSidebarCommandOwner()
                 #endif
-                .appAccent(store.displayedAccountAccentColor.color)
-                .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
+                .modifier(DisplayedAccountAccent(store: store))
+                .preferredColorScheme(store.effectiveAccountThemeSelection.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
                         self.openWidgetDeepLink(widgetDeepLink)

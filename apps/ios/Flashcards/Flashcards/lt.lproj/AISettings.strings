@@ -964,6 +964,7 @@
 "settings.theme.title" = "Tema";
 "settings.theme.dark" = "Tamsi";
 "settings.theme.light" = "Šviesi";
+"settings.theme.automatic" = "Automatiškai";
 "settings.theme.premiumNote" = "Šviesi tema pasiekiama su Premium. Išsaugota tema grįžta, kai Premium aktyvus.";
 "settings.accentColor.title" = "Akcento spalva";
 "settings.accentColor.default" = "Numatytoji";

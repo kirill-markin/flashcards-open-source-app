@@ -964,6 +964,7 @@
 "settings.theme.title" = "థీమ్";
 "settings.theme.dark" = "డార్క్";
 "settings.theme.light" = "లైట్";
+"settings.theme.automatic" = "ఆటోమేటిక్";
 "settings.theme.premiumNote" = "లైట్ థీమ్ Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన థీమ్ తిరిగి వస్తుంది.";
 "settings.accentColor.title" = "హైలైట్ రంగు";
 "settings.accentColor.default" = "డిఫాల్ట్";

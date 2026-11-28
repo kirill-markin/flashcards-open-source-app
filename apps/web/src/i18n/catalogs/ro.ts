@@ -59,6 +59,7 @@ const roCatalog: TranslationCatalog = {
     subtitle: "Alege un aspect întunecat sau luminos pentru aplicație.",
     dark: "Întunecată",
     light: "Luminoasă",
+    system: "Sistem",
     premiumNote: "Tema luminoasă este inclusă în Premium. Alegerea ta salvată revine când Premium este activ.",
   },
   accentColorSettings: {

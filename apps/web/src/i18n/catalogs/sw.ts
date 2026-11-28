@@ -59,6 +59,7 @@ const swCatalog: TranslationCatalog = {
     subtitle: "Chagua mwonekano wa giza au angavu kwa programu.",
     dark: "Giza",
     light: "Angavu",
+    system: "Mfumo",
     premiumNote: "Mandhari angavu yamejumuishwa katika Premium. Chaguo lako lililohifadhiwa hurudi Premium ikiwa hai.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const guCatalog: TranslationCatalog = {
     subtitle: "ઍપ માટે ડાર્ક અથવા લાઇટ દેખાવ પસંદ કરો.",
     dark: "ડાર્ક",
     light: "લાઇટ",
+    system: "સિસ્ટમ",
     premiumNote: "લાઇટ થીમ Premiumમાં સામેલ છે. Premium સક્રિય હોય ત્યારે તમારી સાચવેલી પસંદગી પાછી આવે છે.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const svCatalog: TranslationCatalog = {
     subtitle: "Välj ett mörkt eller ljust utseende för appen.",
     dark: "Mörkt",
     light: "Ljust",
+    system: "System",
     premiumNote: "Det ljusa temat ingår i Premium. Ditt sparade val kommer tillbaka när Premium är aktivt.",
   },
   accentColorSettings: {

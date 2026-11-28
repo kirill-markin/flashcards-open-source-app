@@ -96,6 +96,7 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
 const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "accentColor",
   "theme",
+  "followSystemAppearance",
   "reviewReactionAnimationsEnabled",
   "firstReviewOnboardingCompleted",
   "analyticsConsent",
@@ -177,6 +178,9 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
   const update: AccountPreferencesUpdate = {
     accentColor: "accentColor" in body ? expectAccentColor(body.accentColor) : null,
     theme: "theme" in body ? expectTheme(body.theme) : null,
+    followSystemAppearance: "followSystemAppearance" in body
+      ? expectBoolean(body.followSystemAppearance, "followSystemAppearance")
+      : null,
     reviewReactionAnimationsEnabled: "reviewReactionAnimationsEnabled" in body
       ? expectBoolean(body.reviewReactionAnimationsEnabled, "reviewReactionAnimationsEnabled")
       : null,
@@ -209,6 +213,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
   if (
     update.accentColor === null
     && update.theme === null
+    && update.followSystemAppearance === null
     && update.reviewReactionAnimationsEnabled === null
     && update.firstReviewOnboardingCompleted === null
     && update.analyticsConsent === null

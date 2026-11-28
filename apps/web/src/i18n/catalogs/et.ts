@@ -59,6 +59,7 @@ const etCatalog: TranslationCatalog = {
     subtitle: "Vali rakendusele tume või hele välimus.",
     dark: "Tume",
     light: "Hele",
+    system: "Süsteem",
     premiumNote: "Hele teema kuulub Premiumi juurde. Sinu salvestatud valik taastub, kui Premium on aktiivne.",
   },
   accentColorSettings: {

@@ -59,6 +59,7 @@ const daCatalog: TranslationCatalog = {
     subtitle: "Vælg et mørkt eller lyst udseende til appen.",
     dark: "Mørkt",
     light: "Lyst",
+    system: "System",
     premiumNote: "Det lyse tema er inkluderet i Premium. Dit gemte valg vender tilbage, når Premium er aktivt.",
   },
   accentColorSettings: {

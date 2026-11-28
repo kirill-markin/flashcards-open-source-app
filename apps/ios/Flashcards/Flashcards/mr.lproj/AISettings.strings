@@ -964,6 +964,7 @@
 "settings.theme.title" = "थीम";
 "settings.theme.dark" = "डार्क";
 "settings.theme.light" = "लाइट";
+"settings.theme.automatic" = "स्वयंचलित";
 "settings.theme.premiumNote" = "लाइट थीम Premium सह उपलब्ध आहे. Premium सक्रिय झाल्यावर तुमची जतन केलेली थीम परत येते.";
 "settings.accentColor.title" = "ठळक रंग";
 "settings.accentColor.default" = "डीफॉल्ट";

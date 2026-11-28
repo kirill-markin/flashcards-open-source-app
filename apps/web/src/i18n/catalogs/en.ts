@@ -58,6 +58,7 @@ const enCatalog = {
     subtitle: "Choose a dark or light look for the app.",
     dark: "Dark",
     light: "Light",
+    system: "System",
     premiumNote: "The light theme is included with Premium. Your saved choice returns when Premium is active.",
   },
   accentColorSettings: {

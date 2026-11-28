@@ -24,6 +24,7 @@ type AccountPreferencesRoutesOptions = Readonly<{
 type AccountPreferencesRow = Readonly<{
   accent_color: string;
   theme: AccountTheme;
+  follow_system_appearance: boolean;
   review_reaction_animations_enabled: boolean;
   first_review_onboarding_completed: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
@@ -34,6 +35,7 @@ function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreference
   return {
     accentColor: row.accent_color,
     theme: row.theme,
+    followSystemAppearance: row.follow_system_appearance,
     reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
     firstReviewOnboardingCompleted: row.first_review_onboarding_completed,
     analyticsConsent: row.analytics_consent,
@@ -97,10 +99,14 @@ export async function updateAccountPreferences(
       "accent_color = COALESCE($7::TEXT, accent_color),",
       "locale = COALESCE($8::TEXT, locale),",
       "first_review_onboarding_completed = COALESCE($9::BOOLEAN, first_review_onboarding_completed),",
-      "theme = COALESCE($10::TEXT, theme)",
+      "theme = COALESCE($10::TEXT, theme),",
+      // Choosing Dark or Light without naming this field, which every client released before it does,
+      // is a manual choice that stops following the system appearance.
+      "follow_system_appearance = COALESCE($11::BOOLEAN,",
+      "CASE WHEN $10::TEXT IS NULL THEN follow_system_appearance ELSE FALSE END)",
       "WHERE user_id = $1",
       "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color,",
-      "theme, first_review_onboarding_completed",
+      "theme, follow_system_appearance, first_review_onboarding_completed",
     ].join(" "),
     [
       userId,
@@ -113,6 +119,7 @@ export async function updateAccountPreferences(
       update.locale,
       update.firstReviewOnboardingCompleted,
       update.theme,
+      update.followSystemAppearance,
     ],
   );
 
@@ -224,6 +231,7 @@ export function registerAccountPreferencesRoutes(
       && preferencesUpdate.firstReviewOnboardingCompleted === null
       && preferencesUpdate.accentColor === null
       && preferencesUpdate.theme === null
+      && preferencesUpdate.followSystemAppearance === null
       && preferencesUpdate.locale === null
     ) {
       return context.json({
@@ -238,6 +246,7 @@ export function registerAccountPreferencesRoutes(
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
       accentColor: preferencesUpdate.accentColor,
       theme: preferencesUpdate.theme,
+      followSystemAppearance: preferencesUpdate.followSystemAppearance,
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
       firstReviewOnboardingCompleted: preferencesUpdate.firstReviewOnboardingCompleted,
       // Both analytics columns are the guest session's on this branch, so neither is written here.

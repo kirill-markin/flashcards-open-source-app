@@ -59,6 +59,7 @@ const thCatalog: TranslationCatalog = {
     subtitle: "เลือกรูปลักษณ์สีเข้มหรือสีอ่อนสำหรับแอป",
     dark: "สีเข้ม",
     light: "สีอ่อน",
+    system: "ตามระบบ",
     premiumNote: "ธีมสีอ่อนรวมอยู่ใน Premium ตัวเลือกที่คุณบันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่",
   },
   accentColorSettings: {

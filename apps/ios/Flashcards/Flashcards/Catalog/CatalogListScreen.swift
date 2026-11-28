@@ -11,6 +11,7 @@ struct CatalogListScreen: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.locale) private var locale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
 
     @State private var searchText: String = ""
     @State private var isSearchPresented: Bool = false
@@ -239,7 +240,7 @@ struct CatalogListScreen: View {
                             .formStyle(.grouped)
                             .frame(width: 340, height: 170)
                             .environment(\.locale, self.locale)
-                            .tint(self.store.displayedAccountAccentColor.color)
+                            .tint(self.store.displayedAccountAccentColor(colorScheme: self.colorScheme).color)
                         }
                     }
                 )

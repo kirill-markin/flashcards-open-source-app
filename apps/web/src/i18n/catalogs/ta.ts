@@ -59,6 +59,7 @@ const taCatalog: TranslationCatalog = {
     subtitle: "செயலிக்கு இருண்ட அல்லது வெளிர் தோற்றத்தைத் தேர்ந்தெடுக்கவும்.",
     dark: "இருண்டது",
     light: "வெளிர்",
+    system: "சிஸ்டம்",
     premiumNote: "வெளிர் தீம் Premium-இல் அடங்கும். Premium செயலில் இருக்கும்போது நீங்கள் சேமித்த தேர்வு மீண்டும் வரும்.",
   },
   accentColorSettings: {

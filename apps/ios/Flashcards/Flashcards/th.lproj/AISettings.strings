@@ -964,6 +964,7 @@
 "settings.theme.title" = "ธีม";
 "settings.theme.dark" = "มืด";
 "settings.theme.light" = "สว่าง";
+"settings.theme.automatic" = "อัตโนมัติ";
 "settings.theme.premiumNote" = "ธีมสว่างใช้ได้กับ Premium ธีมที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
 "settings.accentColor.title" = "สีเน้น";
 "settings.accentColor.default" = "ค่าเริ่มต้น";

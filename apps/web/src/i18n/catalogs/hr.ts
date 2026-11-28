@@ -59,6 +59,7 @@ const hrCatalog: TranslationCatalog = {
     subtitle: "Odaberite tamni ili svijetli izgled aplikacije.",
     dark: "Tamna",
     light: "Svijetla",
+    system: "Prema sustavu",
     premiumNote: "Svijetla tema uključena je u Premium. Vaš spremljeni odabir vraća se kada je Premium aktivan.",
   },
   accentColorSettings: {

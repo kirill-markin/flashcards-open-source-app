@@ -59,6 +59,7 @@ const paCatalog: TranslationCatalog = {
     subtitle: "ਐਪ ਲਈ ਗੂੜ੍ਹੀ ਜਾਂ ਹਲਕੀ ਦਿੱਖ ਚੁਣੋ।",
     dark: "ਗੂੜ੍ਹਾ",
     light: "ਹਲਕਾ",
+    system: "ਸਿਸਟਮ",
     premiumNote: "ਹਲਕਾ ਥੀਮ Premium ਵਿੱਚ ਸ਼ਾਮਲ ਹੈ। Premium ਸਰਗਰਮ ਹੋਣ ’ਤੇ ਤੁਹਾਡੀ ਸੰਭਾਲੀ ਹੋਈ ਚੋਣ ਵਾਪਸ ਆ ਜਾਂਦੀ ਹੈ।",
   },
   accentColorSettings: {
