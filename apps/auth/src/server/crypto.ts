@@ -38,3 +38,7 @@ export const verify = (signed: string): string => {
   }
   return Buffer.from(encoded, "base64url").toString("utf8");
 };
+
+/** Purpose-separated keyed digest (hex) of a value the server stores but must not keep in clear. */
+export const keyedDigestHex = (purpose: string, data: string): string =>
+  createHmac("sha256", getKey()).update(`${purpose}\u0000${data}`).digest("hex");

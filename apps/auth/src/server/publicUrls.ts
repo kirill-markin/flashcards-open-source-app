@@ -1,3 +1,5 @@
+import { isStandaloneDeployment } from "./deployment.js";
+
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
@@ -5,6 +7,13 @@ function stripTrailingSlash(value: string): string {
 function toRequestOrigin(requestUrl: string): string {
   const url = new URL(requestUrl);
   return `${url.protocol}//${url.host}`;
+}
+
+/** Standalone never derives a public URL from the request Host, which the client controls. */
+function requireConfiguredUrlOnStandalone(variableName: string): void {
+  if (isStandaloneDeployment()) {
+    throw new Error(`${variableName} is required when NIBOMO_DEPLOYMENT=standalone.`);
+  }
 }
 
 /**
@@ -16,6 +25,7 @@ export function getPublicAuthBaseUrl(requestUrl: string): string {
   if (configuredValue !== undefined && configuredValue !== "") {
     return stripTrailingSlash(configuredValue);
   }
+  requireConfiguredUrlOnStandalone("PUBLIC_AUTH_BASE_URL");
 
   return stripTrailingSlash(toRequestOrigin(requestUrl));
 }
@@ -29,6 +39,7 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
   if (configuredValue !== undefined && configuredValue !== "") {
     return stripTrailingSlash(configuredValue);
   }
+  requireConfiguredUrlOnStandalone("PUBLIC_API_BASE_URL");
 
   const requestOrigin = toRequestOrigin(requestUrl);
   const host = new URL(requestUrl).host;

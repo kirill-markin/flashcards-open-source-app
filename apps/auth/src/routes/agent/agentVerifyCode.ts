@@ -15,7 +15,7 @@ import {
   markAgentOtpChallengeUsed,
   type AgentOtpChallengeLookup,
 } from "../../server/agent/agentOtpChallenges.js";
-import { signInWithPassword, verifyEmailOtp, type TokenResult } from "../../server/cognito/cognitoAuth.js";
+import { signInWithPassword, verifyEmailOtp, type SessionTokens } from "../../server/identity/emailSignIn.js";
 import { getNormalizedCognitoErrorType } from "../../server/cognito/cognitoErrors.js";
 import { log } from "../../server/logger.js";
 import { getPublicApiBaseUrl } from "../../server/publicUrls.js";
@@ -48,8 +48,8 @@ type AgentVerifyCodeDependencies = Readonly<{
     nowMs: number,
     maxAttempts: number,
   ) => Promise<OtpVerifyFailureRecordResult>;
-  verifyEmailOtp: (email: string, code: string, session: string) => Promise<TokenResult>;
-  signInWithPassword: (email: string, password: string) => Promise<TokenResult>;
+  verifyEmailOtp: (email: string, code: string, session: string) => Promise<SessionTokens>;
+  signInWithPassword: (email: string, password: string) => Promise<SessionTokens>;
   getDemoEmailPassword: (email: string) => Promise<string | null>;
   markAgentOtpChallengeUsed: (email: string, cognitoSession: string, nowMs: number) => Promise<void>;
   normalizeAgentApiKeyLabel: (label: string) => string;
@@ -208,7 +208,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       );
     }
 
-    let tokens: TokenResult;
+    let tokens: SessionTokens;
     try {
       tokens = demoPassword === null
         ? await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession)

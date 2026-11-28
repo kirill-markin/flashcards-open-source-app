@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSession.js";
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
-import { revokeToken } from "../../server/cognito/cognitoAuth.js";
+import { revokeToken } from "../../server/identity/emailSignIn.js";
 import { isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
 import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "../../server/cognito/cognitoOutageReport.js";
 import { log } from "../../server/logger.js";

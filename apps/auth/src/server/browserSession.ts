@@ -7,12 +7,15 @@ import {
   JwtWithoutValidKidError,
   KidNotFoundInJwksError,
 } from "aws-jwt-verify/error";
+import type { JwtPayload } from "aws-jwt-verify/jwt-model";
 import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { isTransientDatabaseError } from "./databaseErrors.js";
 import { parseCookieDomainCandidates, resolveCookieDomain } from "./cookieDomain.js";
 import { log } from "./logger.js";
 import { assertVerifiedPrincipalSession, PrincipalSessionError } from "./social/principalSessions.js";
+import { getIdentityProvider, SignInUnavailableError } from "./identity/identityProvider.js";
+import { verifyLocalIdToken } from "./local/localTokens.js";
 
 // 400 days, the browser cap on cookie lifetime.
 const SESSION_COOKIE_MAX_AGE_SECONDS = 34_560_000;
@@ -63,7 +66,14 @@ function getClientId(): string {
   return clientId;
 }
 
-function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
+type IdTokenVerifier = Readonly<{ verify: (token: string) => Promise<JwtPayload & Readonly<{ sub: string }>> }>;
+
+const localVerifier: IdTokenVerifier = { verify: verifyLocalIdToken };
+
+function getVerifier(): IdTokenVerifier {
+  const provider = getIdentityProvider();
+  if (provider === "local") return localVerifier;
+  if (provider === "none") throw new SignInUnavailableError("Sign-in is disabled on this server.");
   if (verifier !== undefined) {
     return verifier;
   }
@@ -113,6 +123,7 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
     const reason = error instanceof Error ? error.message : String(error);
     if (
       (error instanceof PrincipalSessionError && error.statusCode !== 503) ||
+      error instanceof SignInUnavailableError ||
       error instanceof JwtParseError ||
       error instanceof JwtInvalidSignatureError ||
       error instanceof JwtInvalidSignatureAlgorithmError ||

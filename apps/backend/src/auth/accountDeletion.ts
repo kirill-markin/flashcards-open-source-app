@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { deleteCognitoUser } from "./cognitoUsers";
+import { getAuthConfig } from "./config";
+import { deleteLocalIdentity } from "./localIdentityVerifier";
 import { anonymizeAiUsageForDeletedPersonInExecutor } from "../aiUsage/identity";
 import { anonymizeBillingForDeletedPersonInExecutor } from "../billing/identity";
 import { cancelStripeBeforeAccountDeletionInExecutor } from "../billing/stripe/deletion";
@@ -61,9 +63,14 @@ type AnalyticsPersonUserIdRow = Readonly<{
   user_id: string;
 }>;
 
+/** The identity provider's own record of a subject, removed after the account data. */
+function deleteIdentityProviderUser(subject: string): Promise<void> {
+  return getAuthConfig().mode === "local" ? deleteLocalIdentity(subject) : deleteCognitoUser(subject);
+}
+
 const defaultAccountDeletionDependencies: AccountDeletionDependencies = {
   unsafeTransaction,
-  deleteCognitoUser,
+  deleteCognitoUser: deleteIdentityProviderUser,
   isConfiguredDemoEmail,
 };
 

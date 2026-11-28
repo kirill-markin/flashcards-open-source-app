@@ -1,4 +1,5 @@
 import { getPlaintextSecret } from "./secrets.js";
+import { getIdentityProvider } from "./identity/identityProvider.js";
 
 type DemoEmailAccessConfig = Readonly<{
   emailAllowlist: ReadonlySet<string>;
@@ -67,6 +68,10 @@ export function getDemoEmailAccessConfig(): DemoEmailAccessConfig {
   const emailAllowlist = parseDemoEmailAllowlist(rawAllowlist);
   const sharedPassword = process.env.DEMO_PASSWORD_DOSTIP ?? "";
   const passwordSecretArn = process.env.DEMO_PASSWORD_SECRET_ARN ?? "";
+
+  if (getIdentityProvider() !== "cognito" && (emailAllowlist.size > 0 || sharedPassword !== "" || passwordSecretArn !== "")) {
+    throw new Error("DEMO_EMAIL_DOSTIP, DEMO_PASSWORD_DOSTIP and DEMO_PASSWORD_SECRET_ARN serve Cognito review accounts; unset them when AUTH_IDENTITY_PROVIDER is local or none.");
+  }
 
   if (sharedPassword !== "" && passwordSecretArn !== "") {
     throw new Error(

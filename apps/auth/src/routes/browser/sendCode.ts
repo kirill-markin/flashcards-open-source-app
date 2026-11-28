@@ -3,7 +3,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
 import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
 import { setCookie } from "hono/cookie";
-import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../../server/cognito/cognitoAuth.js";
+import { initiateEmailOtp, signInWithPassword, type SessionTokens } from "../../server/identity/emailSignIn.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
 import {
   reportSignInCodeRequested,
@@ -46,7 +46,7 @@ type OtpPayload = Readonly<{
 
 type SendCodeDependencies = Readonly<{
   initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
-  signInWithPassword: (email: string, password: string) => Promise<TokenResult>;
+  signInWithPassword: (email: string, password: string) => Promise<SessionTokens>;
   decideOtpRateLimit: (email: string, ipAddress: string) => Promise<Awaited<ReturnType<typeof decideOtpRateLimit>>>;
   loadLatestSentOtpSessionToken: (email: string, nowMs: number) => Promise<string | null>;
   recordOtpSendDecision: (
@@ -118,7 +118,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       // Anyone who knows one of these emails and the shared insecure demo
       // password can sign in to that account without OTP.
       //
-      let tokens: TokenResult;
+      let tokens: SessionTokens;
       try {
         tokens = await dependencies.signInWithPassword(email, demoPassword);
       } catch (error) {

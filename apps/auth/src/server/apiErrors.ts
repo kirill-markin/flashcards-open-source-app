@@ -19,6 +19,7 @@ export type AuthPublicErrorCode =
   | import("./social/mailboxProof.js").EnrollmentErrorCode
   | "PRINCIPAL_SIGNOUT_PENDING"
   | "SESSION_REQUIRED"
+  | "SIGN_IN_UNAVAILABLE"
   | "SESSION_REVOKED"
   | "ACCOUNT_DELETED"
   | "ACCOUNT_SCOPE_CHANGED"

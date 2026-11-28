@@ -18,6 +18,7 @@ const awsOnlyVariableNames: ReadonlyArray<string> = [
 /** Secret files this app reads; outside standalone a set one would be ignored, so it is refused. */
 const standaloneSecretFileVariableNames: ReadonlyArray<string> = [
   "OIDC_SIGNING_KEY_FILE",
+  "LOCAL_AUTH_SIGNING_KEY_FILE",
 ];
 
 const minimumSecretFileBytes = 32;

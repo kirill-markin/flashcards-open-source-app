@@ -9,7 +9,7 @@ import {
 } from "../../server/apiErrors.js";
 import { reportSignInScreenViewed } from "../../server/analytics/signInFunnel.js";
 import { clearBrowserSessionCookies, setBrowserSessionCookies } from "../../server/browserSession.js";
-import { isTerminalRefreshFailure, refreshTokens } from "../../server/cognito/cognitoAuth.js";
+import { isTerminalRefreshFailure, refreshTokens } from "../../server/identity/emailSignIn.js";
 
 type RefreshSessionDependencies = Readonly<{
   refreshTokens: (refreshToken: string) => Promise<Awaited<ReturnType<typeof refreshTokens>>>;

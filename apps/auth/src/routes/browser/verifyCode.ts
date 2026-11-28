@@ -14,7 +14,7 @@ import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiEr
 import type { AuthSignInFailureReason } from "../../server/analytics/catalog.js";
 import { reportSignInFailed, reportSignInSucceeded } from "../../server/analytics/signInFunnel.js";
 import { PrincipalSessionError } from "../../server/social/principalSessions.js";
-import { verifyEmailOtp } from "../../server/cognito/cognitoAuth.js";
+import { verifyEmailOtp } from "../../server/identity/emailSignIn.js";
 import { IssuedSessionValidationError, setBrowserSessionCookies, verifiedBrowserSession } from "../../server/browserSession.js";
 import { getNormalizedCognitoErrorType } from "../../server/cognito/cognitoErrors.js";
 import { verify } from "../../server/crypto.js";

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
+import { isStandaloneDeployment } from "../../server/deployment.js";
 import { validateSessionToken, type BrowserSessionPresentation } from "../../server/browserSession.js";
 import { browserScriptJson } from "../../templates/browserCompletion.js";
 import { browserHintStorageScript } from "../../templates/browserHints.js";
@@ -10,6 +11,13 @@ export const browserHintsBridgePath = "/browser-hints";
 const app = new Hono<AuthAppEnv>();
 
 function allowedParents(authOrigin: string): ReadonlyArray<string> {
+  const configured = (process.env.ALLOWED_REDIRECT_URIS ?? "").split(",").map((value) => value.trim());
+  if (isStandaloneDeployment()) {
+    // The one configured app origin, never the request Host.
+    const appBaseUrl = process.env.PUBLIC_APP_BASE_URL ?? "";
+    const parent = appBaseUrl === "" ? "" : new URL(appBaseUrl).origin;
+    return parent !== "" && configured.includes(parent) ? [parent] : [];
+  }
   const pairs: Readonly<Record<string, string>> = {
     "https://auth.nibomo.com": "https://app.nibomo.com",
     "https://auth.flashcards-open-source-app.com": "https://app.flashcards-open-source-app.com",
@@ -17,7 +25,6 @@ function allowedParents(authOrigin: string): ReadonlyArray<string> {
     "http://127.0.0.1:8081": "http://127.0.0.1:3000",
   };
   const parent = pairs[authOrigin];
-  const configured = (process.env.ALLOWED_REDIRECT_URIS ?? "").split(",").map((value) => value.trim());
   return parent !== undefined && configured.includes(parent) ? [parent] : [];
 }
 

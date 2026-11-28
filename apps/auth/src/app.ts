@@ -49,6 +49,7 @@ import { isCognitoProviderOutage } from "./server/cognito/cognitoErrors.js";
 import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "./server/cognito/cognitoOutageReport.js";
 import { log } from "./server/logger.js";
 import { continueAuthTrace } from "./server/sentry.js";
+import { getIdentityProvider, getIdentityRouteRefusal, SignInUnavailableError } from "./server/identity/identityProvider.js";
 
 const apiCorsAllowHeaders = [
   "content-type",
@@ -166,6 +167,14 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
       }
       return jsonAuthError(c, error.statusCode, error.code, error.message);
     }
+    if (error instanceof SignInUnavailableError) {
+      if (routeKind === "agent") {
+        return c.json(createAgentErrorEnvelope(c.req.url, "SIGN_IN_UNAVAILABLE", error.message,
+          "This server does not offer this sign-in route. Do not retry."), 403);
+      }
+      if (routeKind === "api") return jsonAuthError(c, 403, "SIGN_IN_UNAVAILABLE", error.message);
+      return c.text(error.message, 403);
+    }
     if (error instanceof IssuedSessionValidationError) {
       return jsonAuthError(c, 503, socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE",
         socialCompletion
@@ -267,6 +276,7 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
 }
 
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
+  const identityProvider = getIdentityProvider();
   getDemoEmailAccessConfig();
   getAppleSignInConfig();
   getGoogleSignInConfig();
@@ -355,6 +365,12 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   // The OAuth consent POST is cookie-authenticated and state-changing but lives
   // outside /api/*, so it gets the same cross-origin guard explicitly.
   app.use("/authorize/consent", denyCrossOrigin);
+
+  app.use("*", async (c, next) => {
+    const refusal = getIdentityRouteRefusal(identityProvider, stripApiStagePrefix(c.req.path));
+    if (refusal !== null) throw new SignInUnavailableError(refusal);
+    await next();
+  });
 
   registerAuthErrorHandler(app);
 

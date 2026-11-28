@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
-import { initiateEmailOtp } from "../../server/cognito/cognitoAuth.js";
+import { initiateEmailOtp } from "../../server/identity/emailSignIn.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";

@@ -4,6 +4,8 @@ import { HttpError } from "../shared/errors";
 import { normalizeCrockfordToken } from "../agent/crockford";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { ensureMcpConnectionWorkspaceSelection } from "../workspaces/selection";
+import { isStandaloneDeployment } from "../deployment/standalone";
+import { getAuthConfig } from "./config";
 
 const AGENT_API_KEY_PREFIX = "FCA_";
 
@@ -167,7 +169,9 @@ export async function authenticateMcpBearerToken(
   expectedResource: string,
 ): Promise<AuthenticatedMcpAccessToken> {
   const trimmedToken = token.trim();
-  if (trimmedToken === "") {
+  // A guest-only standalone server accepts no agent key or OAuth token, as on REST. Checked
+  // standalone-first: the AWS MCP Lambda sets no AUTH_MODE.
+  if (trimmedToken === "" || (isStandaloneDeployment() && getAuthConfig().mode === "guest")) {
     throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
   }
 

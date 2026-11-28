@@ -13,8 +13,10 @@ import {
 } from "aws-jwt-verify/error";
 import { SimpleFetcher, type Fetcher } from "aws-jwt-verify/https";
 import { SimpleJwksCache } from "aws-jwt-verify/jwk";
+import type { JwtPayload } from "aws-jwt-verify/jwt-model";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
+import { verifyLocalIdToken } from "./localIdentityVerifier";
 import { HttpError } from "../shared/errors";
 import { authenticateGuestSession } from "../guestAuth/session/index";
 import type { AnalyticsConsentChoice } from "./ensureUser";
@@ -139,7 +141,13 @@ function getVerifierConfig(): Readonly<{
   };
 }
 
-function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
+type IdTokenVerifier = Readonly<{ verify: (token: string) => Promise<JwtPayload & Readonly<{ sub: string }>> }>;
+
+// Local verification reads no network, so the direct-request path needs no abort-aware fetcher.
+const localVerifier: IdTokenVerifier = { verify: verifyLocalIdToken };
+
+function getVerifier(): IdTokenVerifier {
+  if (getAuthConfig().mode === "local") return localVerifier;
   if (verifier) return verifier;
 
   verifier = CognitoJwtVerifier.create(getVerifierConfig());
@@ -147,8 +155,8 @@ function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
   return verifier;
 }
 
-function getDirectRequestVerifier():
-  ReturnType<typeof CognitoJwtVerifier.create> {
+function getDirectRequestVerifier(): IdTokenVerifier {
+  if (getAuthConfig().mode === "local") return localVerifier;
   if (directRequestVerifier) return directRequestVerifier;
 
   directRequestVerifier = CognitoJwtVerifier.create(
@@ -222,7 +230,7 @@ export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload):
 
 async function verifyIdTokenWithVerifier(
   token: string,
-  tokenVerifier: ReturnType<typeof CognitoJwtVerifier.create>,
+  tokenVerifier: IdTokenVerifier,
   checkSession: (payload: VerifiedPrincipalSessionClaims) => Promise<void>,
 ): Promise<AuthenticatedUserIdentity> {
   try {
@@ -348,6 +356,15 @@ async function authenticateRequestWithDependencies(
   }
 
   const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
+  const sessionToken = request.sessionToken;
+  if (authConfig.mode === "guest" && (
+    parsedAuthorization.scheme === "bearer"
+    || parsedAuthorization.scheme === "api_key"
+    || (sessionToken !== undefined && sessionToken !== "")
+  )) {
+    throw new AuthError(401, "This server accepts only guest sessions. Sign out and continue as a guest.");
+  }
+
   if (parsedAuthorization.scheme === "api_key") {
     const auth = await runOperation(
       () => dependencies.authenticateAgentApiKeyFn(parsedAuthorization.token),
@@ -393,7 +410,6 @@ async function authenticateRequestWithDependencies(
     };
   }
 
-  const sessionToken = request.sessionToken;
   if (sessionToken !== undefined && sessionToken !== "") {
     const identity = await runOperation(
       () => dependencies.verifyIdTokenFn(sessionToken),

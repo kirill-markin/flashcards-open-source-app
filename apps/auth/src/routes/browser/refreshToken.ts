@@ -5,7 +5,7 @@
  */
 import { Hono } from "hono";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
-import { isTerminalRefreshFailure, refreshTokens } from "../../server/cognito/cognitoAuth.js";
+import { isTerminalRefreshFailure, refreshTokens } from "../../server/identity/emailSignIn.js";
 import { log } from "../../server/logger.js";
 
 type RefreshTokenDependencies = Readonly<{
